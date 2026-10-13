@@ -293,3 +293,6 @@ dialog::backdrop { background: rgba(17, 24, 39, .55); }
 .work-song small { color: var(--gris); display: block; }
 .step-group { list-style: none; margin: 14px 0 0; font: 700 13px Ubuntu, sans-serif; letter-spacing: .08em; text-transform: uppercase; color: var(--gris); }
 .chord-path { background: #fff; border: 1px solid var(--linia); border-radius: 10px; padding: 10px 14px; margin-bottom: 12px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.genline { background: var(--nit); color: #fff; border-radius: 10px; padding: 10px 12px; font-size: 13px; width: 100%; }
+.genline b { display: block; font-size: 16px; color: var(--accent-soft); margin: 2px 0; }
+.genline small { color: #b9c0cc; }

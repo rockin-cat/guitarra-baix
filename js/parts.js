@@ -145,6 +145,25 @@ export function partBar(spec, instId, bar, M, k = 0) {
         out.push(noteEvent(inst, bassRole(chord, role), a, d, chord));
       }
     });
+  } else if (spec.type === 'linia') {
+    // la línia de baix escrita al Generador de diagrames (semicorxeres = 0,25 negres), compàs a compàs
+    const line = spec.line;
+    const [num, den] = String(line.compas || '4/4').split('/').map(Number);
+    const perBar = num * (den === 8 ? 2 : 4);
+    const which = k % Math.max(1, line.compassos);
+    const STR = { e: 0, a: 1, d: 2, g: 3 };
+    let pos = 0;
+    for (const n of line.notes) {
+      const start = pos;
+      pos += n.d;
+      if (n.silenci || start < which * perBar || start >= (which + 1) * perBar) continue;
+      const a = (start - which * perBar) / 4;
+      if (a >= M.beats - EPS) continue;
+      const dur = Math.min(n.d / 4, M.beats - a);
+      const chord = segChord(bar, a, M);
+      const sIdx = STR[n.corda] ?? 0;
+      out.push(noteEvent(inst, { s: Math.min(sIdx, inst.tuning.length - 1), f: n.trast }, a, dur, chord, { label: String(n.trast) }));
+    }
   } else if (spec.type === 'techroot') {
     // per al creador: un recurs tècnic que arriba a la fonamental de cada acord, i després 1 i 5
     for (const seg of bar) {

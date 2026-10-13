@@ -143,6 +143,7 @@ function workSongBox() {
   return `<div class="work-song">
       <span style="font-size:26px">🎵</span>
       <div style="flex:1;min-width:200px">${ws ? `<small>La cançó amb què treballes</small><span class="ws-name">${esc(ws.titol)}</span>${ws.artista ? ` <small style="display:inline">· ${esc(ws.artista)}</small>` : ''}` : '<small>Sempre s\'aprèn a partir d\'una cançó</small><span class="ws-name">Tria la cançó amb què treballes</span>'}
+        ${i.id === 'baix' && ws?.baix?.length ? `<small>🎸 Porta ${ws.baix.length === 1 ? 'una línia' : `${ws.baix.length} línies`} de baix del Generador: es toquen als nivells de línia de baix</small>` : ''}
         ${i.id === 'guitarra' ? `<small>Acords: ${esc(MODE_TEXT(store.chordMode()))} · es canvia a la pràctica o al nivell 1</small>` : ''}</div>
       <button type="button" class="btn ${ws ? 'btn-ghost' : 'btn-primary'}" data-go="songs">${ws ? 'Canvia de cançó' : 'Tria-la'}</button>
     </div>`;
@@ -378,8 +379,8 @@ async function renderSongTab() {
 
 function loadSong(s, from) {
   const metre = s.metre ?? '4/4';
-  Object.assign(draft, { titol: s.titol, artista: s.artista ?? '', prog: s.prog, metre, tempo: s.tempo ?? 90, estil: STYLES[s.estil]?.metres.includes(metre) ? s.estil : mapStyle(s.estil, metre), id: null, compose: null });
-  renderCreator(`«${s.titol}» oberta${from ? ` ${from}` : ''}${s.nota ? `. ${s.nota}` : ''}. Tria el nivell i prem «Fes-me la base».`);
+  Object.assign(draft, { titol: s.titol, artista: s.artista ?? '', baix: s.baix ?? null, prog: s.prog, metre, tempo: s.tempo ?? 90, estil: STYLES[s.estil]?.metres.includes(metre) ? s.estil : mapStyle(s.estil, metre), id: null, compose: null });
+  renderCreator(`«${s.titol}» oberta${from ? ` ${from}` : ''}${s.baix?.length ? ` (porta ${s.baix.length === 1 ? 'una línia' : `${s.baix.length} línies`} de baix del Generador)` : ''}${s.nota ? `. ${s.nota}` : ''}. Tria el nivell i prem «Fes-me la base».`);
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
@@ -398,7 +399,7 @@ function creatorClick(b) {
     store.setWorkSong({ ...draft, titol: draft.titol || 'La meva cançó' });
     renderCreator(`Ara tots els passos del full de ruta es practiquen amb «${draft.titol || 'La meva cançó'}».`);
   } else if (b.dataset.c === 'new') {
-    Object.assign(draft, { titol: '', artista: '', prog: '', id: null, compose: null });
+    Object.assign(draft, { titol: '', artista: '', baix: null, prog: '', id: null, compose: null });
     renderCreator();
   } else if (b.dataset.pickcard) {
     const opts = levelOptions(i.id, Number(draft.nivell), draft.metre);

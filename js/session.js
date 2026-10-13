@@ -55,6 +55,14 @@ function effectiveStep(base, instId, opts = {}) {
     // i la melodia per cantar surt de les notes dels acords
     if (base.part?.type === 'riff') s.part = { type: 'techroot', tech: base.part.tech ?? 'h' };
     if (Array.isArray(base.voice)) s.voice = 'melody';
+    // baix: la línia que el professorat ha escrit al Generador per a aquesta cançó
+    const lines = song.baix ?? [];
+    if (instId === 'baix' && lines.length && ['bass', 'arp'].includes(base.part?.type) && store.useGenBass()) {
+      const li = Math.min(opts.lineIdx ?? 0, lines.length - 1);
+      s.part = { type: 'linia', line: lines[li] };
+      s.genLine = lines[li].nom;
+      s.carta = null;
+    }
     s.prog = opts.whole ? song.prog : practicePart(song.prog);
     s.metre = song.metre;
     s.estil = STYLES[song.estil]?.metres.includes(song.metre) ? song.estil : STYLES[base.estil]?.metres.includes(song.metre) ? base.estil : defaultStyle(song.metre);
@@ -172,6 +180,12 @@ export function openSession(host, baseStep, ctx) {
       const m = CHORD_MODES.find(([k]) => k === t.value)?.[1];
       if (m) { store.setChordMode(m); rebuildStep(st); }
     } else if (t.dataset.el === 'whole') { st.whole = t.checked; rebuildStep(st); }
+    else if (t.dataset.el === 'gline') {
+      const v = Number(t.value);
+      store.setUseGenBass(v >= 0);
+      st.lineIdx = Math.max(0, v);
+      rebuildStep(st);
+    }
   });
   st.el('rounds').addEventListener('change', (e) => { st.rounds = Number(e.target.value); });
   st.el('metro').addEventListener('change', (e) => { st.metronome = e.target.checked; S.metronome = st.metronome; store.save(); player.setMetronome(st.metronome); });
@@ -191,6 +205,11 @@ function renderSongBar(st) {
     const cur = modeKey(store.chordMode());
     parts.push(`<label>Acords <select data-el="cmode">${CHORD_MODES.map(([k, , t]) => `<option value="${k}"${k === cur ? ' selected' : ''}>${esc(t)}</option>`).join('')}</select></label>`);
   }
+  const lines = store.workSong()?.baix ?? [];
+  if (st.inst.id === 'baix' && st.step.usesSong && lines.length && ['bass', 'arp'].includes(b.part?.type)) {
+    const on = store.useGenBass();
+    parts.push(`<label>Línia de baix <select data-el="gline"><option value="-1"${on ? '' : ' selected'}>la del nivell</option>${lines.map((l, i) => `<option value="${i}"${on && (st.lineIdx ?? 0) === i ? ' selected' : ''}>del Generador: ${esc(l.nom)}</option>`).join('')}</select></label>`);
+  }
   if (st.step.usesSong) {
     parts.push(`<span class="song-chip">🎵 ${esc(st.step.usesSong)}</span><label class="toggle"><input type="checkbox" data-el="whole"${st.whole ? ' checked' : ''}> Cançó sencera</label>`);
   } else if (st.step.songNote) parts.push(`<span class="muted small">${esc(st.step.songNote)}</span>`);
@@ -203,8 +222,7 @@ function renderSongBar(st) {
 
 function rebuildStep(st) {
   player.stop();
-  st.step = effectiveStep(st.baseStep, st.inst.id, {});
-  if (st.whole && st.step.usesSong) st.step = effectiveStep(st.baseStep, st.inst.id, { whole: true });
+  st.step = effectiveStep(st.baseStep, st.inst.id, { lineIdx: st.lineIdx, whole: st.whole });
   setTempo(st, st.step.tempo ?? st.tempo);
   buildSong(st);
   renderPulses(st);
@@ -539,10 +557,11 @@ function updateSide(st, content, pos, ev) {
     cards = [b.rhythm, b.melodic];
   } else if (step.carta) cards = [step.carta];
   const showBoxes = st.inst.id === 'guitarra' && ev?.voicing && st.kind !== 'improv';
-  key = JSON.stringify([cards, showBoxes ? ev.chord : null]);
+  key = JSON.stringify([cards, showBoxes ? ev.chord : null, step.genLine]);
   if (host.dataset.key !== key) {
     host.dataset.key = key;
     host.innerHTML = '';
+    if (step.genLine) host.append(h(`<div class="genline">🎸 Línia de baix del Generador<b>${esc(step.genLine)}</b><small>La que ha escrit el professorat per a aquesta cançó. Els números del mànec són els trasts.</small></div>`));
     for (const id of cards) {
       const c = cardById(id);
       if (!c) continue;

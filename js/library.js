@@ -52,7 +52,32 @@ function barText(bar) {
   return filled.find(Boolean);
 }
 
-/** Una cançó del Generador → { titol, prog, metre, tempo, estil }. */
+/**
+ * Les línies de baix d'una cançó del Generador (escriptor de baix «melbaix» o tabulatura antiga).
+ * Torna [{ nom, compas, compassos, notes: [{ d (semicorxeres), corda: 'e'|'a'|'d'|'g', trast } | { d, silenci }] }].
+ */
+export function bassLines(items) {
+  const out = [];
+  for (const it of Array.isArray(items) ? items : []) {
+    if (it?.inst !== 'baix') continue;
+    if (it.tipus === 'melbaix' && Array.isArray(it.notes) && it.notes.some((n) => !n.silenci)) {
+      out.push({ nom: it.nom || `Línia ${out.length + 1}`, compas: it.compas || '4/4', compassos: Number(it.compassos) || 1, notes: it.notes.map((n) => (n.silenci || n.corda === undefined ? { d: n.d, silenci: true } : { d: n.d, corda: String(n.corda).toLowerCase(), trast: Number(n.trast) })) });
+    } else if (it.tipus === 'tab') {
+      // tabulatura antiga: totes les notes amb la mateixa figura
+      const d = { negra: 4, blanca: 8, rodona: 16, cap: 4 }[it.figura] || 4;
+      const cols = new Map();
+      for (const c of ['g', 'd', 'a', 'e']) {
+        const re = /\d+/g; let m;
+        while ((m = re.exec(String(it[c] || '')))) if (!cols.has(m.index)) cols.set(m.index, { d, corda: c, trast: Number(m[0]) });
+      }
+      const notes = [...cols.entries()].sort((a, b) => a[0] - b[0]).map(([, n]) => n);
+      if (notes.length) out.push({ nom: it.nom || `Línia ${out.length + 1}`, compas: '4/4', compassos: Math.max(1, Math.ceil((notes.length * d) / 16)), notes });
+    }
+  }
+  return out;
+}
+
+/** Una cançó del Generador → { titol, prog, metre, tempo, estil, baix }. */
 export function songFromLibrary(song, entry) {
   const est = song?.estructura ?? {};
   const parts = [];
@@ -84,5 +109,6 @@ export function songFromLibrary(song, entry) {
     metre,
     tempo: Math.max(40, Math.min(200, parseInt(est.tempo, 10) || 90)),
     estil,
+    baix: bassLines(song?.items),
   };
 }
