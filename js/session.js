@@ -97,6 +97,7 @@ export function openSession(host, baseStep, ctx) {
     <div class="session" data-kind="${kind}">
       <div class="view-head">
         <button type="button" class="btn-back" data-act="back">← ${esc(ctx.backLabel ?? 'Torna')}</button>
+        <button type="button" class="btn btn-ghost btn-small help-btn" data-go="guide" title="Què vol dir cada cosa de la pantalla">👀 Com es llegeix?</button>
         <div class="sess-title">
           <small>${esc([inst.nom, levelText, ctx.crumb].filter(Boolean).join(' · '))}</small>
           <h2>${esc(step.titol)}</h2>

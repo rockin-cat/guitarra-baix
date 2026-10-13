@@ -125,6 +125,21 @@ export function createNeck(host, inst, { thickTop = true } = {}) {
 
   const api = {
     svg, inst,
+    /** Quina corda i quin trast hi ha sota un punt de la pantalla (per a la guia). */
+    hit(clientX, clientY) {
+      const pt = svg.createSVGPoint();
+      pt.x = clientX; pt.y = clientY;
+      const m = svg.getScreenCTM();
+      if (!m) return null;
+      const q = pt.matrixTransform(m.inverse());
+      let s = 0;
+      let best = Infinity;
+      for (let k = 0; k < n; k++) { const d = Math.abs(y(k) - q.y); if (d < best) { best = d; s = k; } }
+      if (best > gap * 0.7 || q.x > LAST + 10) return null;
+      let f = 0;
+      if (q.x >= NUT) { for (f = 1; f <= frets; f++) if (q.x < wireX(f, frets)) break; f = Math.min(f, frets); }
+      return { s, f };
+    },
     /**
      * view = { mode: 'chord' | 'notes' | 'scale', cur, next, ctx: [{s,f,label,cls}], chord }
      */
@@ -159,7 +174,19 @@ export function createNeck(host, inst, { thickTop = true } = {}) {
         const { p, ghost, dir, s } = pick;
         let py;
         if (s != null) py = y(s) - 2 - Math.sin(Math.min(1, p) * Math.PI) * 10;
-        else { const [a, b] = dir === 'D' ? down : [down[1], down[0]]; py = a + (b - a) * ease(p); }
+        else {
+          // la púa només recorre les cordes que sonen (amb cordes tapades o power chords, no passa per les altres)
+          let span = down;
+          const st = (pick.strings ?? []).filter((x) => x >= 0 && x < n);
+          if (st.length) {
+            const lo = Math.min(...st);
+            const hi = Math.max(...st);
+            const sign = thickTop ? 1 : -1;
+            span = [y(lo) - sign * gap * 0.55, y(hi) + sign * gap * 0.55];
+          }
+          const [a, b] = dir === 'D' ? span : [span[1], span[0]];
+          py = a + (b - a) * ease(p);
+        }
         pickG.setAttribute('transform', `translate(${PICK_X} ${py.toFixed(1)})`);
         pickG.classList.toggle('ghost', !!ghost);
         arrow.textContent = s != null ? '' : dir === 'D' ? '↓' : '↑';

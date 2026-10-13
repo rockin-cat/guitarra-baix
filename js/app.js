@@ -12,15 +12,17 @@ import { savedCode, saveCode, listLibrary, loadLibrarySong, songFromLibrary, err
 import { songbook, WHEELS, keyboardSongs, mapStyle } from './songs.js';
 import { structureHtml } from './songview.js';
 import { summary } from './skills.js';
+import { renderGuide, closeGuide } from './guide.js';
 
 const $ = (sel, root = document) => root.querySelector(sel);
 const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
-const VIEWS = ['home', 'song', 'map', 'level', 'cards', 'skills', 'session'];
+const VIEWS = ['home', 'song', 'map', 'level', 'cards', 'skills', 'guide', 'session'];
 
 const inst = () => INSTRUMENTS[store.instrumentOf()];
 
 function show(view) {
   if (view !== 'session') closeSession();
+  if (view !== 'guide') closeGuide();
   for (const v of VIEWS) $(`#v-${v}`).hidden = v !== view;
   document.body.dataset.view = view;
   window.scrollTo({ top: 0 });
@@ -96,11 +98,13 @@ function renderHome() {
       <div class="inst-tiles">
         ${Object.values(INSTRUMENTS).map((x) => `<button type="button" class="inst-tile${x.id === i.id ? ' on' : ''}" data-inst="${x.id}" style="--c:${x.color}"><span class="it-icon">${x.id === 'guitarra' ? guitarSvg(x.color) : bassSvg(x.color)}</span><span><b>${esc(x.nom)}</b><small>${ws ? levelLine(x.id) : ''}</small></span></button>`).join('')}
       </div>
+      ${!store.player()?.guideDone ? `<button type="button" class="door door-guide" data-go="guide"><span class="door-icon">👀</span><span class="door-text"><b>Comences de zero? Aprèn a llegir la pantalla</b><small>Què vol dir cada cosa del mànec, la púa, la pista i les cartes, i com trobar-ho ${i.id === 'guitarra' ? 'a la guitarra' : 'al baix'}</small></span></button>` : ''}
       ${workSongBox({ full: true })}
       ${ws ? `<div class="doors">
         <button type="button" class="door door-main" data-go="continue"><span class="door-icon">▶</span><span class="door-text"><b>Continua</b><small>${nx ? `Nivell ${nx.level.n} · ${esc(nx.step.titol)}` : 'Has fet tot el full de ruta! Tria qualsevol pas.'}</small></span></button>
         <button type="button" class="door" data-go="map"><span class="door-icon">🗺️</span><span class="door-text"><b>Full de ruta</b><small>Els 10 nivells de ${esc(i.curt.toLowerCase())}, sobre «${esc(ws.titol)}»</small></span></button>
         <button type="button" class="door" data-go="skills"><span class="door-icon">🎒</span><span class="door-text"><b>Què sé fer</b><small>El que has desbloquejat i què pots fer a la banda</small></span></button>
+        ${store.player()?.guideDone ? `<button type="button" class="door" data-go="guide"><span class="door-icon">👀</span><span class="door-text"><b>Aprèn a llegir la pantalla</b><small>Què vol dir cada cosa i com trobar-ho a l'instrument</small></span></button>` : ''}
       </div>` : ''}` : `
       <div class="panel who">
         <h2>Qui toca?</h2>
@@ -447,6 +451,7 @@ document.addEventListener('click', (ev) => {
     if (view === 'map') renderMap();
     else if (view === 'song') renderSong();
     else if (view === 'skills') renderSkills();
+    else if (view === 'guide') renderGuide($('#v-guide'), inst().id, {});
     else if (view === 'home') renderHome();
     else { renderMap(); show('map'); }
     return;
@@ -459,6 +464,11 @@ document.addEventListener('click', (ev) => {
   if (go === 'song') { editing = false; Object.assign(draft, { prog: '' }); renderSong(); show('song'); return; }
   if (go === 'map') { if (needSong()) return; renderMap(); show('map'); return; }
   if (go === 'skills') { renderSkills(); show('skills'); return; }
+  if (go === 'guide') {
+    show('guide');
+    renderGuide($('#v-guide'), inst().id, { onDone: () => { const p = store.player(); if (p) { p.guideDone = true; store.save(); } if (store.workSong()) { renderMap(); show('map'); } else { renderSong(); show('song'); } } });
+    return;
+  }
   if (go === 'continue') {
     if (needSong()) return;
     const nx = nextStep(inst().id);
