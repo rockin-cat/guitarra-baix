@@ -1,11 +1,13 @@
 // Totes les cançons que el joc sap obrir:
-//  · el Llibre de temes ROCKIN (el mateix del joc de teclat; es llegeix el publicat i, si no hi arriba, la còpia local)
+//  · el Llibre ROCKIN: la còpia oberta de la biblioteca del Generador (data/llibre-obert.js, sense codi) i les cançons
+//    del Llibre de temes del joc de teclat que no hi són (es llegeix el publicat i, si no hi arriba, la còpia local)
 //  · les rodes de cançons del joc de teclat («Cançons i estructura»)
 //  · les cançons fetes o obertes al joc de teclat en aquest navegador (rockin.play.paths)
 //  · la biblioteca compartida del Generador de diagrames (vegeu library.js), que és la mateixa que fan servir els jocs de teclat i bateria
 // Totes es tornen com { titol, artista, prog ('[A] C | G | …'), metre, tempo, estil, font }.
 
 import { SONGBOOK as LOCAL_BOOK } from './data/llibre.js';
+import { LLIBRE_OBERT } from './data/llibre-obert.js';
 import { progressionText } from './theory.js';
 import { STYLES } from './band.js';
 
@@ -26,6 +28,9 @@ function fromParts(parts, order) {
   return progressionText(names.filter((n) => parts[n]).map((n) => ({ name: n, bars: String(parts[n]).split('|').map((b) => b.trim()).filter(Boolean) })));
 }
 
+const norm = (t) => String(t ?? '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]/g, '');
+export const sameTitle = (a, b) => norm(a) === norm(b);
+
 let bookCache = null;
 export async function songbook() {
   if (bookCache) return bookCache;
@@ -34,10 +39,14 @@ export async function songbook() {
     const mod = await import(/* @vite-ignore */ `${PUBLISHED_BOOK}?v=${Math.floor(Date.now() / 600000)}`);
     if (Array.isArray(mod.SONGBOOK) && mod.SONGBOOK.length) list = mod.SONGBOOK;
   } catch { /* sense xarxa o en local: la còpia */ }
-  bookCache = list.map((s) => ({
-    id: s.id, titol: s.name, artista: s.artist, font: 'llibre', nota: s.note ?? '',
+  const fromKeys = list.map((s) => ({
+    id: s.id, titol: s.name, artista: s.artist, font: 'llibre', nota: s.note ?? '', nivell: null,
     prog: fromParts(s.parts, s.order), metre: '4/4', tempo: s.tempo, estil: mapStyle(s.style, '4/4'),
   }));
+  // primer les de la biblioteca (còpia oberta, amb línia de baix); després les del joc de teclat que no hi són
+  const open = LLIBRE_OBERT.map((s) => ({ ...s, font: 'llibre', estil: mapStyle(s.estil, s.metre) }));
+  const has = new Set(open.map((s) => norm(s.titol)));
+  bookCache = [...open, ...fromKeys.filter((s) => !has.has(norm(s.titol)))];
   return bookCache;
 }
 

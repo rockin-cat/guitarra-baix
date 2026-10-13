@@ -58,3 +58,7 @@ Les cançons porten l'estructura: `[Tornada] C | G | …` posa nom a la part, i 
 - Només es juga a partir d'una cançó: **La teva cançó** (Llibre ROCKIN, biblioteca compartida, joc de teclat, les meves) o, si no hi és, escrivint-ne els acords. La cançó es mostra com a la pestanya Estructura del Generador (graus amb els colors del llibre, parts amb capçalera taronja i compassos de quatre en quatre).
 - Els nivells no canvien mai la progressió: els passos que no quadren amb el compàs de la cançó no surten, i n'hi ha de propis per a 3/4, 6/8 i 12/8 (cartes ternàries i rascats).
 - **Què sé fer** (`js/skills.js`): el que s'ha desbloquejat a cada nivell (passos, tempo, cartes) i què vol dir per a la banda. Es pot imprimir.
+
+## Llibre ROCKIN obert (versió 12)
+
+`js/data/llibre-obert.js` és una còpia de les cançons de la biblioteca compartida del Generador (acords amb l'estructura, compàs, tempo, estil i línia de baix; sense lletres), perquè l'alumnat les obri sense el codi del professorat. És una foto del 13-10-2026: les cançons noves o els canvis a la biblioteca no hi arriben fins que es torna a generar el fitxer. Al «Llibre ROCKIN» surten per nivells i, a sota, les del Llibre de temes del joc de teclat que no hi són.

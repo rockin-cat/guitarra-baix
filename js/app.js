@@ -9,7 +9,7 @@ import { BINARI, TERNARI, MELODIC, RASCATS, cardById, cardMetre } from './data/c
 import { METRES, parseProgression } from './theory.js';
 import { stylesFor, defaultStyle, STYLES } from './band.js';
 import { savedCode, saveCode, listLibrary, loadLibrarySong, songFromLibrary, errorText } from './library.js';
-import { songbook, WHEELS, keyboardSongs, mapStyle } from './songs.js';
+import { songbook, WHEELS, keyboardSongs, mapStyle, sameTitle } from './songs.js';
 import { structureHtml } from './songview.js';
 import { summary } from './skills.js';
 import { renderGuide, closeGuide } from './guide.js';
@@ -332,7 +332,10 @@ async function renderSongTab() {
     const list = await songbook();
     if (songTab !== 'llibre') return;
     for (const s of list) songIndex.set(s.id, s);
-    box.innerHTML = `<p class="muted small">El Llibre de temes ROCKIN, amb l'estructura de cada cançó (el mateix del joc de teclat).</p><ul class="songs">${list.map((s) => songRow('data-ksong', s.id, s.titol, `${s.artista} · ${s.tempo} bpm`)).join('')}</ul>`;
+    const groups = [[0, 'Nivell 0'], [1, 'Nivell 1'], [2, 'Nivell 2'], [3, 'Nivell 3'], [null, 'Altres temes del Llibre']]
+      .map(([n, t]) => [t, list.filter((s) => (s.nivell ?? null) === n)]).filter(([, l]) => l.length);
+    box.innerHTML = `<p class="muted small">Les cançons de la biblioteca del Generador, obertes per a tothom (sense codi). Les que porten 🎸 tenen línia de baix.</p>
+      ${groups.map(([t, l]) => `<h4>${esc(t)}</h4><ul class="songs">${l.map((s) => songRow('data-ksong', s.id, s.titol, `${s.artista} · ${s.metre} · ${s.tempo} bpm${s.baix?.length ? ' · 🎸 baix' : ''}`)).join('')}</ul>`).join('')}`;
   } else if (songTab === 'teclat') {
     const own = keyboardSongs();
     for (const s of [...WHEELS, ...own]) songIndex.set(s.id, s);
@@ -505,7 +508,10 @@ async function refreshWorkSong() {
   if (!ws?.ref) return;
   let fresh = null;
   try {
-    if (ws.font === 'llibre') fresh = (await songbook()).find((s) => s.id === ws.ref) ?? null;
+    if (ws.font === 'llibre') {
+      const book = await songbook();
+      fresh = book.find((s) => s.id === ws.ref) ?? book.find((s) => sameTitle(s.titol, ws.titol)) ?? null;
+    }
     else if (ws.font === 'biblio' && savedCode()) {
       const s = songFromLibrary(await loadLibrarySong(savedCode(), ws.ref), { id: ws.ref });
       fresh = { ...s, estil: s.estil ?? ws.estil };
@@ -514,7 +520,8 @@ async function refreshWorkSong() {
   if (!fresh) return;
   const changed = fresh.prog !== ws.prog || fresh.titol !== ws.titol || JSON.stringify(fresh.baix ?? null) !== JSON.stringify(ws.baix ?? null) || String(fresh.metre) !== String(ws.metre);
   if (!changed || store.workSong()?.ref !== ws.ref) return;
-  store.setWorkSong({ ...ws, ...fresh, estil: STYLES[fresh.estil]?.metres.includes(fresh.metre) ? fresh.estil : ws.estil, font: ws.font, ref: ws.ref });
+  delete fresh.nivell;
+  store.setWorkSong({ ...ws, ...fresh, estil: STYLES[fresh.estil]?.metres.includes(fresh.metre) ? fresh.estil : ws.estil, font: ws.font, ref: fresh.id ?? ws.ref });
   updatedNote = `«${fresh.titol}» s'ha actualitzat amb els canvis ${ws.font === 'llibre' ? 'del Llibre de temes' : 'de la biblioteca compartida'}.`;
   if (document.body.dataset.view === 'home') renderHome();
 }
