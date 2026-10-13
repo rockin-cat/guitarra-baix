@@ -157,7 +157,7 @@ export function partBar(spec, instId, bar, M, k = 0) {
         const s0 = pc.frets.findIndex((f) => f >= 0);
         root = { s: s0, f: pc.frets[s0] };
       } else root = bassRole(chord, '1');
-      const t = spec.tech ?? 'h';
+      const t = Array.isArray(spec.tech) ? spec.tech[k % spec.tech.length] : spec.tech ?? 'h';
       const from = root.f >= 2 ? root.f - 2 : root.f;
       const to = root.f >= 2 ? root.f : root.f + 2;
       const first = t === 'b' ? { s: root.s, f: from } : { s: root.s, f: from };
@@ -209,6 +209,19 @@ export function voiceBar(spec, bar, M, k = 0) {
       const midi = 57 + mod(seg.chord.root - 57, 12);
       return { beat: seg.start * M.beats, dur: seg.len * M.beats - 0.1, text: 'uuu', midi, sing: true };
     });
+  }
+  if (v === 'melody') {
+    // una melodia senzilla amb les notes de cada acord: 1, 3, 5, 3 (una per temps)
+    const out = [];
+    for (const seg of bar) {
+      const r = 57 + mod(seg.chord.root - 57, 12);
+      const tones = [r, r + (seg.chord.third ?? 4), r + (seg.chord.fifth ?? 7), r + (seg.chord.third ?? 4)];
+      const from = seg.start * M.beats;
+      const len = seg.len * M.beats;
+      const step = M.pulseLen;
+      for (let b = 0, j = 0; b < len - 1e-6; b += step, j++) out.push({ beat: from + b, dur: step * 0.9, midi: tones[(j + k) % tones.length], text: 'la', sing: true });
+    }
+    return out;
   }
   if (Array.isArray(v)) {
     // melodia escrita per compassos: [[beat, dur, midi, síl·laba], …] per a cada compàs

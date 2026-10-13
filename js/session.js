@@ -48,9 +48,13 @@ function effectiveStep(base, instId, opts = {}) {
   const kind = base.kind ?? 'play';
   const cardId = base.carta ?? base.part?.card;
   const cm = cardId ? cardMetre(cardById(cardId)) : null;
-  const usable = song && base.canco !== false && !base.custom && kind !== 'tune' && base.part?.type !== 'riff' && (!cm || cm === song.metre);
-  s.songNote = song && !usable && base.canco !== false && kind !== 'tune' && base.part?.type !== 'riff' && !base.custom ? (cm && cm !== song.metre ? `Aquesta carta és de ${cm}: es practica amb una roda pròpia.` : '') : '';
+  const usable = song && base.canco !== false && !base.custom && kind !== 'tune' && (!cm || cm === song.metre);
+  s.songNote = song && !usable && base.canco !== false && kind !== 'tune' && !base.custom ? (cm && cm !== song.metre ? `Aquesta carta és de ${cm}: es practica amb una roda pròpia.` : '') : '';
   if (usable) {
+    // tot és acumulatiu sobre la mateixa roda: els recursos tècnics arriben a cada acord de la cançó,
+    // i la melodia per cantar surt de les notes dels acords
+    if (base.part?.type === 'riff') s.part = { type: 'techroot', tech: base.part.tech ?? 'h' };
+    if (Array.isArray(base.voice)) s.voice = 'melody';
     s.prog = opts.whole ? song.prog : practicePart(song.prog);
     s.metre = song.metre;
     s.estil = STYLES[song.estil]?.metres.includes(song.metre) ? song.estil : STYLES[base.estil]?.metres.includes(song.metre) ? base.estil : defaultStyle(song.metre);
@@ -190,7 +194,7 @@ function renderSongBar(st) {
   if (st.step.usesSong) {
     parts.push(`<span class="song-chip">🎵 ${esc(st.step.usesSong)}</span><label class="toggle"><input type="checkbox" data-el="whole"${st.whole ? ' checked' : ''}> Cançó sencera</label>`);
   } else if (st.step.songNote) parts.push(`<span class="muted small">${esc(st.step.songNote)}</span>`);
-  else if (!store.workSong() && b.canco !== false && !b.custom && st.kind !== 'tune' && b.part?.type !== 'riff' && st.ctx.onChooseSong) {
+  else if (!store.workSong() && b.canco !== false && !b.custom && st.kind !== 'tune' && st.ctx.onChooseSong) {
     parts.push('<button type="button" class="btn btn-ghost btn-small" data-act="choose-song">🎵 Tria la cançó amb què treballes</button>');
   }
   bar.innerHTML = parts.join('');

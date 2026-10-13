@@ -158,7 +158,7 @@ function renderLevel(n = currentLevel) {
       <div><small class="muted">${esc(i.nom)} · Nivell ${l.n} de 10</small><h2>${esc(l.titol)}</h2><p class="muted">${esc(l.sub)}</p></div></div>
     ${workSongBox()}
     <ol class="steps">
-      ${l.passos.map((p, k) => { const s = store.stepState(p.id); const ws = store.workSong(); const usesSong = ws && p.canco !== false && p.kind !== 'tune' && p.part?.type !== 'riff' && !(p.metre && p.metre !== ws.metre); return `
+      ${l.passos.map((p, k) => { const s = store.stepState(p.id); const ws = store.workSong(); const usesSong = ws && p.canco !== false && p.kind !== 'tune' && !(p.metre && p.metre !== ws.metre); return `
         ${p.grup && p.grup !== l.passos[k - 1]?.grup ? `<li class="step-group">${esc(p.grup)}</li>` : ''}
         <li class="step ${s?.best ?? ''}">
           <span class="step-state" title="${s?.best === 'ok' ? 'Et surt' : s?.best === 'gairebe' ? 'Gairebé' : 'Per fer'}">${icon(s)}</span>
