@@ -180,7 +180,7 @@ export function partBar(spec, instId, bar, M, k = 0) {
       const from = root.f >= 2 ? root.f - 2 : root.f;
       const to = root.f >= 2 ? root.f : root.f + 2;
       const first = t === 'b' ? { s: root.s, f: from } : { s: root.s, f: from };
-      const d1 = Math.min(len, len >= 4 ? 2 : len / 2);
+      const d1 = t === 'h' || t === 'p' ? Math.min(len, 1) : Math.min(len, len >= 4 ? 2 : len / 2);
       const e = noteEvent(inst, first, a0, d1, chord, {});
       e.tech = { type: t, to: t === 'b' ? from : to, semis: to - from || 2 };
       e.label = { h: `${from}h${to}`, s: `${from}/${to}`, b: `${from}↗`, p: `${to}p${from}` }[t];
@@ -207,7 +207,28 @@ export function partBar(spec, instId, bar, M, k = 0) {
       out.push(e);
     }
   }
-  return out.filter(Boolean).sort((x, y) => x.beat - y.beat);
+  return splitLegato(out.filter(Boolean), inst, M).sort((x, y) => x.beat - y.beat);
+}
+
+/**
+ * Hammer-on i pull-off com a corxeres: la nota pulsada dura una corxera i la nota lligada (sense púa)
+ * en dura una altra. Si la nota era més llarga, la segunda s'allarga fins al final.
+ */
+function splitLegato(list, inst, M) {
+  const out = [];
+  for (const e of list) {
+    if (!(e.kind === 'note' && e.tech && (e.tech.type === 'h' || e.tech.type === 'p'))) { out.push(e); continue; }
+    const step = M.sub === 3 ? M.pulseLen / 3 : 0.5;
+    const p = e.pos[0];
+    const first = { ...e, dur: Math.min(step, e.dur / 2), label: String(p.f), legatoNext: true };
+    const to = e.tech.to;
+    out.push(first);
+    out.push({
+      beat: e.beat + first.dur, dur: Math.max(step, e.dur - first.dur), kind: 'note', chord: e.chord, voicing: e.voicing,
+      notes: [inst.tuning[p.s] + to], pos: [{ s: p.s, f: to }], legato: e.tech.type, label: `${e.tech.type}${to}`,
+    });
+  }
+  return out;
 }
 
 /** La línia de veu (per als nivells de cantar i tocar). */

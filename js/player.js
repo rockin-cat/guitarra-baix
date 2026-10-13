@@ -128,6 +128,9 @@ export function playPart(song, e, at, spq, gain = 1) {
   const m = e.notes[0];
   const g = (song.inst === 'baix' ? 0.75 : 0.55) * gain;
   const tech = e.tech;
+  // nota lligada (hammer-on / pull-off): sense atac de púa i una mica més fluixa
+  if (e.legato) { tone(inst.sound, m, t, dur, { gain: g * 0.78, dest: 'me', attack: 0.012 }); return; }
+  if (e.legatoNext) { tone(inst.sound, m, t, Math.max(0.06, e.dur * spq), { gain: g, dest: 'me', release: 0.015 }); return; }
   if (!tech) { tone(inst.sound, m, t, dur, { gain: g, dest: 'me' }); return; }
   const half = dur / 2;
   const m2 = inst.tuning[e.pos[0].s] + tech.to;

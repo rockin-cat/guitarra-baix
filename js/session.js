@@ -510,12 +510,23 @@ function frame(st) {
       const strings = cur.voicing ? cur.voicing.midi.map((m, s) => (m != null ? s : -1)).filter((s) => s >= 0) : [];
       st.neck.animate({ pick: { id: cur.id, p, dir: cur.dir, ghost: cur.ghost, strings: cur.dir === 'U' ? strings.slice(-4) : strings } });
     } else {
-      st.neck.animate({ pick: { id: cur.id, p, s: cur.pos[0].s, strings: [cur.pos[0].s] } });
+      if (cur.legato) {
+        // hammer-on / pull-off: la púa no es mou, però la corda torna a sonar
+        if (st.lastLegato !== cur.id && p >= 0) { st.lastLegato = cur.id; st.neck.shake(cur.pos[0].s); }
+        st.neck.animate({});
+      } else st.neck.animate({ pick: { id: cur.id, p, s: cur.pos[0].s, strings: [cur.pos[0].s] } });
     }
   } else st.neck.animate({});
   // carta i diagrames
   updateSide(st, content, pos, cur ?? next);
-  st.lane.draw(pos, { voice: !!st.step.voice });
+  // la pista també ensenya els compassos que encara no s'han programat
+  const bars = pos.bars.slice();
+  for (let j = Math.max(0, pos.i); j <= pos.i + 3; j++) {
+    if (bars[j]) continue;
+    const sg = st.plan?.(j);
+    if (sg) bars[j] = { seg: sg, content: sg.mode === 'count' ? null : st.song.content(sg.k) };
+  }
+  st.lane.draw({ ...pos, bars }, { voice: !!st.step.voice });
 }
 
 function chordAtBeat(bar, beat, M) {

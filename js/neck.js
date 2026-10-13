@@ -211,7 +211,7 @@ export function createNeck(host, inst, { thickTop = true } = {}) {
     el('line', { x1, x2, y1: yy, y2: yy, class: `tech-line ${t.type}` }, layerTech);
     dot(layerTech, p.s, t.to, t.to, 'ring target');
     const word = { h: 'hammer-on', p: 'pull-off', s: 'glissando' }[t.type];
-    el('text', { x: (x1 + x2) / 2, y: yy - 18, 'text-anchor': 'middle', class: 'tech-text' }, layerTech).textContent = word;
+    el('text', { x: (x1 + x2) / 2, y: yy - 18 < 26 ? yy + 30 : yy - 18, 'text-anchor': 'middle', class: 'tech-text' }, layerTech).textContent = word;
   }
 
   /** Mou el punt actiu segons el recurs tècnic (fase 0–1 dins de la nota). */
@@ -224,7 +224,7 @@ export function createNeck(host, inst, { thickTop = true } = {}) {
     let x = x1;
     let yy = y(p.s);
     const t = e.tech;
-    if (t.type === 'h' || t.type === 'p') { if (phase >= 0.5) x = fretX(t.to, frets); }
+    if (t.type === 'h' || t.type === 'p') return; // ara són dues notes (corxeres): el dot no es mou
     else if (t.type === 's') x = x1 + (fretX(t.to, frets) - x1) * clamp((phase - 0.35) / 0.25);
     else if (t.type === 'b') yy += (thickTop ? 1 : -1) * gap * 0.75 * clamp((phase - 0.25) / 0.3);
     g.setAttribute('transform', `translate(${x.toFixed(1)} ${yy.toFixed(1)})`);
