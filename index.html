@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="ca">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ROCKIN · Guitarra i baix</title>
+  <meta name="description" content="Tutor d'estudi de guitarra elèctrica i baix elèctric amb els fulls de ruta i les cartes ROCKIN: escoltes, la banda continua i l'animació et guia.">
+  <link rel="icon" type="image/png" href="assets/brand/favicon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Lora:wght@600;700&family=Ubuntu:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+  <script>
+    window.addEventListener('error', (e) => showPageError(e.message, e.filename, e.lineno));
+    window.addEventListener('unhandledrejection', (e) => showPageError(String(e.reason?.message ?? e.reason)));
+    function showPageError(message, file = '', line) {
+      const box = document.getElementById('page-error');
+      if (!box) return;
+      const where = file ? ` (${String(file).split('/').pop()}:${line})` : '';
+      box.hidden = false;
+      box.textContent = line === undefined && !file ? message : `Hi ha hagut un error${where}: ${message}. Prova de recarregar amb Cmd+Maj+R; si continua, envia aquest missatge.`;
+    }
+    window.addEventListener('DOMContentLoaded', () => {
+      const why = location.protocol === 'file:'
+        ? "El joc s'ha obert com a fitxer (doble clic a index.html) i així el navegador no el deixa funcionar. Obre'l des del Terminal amb: cd ~/Documents/GitHub/guitarra-baix && python3 tools/serve.py — o bé des de l'adreça publicada a GitHub Pages."
+        : "El joc no s'ha acabat de carregar. Recarrega la pàgina amb Cmd+Maj+R; si continua, envia aquest missatge.";
+      setTimeout(() => { if (!window.__rockinReady) showPageError(why); }, location.protocol === 'file:' ? 300 : 6000);
+    });
+  </script>
+  <script type="module" src="js/app.js"></script>
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="#" id="home-link" title="Inici">
+      <img src="https://rockin.cat/wp-content/uploads/2022/07/rockin-logo.svg" alt="Rockin" onerror="this.outerHTML='<b class=&quot;wordmark&quot;>ROCKIN</b>'">
+      <span>Guitarra i baix</span>
+    </a>
+    <div class="top-right">
+      <div class="inst-switch" id="inst-switch" role="group" aria-label="Instrument">
+        <button type="button" data-inst="guitarra">🎸 Guitarra</button>
+        <button type="button" data-inst="baix">🎸 Baix</button>
+      </div>
+      <button type="button" id="player-chip" class="chip" hidden>👤 <span></span></button>
+      <button type="button" id="settings-btn" class="chip" title="Configuració">⚙︎</button>
+    </div>
+  </header>
+
+  <div id="page-error" class="page-error" hidden></div>
+
+  <main>
+    <section id="v-home" class="view"></section>
+    <section id="v-map" class="view" hidden></section>
+    <section id="v-level" class="view" hidden></section>
+    <section id="v-cards" class="view" hidden></section>
+    <section id="v-creator" class="view" hidden></section>
+    <section id="v-session" class="view" hidden></section>
+  </main>
+
+  <dialog id="settings" class="settings">
+    <form method="dialog">
+      <h2>Configuració</h2>
+      <label class="toggle"><input type="checkbox" id="set-thick"> La corda més gruixuda a dalt (com la veus quan mires l'instrument)</label>
+      <p class="muted small">Si està apagat, el mànec es veu com una tabulatura: la corda més aguda a dalt.</p>
+      <div class="row"><button class="btn" value="ok">Fet</button></div>
+    </form>
+  </dialog>
+
+  <footer class="foot">
+    <span>ROCKIN SCCL · materials amb llicència Creative Commons · sons: mostres lliures (MIT)</span>
+    <span id="version">Versió 2 · 13-10-2026</span>
+  </footer>
+</body>
+</html>
