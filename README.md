@@ -52,3 +52,9 @@ Les cançons porten l'estructura: `[Tornada] C | G | …` posa nom a la part, i 
 - Les formes dels acords oberts són les de les cartes de diagrames ROCKIN.
 - **Tot és acumulatiu sobre la mateixa roda** (versió 4): també els recursos tècnics (nivell 8: el hammer-on, el glissando… arriben a la fonamental de cada acord de la cançó), la melodia per cantar (nivell 4: surt de les notes dels acords) i les celletes (nivell 6). Només queden fora les cartes d'un altre compàs i l'afinador.
 - **Baix del Generador** (versió 5): si la cançó de treball ve de la biblioteca i el professorat hi ha escrit una línia de baix (escriptor de baix o tabulatura), els passos de línia de baix (tipus `bass` i `arp`) toquen aquesta línia, amb els trasts al mànec. El selector «Línia de baix» de la pràctica permet tornar a «la del nivell» (es recorda per alumne).
+
+## Versió 6: tot comença per la cançó
+
+- Només es juga a partir d'una cançó: **La teva cançó** (Llibre ROCKIN, biblioteca compartida, joc de teclat, les meves) o, si no hi és, escrivint-ne els acords. La cançó es mostra com a la pestanya Estructura del Generador (graus amb els colors del llibre, parts amb capçalera taronja i compassos de quatre en quatre).
+- Els nivells no canvien mai la progressió: els passos que no quadren amb el compàs de la cançó no surten, i n'hi ha de propis per a 3/4, 6/8 i 12/8 (cartes ternàries i rascats).
+- **Què sé fer** (`js/skills.js`): el que s'ha desbloquejat a cada nivell (passos, tempo, cartes) i què vol dir per a la banda. Es pot imprimir.

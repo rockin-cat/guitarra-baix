@@ -97,8 +97,8 @@ export function partBar(spec, instId, bar, M, k = 0) {
       });
     }
   } else if (spec.type === 'rascat') {
-    const card = cardById(spec.card);
-    const moves = card?.strum ?? 'DUDUDUDU';
+    const card = spec.card ? cardById(spec.card) : null;
+    const moves = spec.strum ?? card?.strum ?? 'DUDUDUDU';
     const step = M.beats / moves.length;
     [...moves].forEach((m, i) => {
       const a = i * step;

@@ -296,3 +296,65 @@ dialog::backdrop { background: rgba(17, 24, 39, .55); }
 .genline { background: var(--nit); color: #fff; border-radius: 10px; padding: 10px 12px; font-size: 13px; width: 100%; }
 .genline b { display: block; font-size: 16px; color: var(--accent-soft); margin: 2px 0; }
 .genline small { color: #b9c0cc; }
+
+/* La cançó de treball */
+.work-song { display: block; }
+.work-song .ws-top { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+.work-song.empty { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; border-width: 3px; }
+.ws-icon { font-size: 28px; }
+.ws-main { flex: 1; min-width: 220px; }
+.ws-main small { display: block; color: var(--gris); }
+.ws-main .ws-art { display: inline; }
+.ws-struct { margin-top: 12px; border-top: 1px solid var(--linia); padding-top: 12px; }
+
+/* Estructura, com al Generador de diagrames */
+.est-graus { display: flex; gap: 4px; flex-wrap: wrap; align-items: center; margin-bottom: 10px; }
+.est-grau { padding: 5px 9px; border-radius: 5px; font: 700 14px Ubuntu, sans-serif; min-width: 50px; text-align: center; color: #111; }
+.est-grau small { display: block; font-size: 10px; font-weight: 400; opacity: .75; }
+.est-to { margin-left: 8px; color: var(--gris); font-size: 13px; }
+.est-ordre { margin: 0 0 10px; font-size: 14px; }
+.est-part { border: 1px solid #e3e3e3; border-radius: 8px; margin-bottom: 12px; overflow: hidden; background: #fff; }
+.est-part-cap { display: flex; align-items: baseline; gap: 10px; background: #ff9f1a; padding: 7px 10px; font: 700 14px Ubuntu, sans-serif; letter-spacing: .04em; }
+.est-part-cap small { font-weight: 400; font-size: 12px; opacity: .8; letter-spacing: 0; }
+.cmp-graella { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; padding: 8px; }
+.cmp-bar { display: flex; border: 2px solid #555; border-radius: 4px; overflow: hidden; height: 42px; background: #fff; }
+.cmp-bar i { display: flex; align-items: center; padding: 0 8px; font: 18px 'Times New Roman', serif; font-style: normal; border-left: 1px dashed #444; min-width: 0; overflow: hidden; color: #111; }
+.cmp-bar i:first-child { border-left: none; }
+.song-card h2 { font-size: 24px; }
+.song-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; margin-bottom: 10px; }
+.song-head p { margin: 2px 0; }
+.song-meta { font-size: 14px; color: var(--gris); }
+.song-ok { color: var(--ok); font-weight: 700; }
+.cols2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.struct-preview:empty { display: none; }
+.new-song { width: 100%; margin-bottom: 10px; }
+.song-col { display: flex; flex-direction: column; gap: 14px; }
+
+/* Què sé fer */
+.skills-top { display: flex; flex-wrap: wrap; gap: 14px 28px; margin-bottom: 14px; border-left: 6px solid var(--c); }
+.skills-top b { display: block; font-size: 16px; }
+.banda { margin-bottom: 14px; }
+.banda h3 { margin-top: 0; }
+.banda ul { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 8px; }
+.banda li { display: flex; gap: 10px; align-items: flex-start; font-size: 15px; }
+.pick-mini { flex: none; width: 24px; height: 24px; border-radius: 50%; background: var(--c); color: #111; display: grid; place-items: center; font: 800 12px Ubuntu, sans-serif; }
+.skills-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; }
+.skill { background: #fff; border: 1px solid var(--linia); border-radius: 12px; padding: 12px 14px; opacity: .6; }
+.skill.on, .skill.done { opacity: 1; border-color: var(--c); }
+.skill.done { box-shadow: inset 0 0 0 2px var(--c); }
+.skill-head { display: flex; gap: 10px; align-items: center; }
+.skill-head .pick-badge { width: 34px; height: 38px; font-size: 16px; background: var(--c); }
+.skill-head b { display: block; }
+.skill-head small { color: var(--gris); }
+.skill-state { margin-left: auto; font-size: 18px; }
+.skill-steps { margin: 8px 0 0; padding-left: 4px; list-style: none; font-size: 13px; }
+.skill-steps .almost { color: var(--mig); }
+.skill-cards { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 8px; }
+.skill-cards img { width: 38px; border-radius: 3px; border: 1px solid var(--linia); }
+.skill-banda { margin: 8px 0 0; font-size: 13px; color: #3d3836; font-style: italic; }
+@media print {
+  .topbar, .foot, .btn, .btn-back { display: none !important; }
+  main { padding: 0; }
+  .skill { break-inside: avoid; opacity: 1; }
+}
+@media (max-width: 640px) { .cmp-graella { grid-template-columns: repeat(2, minmax(0, 1fr)); } .cols2 { grid-template-columns: 1fr; } }

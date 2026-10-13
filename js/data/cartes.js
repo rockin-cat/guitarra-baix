@@ -176,7 +176,7 @@ export const { BINARI, TERNARI, MELODIC, RASCATS, PROGRESSIONS } = CARTES;
 const ALL = [...BINARI, ...TERNARI, ...MELODIC, ...RASCATS];
 export const cardById = (id) => ALL.find((c) => c.id === id) ?? null;
 /** Mètrica d'una carta rítmica: '4/4' (binari) o la que diu la carta ternària. */
-export const cardMetre = (c) => c.metre ?? (c.id.startsWith('mb') ? '4/4' : null);
+export const cardMetre = (c) => c?.metre ?? (c?.id?.startsWith('mb') || c?.id?.startsWith('rg') ? '4/4' : null);
 /** Les notes d'una carta rítmica en negres des de l'inici del compàs. */
 export function cardOnsets(c) {
   const k = c.metre && c.metre.endsWith('/8') ? 1.5 : 1;

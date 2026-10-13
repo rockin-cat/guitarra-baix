@@ -6,12 +6,6 @@
 //   part (vegeu parts.js), voicing ('obert' | 'celleta' | 'quinta'), voice ('count' | 'count8' | 'root' | melodia),
 //   carta (id de carta ROCKIN que es mostra), kind: 'play' (per defecte) | 'cards' | 'tune' | 'compose' | 'improv'
 
-const MELODIA_LA = [
-  [[0, 1, 64, 'la'], [1, 1, 64, 'la'], [2, 1, 67, 'la'], [3, 1, 64, 'la']],
-  [[0, 1, 62, 'la'], [1, 1, 62, 'la'], [2, 2, 67, 'laaa']],
-  [[0, 1, 60, 'la'], [1, 1, 64, 'la'], [2, 1, 69, 'la'], [3, 1, 67, 'la']],
-  [[0, 2, 65, 'laaa'], [2, 2, 60, 'laaa']],
-];
 
 export const LEVELS = {
   guitarra: [
@@ -40,6 +34,14 @@ export const LEVELS = {
         { id: 'g2d', titol: 'Contratemps', text: 'Ara els cops cauen a la «i», entre temps i temps.', com: ['La mà baixa al temps sense tocar i toca quan puja.'], prog: 'Am | Am | G | G', tempo: 75, estil: 'reggae', part: { type: 'strum', card: 'mb12' }, carta: 'mb12' },
         { id: 'g2e', titol: 'En tres temps: un vals', text: 'Les cartes ternàries de 3/4: tres temps per compàs.', com: ['Compta u-dos-tres, u-dos-tres. El primer pesa més.'], prog: 'C | G | G | C', metre: '3/4', tempo: 90, estil: 'vals', part: { type: 'strum', card: 'mt1' }, carta: 'mt1' },
         { id: 'g2f', titol: 'En 6/8: dues pulsacions de tres', text: 'Cada cercle es parteix en tres: avall, amunt, avall.', com: ['Sents dues pulsacions per compàs, cadascuna en tres.'], prog: 'D | Bm | G | A', metre: '6/8', tempo: 60, estil: 'balada68', part: { type: 'strum', card: 'mt34' }, carta: 'mt34' },
+        // cartes per a cançons en 3/4, 6/8 i 12/8 (només surten si la cançó és en aquest compàs)
+        { id: 'g2e2', titol: 'En 3/4: blanca i negra', text: 'Un cop llarg de dos temps i un de curt.', com: ['Deixa sonar la blanca.'], tempo: 90, estil: 'vals', part: { type: 'strum', card: 'mt8' }, carta: 'mt8' },
+        { id: 'g2e3', titol: 'En 3/4: corxeres', text: 'Avall i amunt a cada temps.', com: ['La púa no s\'atura.'], tempo: 85, estil: 'vals', part: { type: 'strum', card: 'mt11' }, carta: 'mt11' },
+        { id: 'g2e4', titol: 'En 3/4: contratemps', text: 'Els cops cauen a la «i».', com: ['Baixa sense tocar al temps.'], tempo: 80, estil: 'vals', part: { type: 'strum', card: 'mt14' }, carta: 'mt14' },
+        { id: 'g2f2', titol: 'En 6/8: dues pulsacions', text: 'Un cop a cada pulsació.', com: ['Compta u-dos-tres, quatre-cinc-sis.'], tempo: 60, estil: 'balada68', part: { type: 'strum', card: 'mt33' }, carta: 'mt33' },
+        { id: 'g2f3', titol: 'En 6/8: llarga i curta', text: 'Dins de cada pulsació, una nota llarga i una de curta.', com: ['Sona com un galop lent.'], tempo: 60, estil: 'balada68', part: { type: 'strum', card: 'mt36' }, carta: 'mt36' },
+        { id: 'g2h1', titol: 'En 12/8: tres per pulsació', text: 'Quatre pulsacions, cadascuna en tres.', com: ['Avall, amunt, avall a cada pulsació.'], tempo: 55, estil: 'balada68', part: { type: 'strum', card: 'mt26' }, carta: 'mt26' },
+        { id: 'g2h2', titol: 'En 12/8: llarga i curta', text: 'El ritme del blues lent.', com: ['Llarga-curta, llarga-curta.'], tempo: 55, estil: 'balada68', part: { type: 'strum', card: 'mt27' }, carta: 'mt27' },
         { id: 'g2g', kind: 'cards', deck: 'ritme', titol: 'Totes les cartes rítmiques', text: 'Tria qualsevol carta rítmica i practica-la amb la teva cançó.', prog: 'C | G | Am | F', tempo: 80, estil: 'pop' },
       ],
     },
@@ -52,6 +54,14 @@ export const LEVELS = {
         { id: 'g3d', titol: 'Un altre rascat', text: 'Canvia on cau el moviment a l\'aire.', com: ['Mira la carta i la púa alhora.'], prog: 'Am | F | C | G', tempo: 75, estil: 'pop', part: { type: 'rascat', card: 'rg9' }, carta: 'rg9' },
         { id: 'g3e', titol: 'Rascat amb molts aires', text: 'Menys cops que sonen: el ritme és als silencis.', com: ['La mà continua igual; només canvia quan toca.'], prog: 'G | D | Em | C', tempo: 75, estil: 'rock', part: { type: 'rascat', card: 'rg15' }, carta: 'rg15' },
         { id: 'g3f', titol: 'Rascat en semicorxeres', text: 'Setze moviments per compàs: la mà va el doble de ràpid.', com: ['Comença molt lent.', 'Pensa «u-i-a-i, dos-i-a-i…».'], prog: 'Am | Am | G | G', tempo: 60, estil: 'funk', part: { type: 'rascat', card: 'rg18' }, carta: 'rg18' },
+        // rascats per a cançons que no són en 4/4
+        { id: 'g3t1', metres: ['3/4'], titol: 'Rascat en 3/4: només avall', text: 'Avall a cada temps; entremig la mà puja sense tocar.', com: ['La mà fa de pèndol.'], tempo: 80, estil: 'vals', part: { type: 'rascat', strum: 'DuDuDu' } },
+        { id: 'g3t2', metres: ['3/4'], titol: 'Rascat en 3/4: totes les corxeres', text: 'Avall i amunt a cada temps.', com: ['Amunt, només les cordes de dalt.'], tempo: 80, estil: 'vals', part: { type: 'rascat', strum: 'DUDUDU' } },
+        { id: 'g3t3', metres: ['3/4'], titol: 'Rascat en 3/4 amb un aire', text: 'Avall, (amunt), avall, amunt, avall, amunt.', com: ['Mira les fletxes grises.'], tempo: 80, estil: 'vals', part: { type: 'rascat', strum: 'DuDUDU' } },
+        { id: 'g3t4', metres: ['6/8'], titol: 'Rascat en 6/8: avall a cada pulsació', text: 'Avall al començament de cada pulsació; la mà es mou a les altres corxeres.', com: ['U-dos-tres, quatre-cinc-sis.'], tempo: 60, estil: 'balada68', part: { type: 'rascat', strum: 'DudDud' } },
+        { id: 'g3t5', metres: ['6/8'], titol: 'Rascat en 6/8: totes les corxeres', text: 'Avall, amunt, avall a cada pulsació.', com: ['Comença cada pulsació amb la mà avall.'], tempo: 60, estil: 'balada68', part: { type: 'rascat', strum: 'DUDDUD' } },
+        { id: 'g3t6', metres: ['12/8'], titol: 'Rascat en 12/8: avall a cada pulsació', text: 'Quatre cops avall, amb la mà movent-se entremig.', com: ['Sona com un blues lent.'], tempo: 55, estil: 'balada68', part: { type: 'rascat', strum: 'DudDudDudDud' } },
+        { id: 'g3t7', metres: ['12/8'], titol: 'Rascat en 12/8: totes les corxeres', text: 'Avall, amunt, avall a cada pulsació.', com: ['Mà relaxada.'], tempo: 55, estil: 'balada68', part: { type: 'rascat', strum: 'DUDDUDDUDDUD' } },
         { id: 'g3g', kind: 'cards', deck: 'rascats', titol: 'Totes les cartes de rascats', text: 'Tria qualsevol carta de rascat i practica-la amb la teva cançó.', prog: 'C | G | Am | F', tempo: 75, estil: 'pop' },
       ],
     },
@@ -61,8 +71,8 @@ export const LEVELS = {
         { id: 'g4a', titol: 'Compta en veu alta', text: 'Toca a negres i compta en veu alta: u, dos, tres, quatre.', com: ['La veu i la mà van juntes: cada número, un cop.'], prog: 'Em | Em | G | G', tempo: 75, estil: 'pop', part: { type: 'strum', rhythm: 'Q' }, voice: 'count' },
         { id: 'g4b', titol: 'Compta les corxeres', text: 'Rascat de corxeres comptant «u i dos i tres i quatre i».', com: ['Avall amb el número, amunt amb la «i».'], prog: 'G | C | G | D', tempo: 70, estil: 'pop', part: { type: 'rascat', card: 'rg1' }, voice: 'count8', carta: 'rg1' },
         { id: 'g4c', titol: 'Canta la fonamental', text: 'Toca un cop per compàs i canta la nota que dona nom a l\'acord. A la demostració la sents.', com: ['Tanca la boca i fes «uuu»: és més fàcil trobar la nota.', 'Si la veu va més greu o més aguda, cap problema: la mateixa nota a una altra altura també val.'], prog: 'C | G | Am | F', tempo: 70, estil: 'balada', part: { type: 'strum', rhythm: 'W' }, voice: 'root' },
-        { id: 'g4d', titol: 'Canta una melodia', text: 'Una melodia senzilla amb «la». Primer només rodones a la guitarra.', com: ['Escolta-la unes quantes vegades abans de tocar.'], prog: 'C | G | Am | F', tempo: 75, estil: 'balada', part: { type: 'strum', rhythm: 'W' }, voice: MELODIA_LA },
-        { id: 'g4e', titol: 'Melodia amb negres', text: 'La mateixa melodia, ara amb negres a la guitarra.', com: ['Si es descontrola, torna a les rodones.'], prog: 'C | G | Am | F', tempo: 75, estil: 'pop', part: { type: 'strum', rhythm: 'Q' }, voice: MELODIA_LA },
+        { id: 'g4d', titol: 'Canta una melodia', text: 'Una melodia senzilla amb «la», feta amb les notes dels acords de la cançó. Primer només rodones a la guitarra.', com: ['Escolta-la unes quantes vegades abans de tocar.'], prog: 'C | G | Am | F', tempo: 75, estil: 'balada', part: { type: 'strum', rhythm: 'W' }, voice: 'melody' },
+        { id: 'g4e', titol: 'Melodia amb negres', text: 'La mateixa melodia, ara amb negres a la guitarra.', com: ['Si es descontrola, torna a les rodones.'], prog: 'C | G | Am | F', tempo: 75, estil: 'pop', part: { type: 'strum', rhythm: 'Q' }, voice: 'melody' },
       ],
     },
     {
@@ -138,6 +148,11 @@ export const LEVELS = {
         { id: 'b2c', titol: 'Corxeres i negres', text: 'Una combinació que no para.', com: ['Mira la carta i la pista alhora.'], prog: 'Em | C | G | D', metre: '4/4', tempo: 80, estil: 'rock', part: { type: 'bass', card: 'mb17', roles: ['1'] }, carta: 'mb17' },
         { id: 'b2d', titol: 'Contratemps', text: 'Els cops cauen a la «i».', com: ['Compta els temps per dins.'], prog: 'Am | Am | G | G', metre: '4/4', tempo: 75, estil: 'reggae', part: { type: 'bass', card: 'mb12', roles: ['1'] }, carta: 'mb12' },
         { id: 'b2e', titol: 'En tres temps', text: 'Un vals: la fonamental al primer temps.', com: ['U-dos-tres, u-dos-tres.'], prog: 'C | G | G | C', metre: '3/4', tempo: 90, estil: 'vals', part: { type: 'bass', card: 'mt5', roles: ['1'] }, carta: 'mt5' },
+        { id: 'b2e2', titol: 'En 3/4: blanca i negra', text: 'Fonamental llarga i una de curta.', com: ['Deixa sonar la blanca.'], tempo: 90, estil: 'vals', part: { type: 'bass', card: 'mt8', roles: ['1', '5'] }, carta: 'mt8' },
+        { id: 'b2e3', titol: 'En 3/4: tres negres', text: 'Una nota a cada temps.', com: ['El primer temps pesa més.'], tempo: 90, estil: 'vals', part: { type: 'bass', card: 'mt1', roles: ['1'] }, carta: 'mt1' },
+        { id: 'b2f1', titol: 'En 6/8: dues pulsacions', text: 'La fonamental a cada pulsació.', com: ['U-dos-tres, quatre-cinc-sis.'], tempo: 60, estil: 'balada68', part: { type: 'bass', card: 'mt33', roles: ['1'] }, carta: 'mt33' },
+        { id: 'b2f2', titol: 'En 6/8: llarga i curta', text: 'Dins de cada pulsació, una nota llarga i una de curta.', com: ['Sona com un galop lent.'], tempo: 60, estil: 'balada68', part: { type: 'bass', card: 'mt36', roles: ['1', '5'] }, carta: 'mt36' },
+        { id: 'b2h1', titol: 'En 12/8: quatre pulsacions', text: 'Llarga-curta a cada pulsació.', com: ['El baix del blues lent.'], tempo: 55, estil: 'balada68', part: { type: 'bass', card: 'mt27', roles: ['1', '5'] }, carta: 'mt27' },
         { id: 'b2f', kind: 'cards', deck: 'ritme', titol: 'Totes les cartes rítmiques', text: 'Tria qualsevol carta rítmica.', prog: 'C | G | Am | F', metre: '4/4', tempo: 80, estil: 'pop' },
       ],
     },
@@ -155,8 +170,8 @@ export const LEVELS = {
       passos: [
         { id: 'b4a', titol: 'Compta en veu alta', text: 'Fonamentals a negres i compta en veu alta.', com: ['Cada número, una nota.'], prog: 'Em | C | G | D', metre: '4/4', tempo: 75, estil: 'pop', part: { type: 'bass', rhythm: 'Q', roles: ['1'] }, voice: 'count' },
         { id: 'b4b', titol: 'Canta la nota que toques', text: 'Toca la fonamental i canta-la alhora amb «uuu».', com: ['El baix sona molt greu: canta la mateixa nota a la teva altura.'], prog: 'C | G | Am | F', metre: '4/4', tempo: 70, estil: 'balada', part: { type: 'bass', rhythm: 'W', roles: ['1'] }, voice: 'root' },
-        { id: 'b4c', titol: 'Canta una melodia', text: 'Una melodia senzilla amb «la» mentre toques rodones.', com: ['Escolta-la abans de tocar.'], prog: 'C | G | Am | F', metre: '4/4', tempo: 75, estil: 'balada', part: { type: 'bass', rhythm: 'W', roles: ['1'] }, voice: MELODIA_LA },
-        { id: 'b4d', titol: 'Melodia amb negres', text: 'La melodia, ara amb el baix a negres.', com: ['Si es descontrola, torna a les rodones.'], prog: 'C | G | Am | F', metre: '4/4', tempo: 75, estil: 'pop', part: { type: 'bass', rhythm: 'Q', roles: ['1'] }, voice: MELODIA_LA },
+        { id: 'b4c', titol: 'Canta una melodia', text: 'Una melodia senzilla amb «la», feta amb les notes dels acords de la cançó, mentre toques rodones.', com: ['Escolta-la abans de tocar.'], prog: 'C | G | Am | F', metre: '4/4', tempo: 75, estil: 'balada', part: { type: 'bass', rhythm: 'W', roles: ['1'] }, voice: 'melody' },
+        { id: 'b4d', titol: 'Melodia amb negres', text: 'La melodia, ara amb el baix a negres.', com: ['Si es descontrola, torna a les rodones.'], prog: 'C | G | Am | F', metre: '4/4', tempo: 75, estil: 'pop', part: { type: 'bass', rhythm: 'Q', roles: ['1'] }, voice: 'melody' },
       ],
     },
     {
@@ -227,3 +242,12 @@ export const REPTES = [
   'Fes servir només dues cordes',
   'Imita el ritme de la bateria',
 ];
+
+/** Un pas surt si quadra amb el compàs de la cançó (les cartes i els rascats tenen compàs propi). */
+export function stepFits(step, metreId = '4/4', cardMetreOf = () => null) {
+  if (step.metres) return step.metres.includes(metreId);
+  const card = step.carta ?? step.part?.card;
+  const cm = card ? cardMetreOf(card) : null;
+  if (!cm) return true;
+  return cm === metreId || (cm === '4/4' && metreId === '2/4');
+}
