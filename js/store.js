@@ -2,13 +2,15 @@
 // Si el navegador no deixa guardar (mode privat), el joc funciona igual i només s'oblida en tancar.
 
 const KEY = 'rockin.guitarrabaix.v1';
-const blank = () => ({ players: {}, current: null, settings: { thickTop: true, metronome: false, guide: 0, chordBox: true } });
+const blank = () => ({ players: {}, current: null, settings: { thickTop: false, view: 2, metronome: false, guide: 0, chordBox: true } });
 
 let data = blank();
 try {
   const raw = localStorage.getItem(KEY);
   if (raw) data = { ...blank(), ...JSON.parse(raw) };
   data.settings = { ...blank().settings, ...(data.settings ?? {}) };
+  // versió 10: la vista per defecte passa a ser la de tabulatura
+  if (data.settings.view !== 2) { data.settings.thickTop = false; data.settings.view = 2; }
 } catch {
   data = blank();
 }

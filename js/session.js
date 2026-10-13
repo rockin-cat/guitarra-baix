@@ -154,7 +154,7 @@ export function openSession(host, baseStep, ctx) {
   st.root = root;
   st.el = (name) => $(`[data-el="${name}"]`, root);
 
-  st.neck = createNeck(st.el('neck'), inst, { thickTop: S.thickTop !== false });
+  st.neck = createNeck(st.el('neck'), inst, { thickTop: S.thickTop === true });
   st.lane = createLane(st.el('lane'), { color: inst.color });
   st.el('tempo').textContent = st.tempo;
   st.el('metro').checked = st.metronome;
@@ -715,7 +715,7 @@ function setupTuner(st) {
   } else if (step.mode === 'relative') {
     const pairs = [];
     for (let s = 0; s < n - 1; s++) { const f = inst.tuning[s + 1] - inst.tuning[s]; pairs.push({ s, f }); }
-    html = `<p class="muted">Primer sona la corda de sota al trast marcat, després la següent a l'aire. Han de sonar igual.</p><div class="tune-row">${pairs.map((p) => `<button type="button" class="tune-btn wide" data-t="rel" data-s="${p.s}" data-f="${p.f}"><b>${n - p.s} → ${n - p.s - 1}</b><small>${inst.stringNames[p.s]} al trast ${p.f} = ${inst.stringNames[p.s + 1]} a l'aire</small></button>`).join('')}</div>`;
+    html = `<p class="muted">Primer sona la corda més gruixuda al trast marcat, després la següent (més prima) a l'aire. Han de sonar igual.</p><div class="tune-row">${pairs.map((p) => `<button type="button" class="tune-btn wide" data-t="rel" data-s="${p.s}" data-f="${p.f}"><b>${n - p.s} → ${n - p.s - 1}</b><small>${inst.stringNames[p.s]} al trast ${p.f} = ${inst.stringNames[p.s + 1]} a l'aire</small></button>`).join('')}</div>`;
   } else {
     html = `<p class="muted">El Mi major, corda a corda i després sencer. Toca\'l alhora i compara.</p><div class="tune-row"><button type="button" class="tune-btn wide" data-t="chk"><b>▶ Mi major</b><small>corda a corda</small></button></div>`;
   }

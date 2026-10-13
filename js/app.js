@@ -442,7 +442,7 @@ document.addEventListener('click', (ev) => {
   if (!b) return;
   if (b.id === 'home-link') { ev.preventDefault(); renderHome(); show('home'); return; }
   if (b.id === 'player-chip') { store.setCurrent(null); renderHome(); show('home'); return; }
-  if (b.id === 'settings-btn') { $('#set-thick').checked = store.settings().thickTop !== false; $('#settings').showModal(); return; }
+  if (b.id === 'settings-btn') { $('#set-thick').checked = store.settings().thickTop === true; $('#settings').showModal(); return; }
   if (b.dataset.inst && b.closest('#inst-switch, .inst-tiles')) {
     if (!store.currentName()) return;
     store.setInstrument(b.dataset.inst);

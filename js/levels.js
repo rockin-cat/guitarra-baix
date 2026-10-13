@@ -49,14 +49,14 @@ export const LEVELS = {
       n: 3, titol: 'Rascats mà dreta', sub: 'Tocar amb diferents rascats', icona: '✋',
       passos: [
         { id: 'g3a', titol: 'La mà que no s\'atura', text: 'Rascat: avall als temps. Entremig la mà puja sense tocar (fletxa grisa).', com: ['La mà va amunt i avall tota l\'estona, com un pèndol.', 'Les fletxes grises són moviments a l\'aire.'], prog: 'G | D | Em | C', tempo: 70, estil: 'pop', part: { type: 'rascat', card: 'rg6' }, carta: 'rg6' },
-        { id: 'g3b', titol: 'Totes les corxeres', text: 'Ara la mà toca quan baixa i quan puja.', com: ['Amunt, toca només les cordes de dalt de l\'acord.'], prog: 'G | D | Em | C', tempo: 70, estil: 'pop', part: { type: 'rascat', card: 'rg1' }, carta: 'rg1' },
+        { id: 'g3b', titol: 'Totes les corxeres', text: 'Ara la mà toca quan baixa i quan puja.', com: ['Amunt, toca només les cordes primes de l\'acord.'], prog: 'G | D | Em | C', tempo: 70, estil: 'pop', part: { type: 'rascat', card: 'rg1' }, carta: 'rg1' },
         { id: 'g3c', titol: 'El rascat del pop', text: 'Avall, (amunt), avall, amunt, (avall), amunt, avall, amunt.', com: ['Les fletxes grises: la mà passa però no toca.', 'Digues-ho en veu alta mentre toques: «a, i, a, i…».'], prog: 'C | G | Am | F', tempo: 75, estil: 'pop', part: { type: 'rascat', card: 'rg2' }, carta: 'rg2' },
         { id: 'g3d', titol: 'Un altre rascat', text: 'Canvia on cau el moviment a l\'aire.', com: ['Mira la carta i la púa alhora.'], prog: 'Am | F | C | G', tempo: 75, estil: 'pop', part: { type: 'rascat', card: 'rg9' }, carta: 'rg9' },
         { id: 'g3e', titol: 'Rascat amb molts aires', text: 'Menys cops que sonen: el ritme és als silencis.', com: ['La mà continua igual; només canvia quan toca.'], prog: 'G | D | Em | C', tempo: 75, estil: 'rock', part: { type: 'rascat', card: 'rg15' }, carta: 'rg15' },
         { id: 'g3f', titol: 'Rascat en semicorxeres', text: 'Setze moviments per compàs: la mà va el doble de ràpid.', com: ['Comença molt lent.', 'Pensa «u-i-a-i, dos-i-a-i…».'], prog: 'Am | Am | G | G', tempo: 60, estil: 'funk', part: { type: 'rascat', card: 'rg18' }, carta: 'rg18' },
         // rascats per a cançons que no són en 4/4
         { id: 'g3t1', metres: ['3/4'], titol: 'Rascat en 3/4: només avall', text: 'Avall a cada temps; entremig la mà puja sense tocar.', com: ['La mà fa de pèndol.'], tempo: 80, estil: 'vals', part: { type: 'rascat', strum: 'DuDuDu' } },
-        { id: 'g3t2', metres: ['3/4'], titol: 'Rascat en 3/4: totes les corxeres', text: 'Avall i amunt a cada temps.', com: ['Amunt, només les cordes de dalt.'], tempo: 80, estil: 'vals', part: { type: 'rascat', strum: 'DUDUDU' } },
+        { id: 'g3t2', metres: ['3/4'], titol: 'Rascat en 3/4: totes les corxeres', text: 'Avall i amunt a cada temps.', com: ['Amunt, només les cordes primes.'], tempo: 80, estil: 'vals', part: { type: 'rascat', strum: 'DUDUDU' } },
         { id: 'g3t3', metres: ['3/4'], titol: 'Rascat en 3/4 amb un aire', text: 'Avall, (amunt), avall, amunt, avall, amunt.', com: ['Mira les fletxes grises.'], tempo: 80, estil: 'vals', part: { type: 'rascat', strum: 'DuDUDU' } },
         { id: 'g3t4', metres: ['6/8'], titol: 'Rascat en 6/8: avall a cada pulsació', text: 'Avall al començament de cada pulsació; la mà es mou a les altres corxeres.', com: ['U-dos-tres, quatre-cinc-sis.'], tempo: 60, estil: 'balada68', part: { type: 'rascat', strum: 'DudDud' } },
         { id: 'g3t5', metres: ['6/8'], titol: 'Rascat en 6/8: totes les corxeres', text: 'Avall, amunt, avall a cada pulsació.', com: ['Comença cada pulsació amb la mà avall.'], tempo: 60, estil: 'balada68', part: { type: 'rascat', strum: 'DUDDUD' } },
@@ -98,7 +98,7 @@ export const LEVELS = {
       n: 7, titol: 'Afinar la guitarra', sub: "Mantenir l'afinació correcta", icona: '🎚',
       passos: [
         { id: 'g7a', kind: 'tune', mode: 'strings', titol: 'Les sis cordes', text: 'Escolta la nota de cada corda i gira la clavilla fins que soni igual.', com: ['Si la teva corda sona més greu, apreta (puja). Si sona més aguda, afluixa una mica i torna a pujar.', 'Afina sempre pujant cap a la nota.'] },
-        { id: 'g7b', kind: 'tune', mode: 'relative', titol: 'Afinar d\'oïda amb el trast 5', text: 'La corda de sota, al trast 5, sona igual que la corda següent a l\'aire (menys la 3a corda, que va al trast 4).', com: ['Escolta les dues notes una darrere l\'altra fins que no hi hagi «batec».'] },
+        { id: 'g7b', kind: 'tune', mode: 'relative', titol: 'Afinar d\'oïda amb el trast 5', text: 'Cada corda, al trast 5, sona igual que la corda següent més prima a l\'aire (menys la 3a corda, que va al trast 4).', com: ['Escolta les dues notes una darrere l\'altra fins que no hi hagi «batec».'] },
         { id: 'g7c', kind: 'tune', mode: 'check', titol: 'Comprova amb un acord', text: 'Toca el Mi major corda a corda i compara-ho amb el que sona aquí.', com: ['Si una sola nota grinyola, aquella corda està desafinada.'] },
       ],
     },
@@ -106,7 +106,7 @@ export const LEVELS = {
       n: 8, titol: 'Recursos tècnics', sub: 'Hammer-on, glissando, bending', icona: '⚡',
       passos: [
         { id: 'g8a', titol: 'Hammer-on', text: 'Toques una nota i, sense tornar a tocar, «martelleges» un dit més amunt. Sonen dues notes amb un sol cop de púa.', com: ['Deixa caure el dit amb força, de punta.', 'A la pista surt com «0h2».'], prog: 'Em | Em | Em | Em', metre: '4/4', tempo: 70, estil: 'rock', part: { type: 'riff', tech: 'h', notes: [[0, 1, 5, 0, 'h', 2], [1, 1, 4, 0, 'h', 2], [2, 1, 3, 0, 'h', 2], [3, 1, 4, 2]] } },
-        { id: 'g8b', titol: 'Pull-off', text: 'El contrari: amb dos dits posats, estires el de dalt cap avall i sona la nota de sota.', com: ['Estira el dit com si pessiguessis la corda.'], prog: 'Em | Em | Em | Em', metre: '4/4', tempo: 70, estil: 'rock', part: { type: 'riff', tech: 'p', notes: [[0, 1, 4, 2, 'p', 0], [1, 1, 5, 2, 'p', 0], [2, 1, 4, 2, 'p', 0], [3, 1, 6, 0]] } },
+        { id: 'g8b', titol: 'Pull-off', text: 'El contrari: amb dos dits a la mateixa corda, aixeques el del trast més alt estirant una mica la corda, i sona la nota de l\'altre dit (o la corda a l\'aire).', com: ['Estira el dit com si pessiguessis la corda.'], prog: 'Em | Em | Em | Em', metre: '4/4', tempo: 70, estil: 'rock', part: { type: 'riff', tech: 'p', notes: [[0, 1, 4, 2, 'p', 0], [1, 1, 5, 2, 'p', 0], [2, 1, 4, 2, 'p', 0], [3, 1, 6, 0]] } },
         { id: 'g8c', titol: 'Glissando', text: 'Toques una nota i, sense aixecar el dit, el llisques fins a un altre trast.', com: ['No deixis de fer pressió mentre llisques.', 'A la pista surt com «2/4».'], prog: 'Em | Em | Em | Em', metre: '4/4', tempo: 70, estil: 'rock', part: { type: 'riff', tech: 's', notes: [[0, 2, 3, 2, 's', 4], [2, 1, 3, 4], [3, 1, 3, 2]] } },
         { id: 'g8d', titol: 'Bending', text: 'Toques una nota i empenys la corda cap amunt perquè pugi d\'afinació.', com: ['Empeny amb tres dits junts, no només amb un.', 'Puja fins que soni com dos trasts més amunt.'], prog: 'Em | Em | Em | Em', metre: '4/4', tempo: 70, estil: 'rock', part: { type: 'riff', tech: 'b', notes: [[0, 2, 2, 3, 'b'], [2, 1, 1, 0], [3, 1, 2, 0]] } },
         { id: 'g8e', titol: 'Tot junt', text: 'Un riff amb hammer-on, pull-off, glissando i bending.', com: ['Primer lent: cada recurs al seu lloc.'], prog: 'Em | Em | Em | Em', metre: '4/4', tempo: 70, estil: 'rock', part: { type: 'riff', tech: ['h', 'p', 's', 'b'], notes: [[0, 1, 5, 0, 'h', 2], [1, 1, 4, 2, 'p', 0], [2, 1, 3, 2, 's', 4], [3, 1, 2, 3, 'b']] } },
@@ -197,7 +197,7 @@ export const LEVELS = {
       n: 7, titol: 'Afinar el baix', sub: "Mantenir l'afinació correcta", icona: '🎚',
       passos: [
         { id: 'b7a', kind: 'tune', mode: 'strings', titol: 'Les quatre cordes', text: 'Escolta la nota de cada corda i gira la clavilla fins que soni igual.', com: ['Afina sempre pujant cap a la nota.'] },
-        { id: 'b7b', kind: 'tune', mode: 'relative', titol: 'Afinar d\'oïda amb el trast 5', text: 'La corda de sota, al trast 5, sona igual que la corda següent a l\'aire.', com: ['Escolta-les una darrere l\'altra.'] },
+        { id: 'b7b', kind: 'tune', mode: 'relative', titol: 'Afinar d\'oïda amb el trast 5', text: 'Cada corda, al trast 5, sona igual que la corda següent més prima a l\'aire.', com: ['Escolta-les una darrere l\'altra.'] },
       ],
     },
     {

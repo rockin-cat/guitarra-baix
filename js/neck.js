@@ -1,6 +1,6 @@
 // L'animació del mànec: on van els dits, què ve després i què fa la mà dreta (la púa).
-// SVG fet a mà. Per defecte la corda més gruixuda va a dalt, com la veus quan mires la guitarra:
-// així una fletxa avall és una púa que baixa.
+// SVG fet a mà. Per defecte es veu com una tabulatura: la corda 1 (la més prima) a dalt i la més gruixuda a baix.
+// Es pot girar (vista de jugador, la corda gruixuda a dalt) a la configuració.
 
 import { stringNumber } from './fretboard.js';
 import { pcName } from './theory.js';
@@ -30,7 +30,7 @@ function wireX(f, frets) {
   return NUT + (LAST - NUT) * k;
 }
 
-export function createNeck(host, inst, { thickTop = true } = {}) {
+export function createNeck(host, inst, { thickTop = false } = {}) {
   host.innerHTML = '';
   const n = inst.tuning.length;
   const gap = n === 6 ? 30 : 40;

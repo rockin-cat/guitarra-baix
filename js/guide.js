@@ -8,6 +8,7 @@ import { parseChord, parseProgression, metre, solfa, mod } from './theory.js';
 import { partBar } from './parts.js';
 import { tone, resumeAudio, loadSet } from './audio.js';
 import { cardById } from './data/cartes.js';
+import { settings } from './store.js';
 
 const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const h = (html) => { const t = document.createElement('template'); t.innerHTML = html.trim(); return t.content.firstElementChild; };
@@ -81,19 +82,19 @@ export function renderGuide(host, instId, { onDone } = {}) {
   // 1 · intro
   function pageIntro(el) {
     el.innerHTML = `<div class="gcols"><div>
-      <p class="glead">El mànec que veus és ${g ? 'la teva guitarra' : 'el teu baix'} vist des de dalt, com quan el mires mentre toques: la <b>corda més gruixuda</b> queda a dalt i la més prima, a baix.</p>
+      <p class="glead">El mànec de la pantalla es llegeix com una <b>tabulatura</b>: la línia de dalt és la <b>corda 1</b>, la més prima (la més aguda), i la de baix és la <b>corda ${n}</b>, la més gruixuda (la més greu). És com trobaràs les cançons escrites en tabulatura a tot arreu.</p>
       ${box('Què hi ha', `<ul><li>A l'esquerra, el <b>clavillater</b> (on afines) i la <b>celleta</b> (la peça blanca).</li><li>Les línies verticals són els <b>trasts</b>: els fils de metall del mànec.</li><li>Els punts grisos són les <b>marques</b> que la teva ${g ? 'guitarra' : 'baix'} també té (trasts 3, 5, 7, 9 i 12).</li><li>A la dreta, el <b>cos</b>: on la mà dreta toca les cordes.</li></ul>`)}
-      ${tryIt(`<p>Agafa ${g ? 'la guitarra' : 'el baix'}, inclina'l una mica i mira'l des de dalt. Busca les marques del trast 3, 5 i 7: són al mateix lloc que a la pantalla.</p>`)}
-      </div><div class="gside"><p class="muted small">Es pot girar a ⚙︎ Configuració si es prefereix com una tabulatura (la corda més prima a dalt).</p></div></div>`;
-    const neck = createNeck(stage(el), inst, {});
+      ${tryIt(`<p>Posa ${g ? 'la guitarra' : 'el baix'} estirat a la falda, de cara amunt, amb el mànec cap a l'esquerra. La corda gruixuda queda a prop teu (a baix) i la prima, lluny (a dalt): així és com el veus a la pantalla. Busca les marques dels trasts 3, 5 i 7: són al mateix lloc.</p><p>Quan ${g ? 'la' : 'el'} tornis a posar per tocar, la corda gruixuda queda a dalt: la pantalla és com si ${g ? 'la' : 'el'} miressis estirat${g ? 'a' : ''}.</p>`)}
+      </div><div class="gside"><p class="muted small">A ⚙︎ Configuració es pot canviar a la «vista de jugador» (la corda gruixuda a dalt, com Rocksmith).</p></div></div>`;
+    const neck = createNeck(stage(el), inst, { thickTop: settings().thickTop === true });
     neck.clear();
   }
 
   // 2 · les cordes
   function pageStrings(el) {
-    el.innerHTML = `<p class="glead">${g ? 'La guitarra té sis cordes' : 'El baix té quatre cordes'}. Es numeren de la més prima (<b>1</b>) a la més gruixuda (<b>${n}</b>), i cadascuna té el nom de la nota que fa a l'aire.</p>`;
+    el.innerHTML = `<p class="glead">${g ? 'La guitarra té sis cordes' : 'El baix té quatre cordes'}. Es numeren de la més prima (<b>1</b>, la de dalt de la pantalla) a la més gruixuda (<b>${n}</b>, la de baix), i cadascuna té el nom de la nota que fa a l'aire.</p>`;
     const neckHost = stage(el);
-    const neck = createNeck(neckHost, inst, {});
+    const neck = createNeck(neckHost, inst, { thickTop: settings().thickTop === true });
     const row = h(`<div class="string-btns">${[...inst.tuning.keys()].map((s) => `<button type="button" class="tune-btn" data-s="${s}"><b>${stringNumber(inst, s)}</b><span>${inst.stringNames[s]}</span></button>`).join('')}</div>`);
     el.append(row);
     el.insertAdjacentHTML('beforeend', tryIt(`<p>Clica una corda: s'il·lumina i sona. Toca la mateixa corda al teu instrument, sense posar cap dit a l'esquerra (<b>a l'aire</b>). Ha de sonar igual (si no, potser cal afinar: és el nivell 7).</p><p class="gq" data-q></p>`));
@@ -120,7 +121,7 @@ export function renderGuide(host, instId, { onDone } = {}) {
   function pageFrets(el) {
     el.innerHTML = `<p class="glead">Els <b>trasts</b> són els espais entre els fils de metall. El número de sota diu quin trast és. El <b>0</b> vol dir <b>a l'aire</b>: no poses cap dit.</p>`;
     const neckHost = stage(el);
-    const neck = createNeck(neckHost, inst, {});
+    const neck = createNeck(neckHost, inst, { thickTop: settings().thickTop === true });
     const info = h('<p class="gq">Clica qualsevol lloc del mànec.</p>');
     el.append(info);
     el.insertAdjacentHTML('beforeend', `<div class="gcols">${box('Com es posa el dit', '<ul><li>El dit va <b>just darrere</b> del fil de metall, no a sobre.</li><li>Prem amb la punta del dit, com si fos un martell petit.</li><li>Cada trast més cap al cos, la nota puja una mica.</li></ul>')}${tryIt('<p>Clica un punt de la pantalla, posa el dit al mateix trast i la mateixa corda, i toca. Ha de sonar igual.</p>')}</div>`);
@@ -154,7 +155,7 @@ export function renderGuide(host, instId, { onDone } = {}) {
           <li><span class="lg cover"></span> Franja grisa: <b>cordes tapades</b>. No es toquen encara.</li></ul>`)}</div></div>`;
       const opts = h(`<div class="row gopts">${[['G', 'obert', 'Acord obert: Sol'], ['F', 'celleta', 'Amb celleta: Fa'], ['G', 'p3', 'Power chord: Sol5'], ['G', 'o3', 'Cordes tapades: Sol amb 3 cordes'], ['next', 'next', 'Acord que ve: Do → Sol']].map(([c, m, t], i) => `<button type="button" class="tab${i === 0 ? ' on' : ''}" data-c="${c}" data-m="${m}">${esc(t)}</button>`).join('')}</div>`);
       el.append(opts);
-      const neck = createNeck(stage(el), inst, {});
+      const neck = createNeck(stage(el), inst, { thickTop: settings().thickTop === true });
       const show = (c, m) => {
         if (m === 'next') {
           const a = guitarVoicing(parseChord('C'));
@@ -179,7 +180,7 @@ export function renderGuide(host, instId, { onDone } = {}) {
         <p class="glead">Al baix, el número de dins del punt diu <b>quina nota de l'acord</b> toques:</p>
         <ul class="legend big"><li><span class="lg dot">1</span> la <b>fonamental</b>: la nota que dona nom a l'acord</li><li><span class="lg dot">3</span> la <b>tercera</b></li><li><span class="lg dot">5</span> la <b>quinta</b></li><li><span class="lg dot">8</span> l'<b>octava</b>: la mateixa fonamental, més aguda</li></ul>
         <p>Quan toques una línia del Generador, el número és el <b>trast</b>, com a una tabulatura.</p></div><div>${handSvg(inst.color)}<p class="muted small">Per tocar, cada dit s'ocupa d'un trast: dit 1 al primer, dit 2 al següent…</p></div></div>`;
-      const neck = createNeck(stage(el), inst, {});
+      const neck = createNeck(stage(el), inst, { thickTop: settings().thickTop === true });
       const ch = parseChord('C');
       neck.dotsFor(['1', '3', '5', '8'].map((r) => { const p = bassRole(ch, r); return { s: p.s, f: p.f, label: r, cls: r === '1' ? 'active' : 'tone' }; }));
       el.insertAdjacentHTML('beforeend', tryIt('<p>Són les notes de l\'acord de <b>Do</b>. Toca-les en ordre (1, 3, 5, 8) i escolta com pugen.</p>'));
@@ -189,9 +190,9 @@ export function renderGuide(host, instId, { onDone } = {}) {
   // 5 · la púa
   function pagePick(el) {
     el.innerHTML = `<div class="gcols"><div><p class="glead">${g ? 'La <b>púa</b> groga és la teva mà dreta. La fletxa diu cap on va:' : 'La forma groga és el dit (o la púa) que pulsa: salta a la corda que toca.'}</p>
-      ${g ? `<ul class="legend big"><li><span class="lg arrow">↓</span> <b>Avall</b>: de la corda gruixuda a la prima.</li><li><span class="lg arrow">↑</span> <b>Amunt</b>: de la prima a la gruixuda (normalment només les de dalt).</li><li><span class="lg arrow ghost">↕</span> <b>Gris</b>: la mà es mou però <b>no toca</b> (com a les cartes de rascat).</li></ul>` : ''}</div>
-      <div>${tryIt(g ? '<p>Mou la mà dreta com la púa de la pantalla, primer sense tocar, i després tocant només quan la púa és groga.</p>' : '<p>Pulsa la corda que s\'il·lumina, alternant els dits índex i mig.</p>')}</div></div>`;
-    const neck = createNeck(stage(el), inst, {});
+      ${g ? `<ul class="legend big"><li><span class="lg arrow">↓</span> <b>Avall</b>: la mà baixa, de la corda gruixuda a la prima. Com que a la tabulatura la gruixuda és a baix, <b>a la pantalla la púa puja</b>.</li><li><span class="lg arrow">↑</span> <b>Amunt</b>: la mà puja, de la prima a la gruixuda (normalment només les primes). A la pantalla, la púa baixa.</li><li><span class="lg arrow ghost">↕</span> <b>Gris</b>: la mà es mou però <b>no toca</b> (com a les cartes de rascat).</li></ul>` : ''}</div>
+      <div>${tryIt(g ? '<p>Segueix la <b>fletxa</b>: ↓ vol dir que la teva mà baixa, encara que la púa de la pantalla pugi. Primer mou la mà sense tocar i després toca només quan la púa és groga.</p>' : '<p>Pulsa la corda que s\'il·lumina, alternant els dits índex i mig.</p>')}</div></div>`;
+    const neck = createNeck(stage(el), inst, { thickTop: settings().thickTop === true });
     const v = g ? guitarVoicing(parseChord('Em')) : null;
     if (g) neck.show({ mode: 'chord', cur: { id: 'em', chord: 'Em', voicing: v }, label: 'Em · avall, (amunt), avall, amunt…' });
     const moves = g ? 'DuDUdUDU' : '';
@@ -260,7 +261,7 @@ export function renderGuide(host, instId, { onDone } = {}) {
       const wrap = h(`<div class="gcols"><div>${box('El diagrama d\'acord', '<p>És el mateix acord que el mànec, però <b>dret</b>, com les cartes de diagrames: les línies verticals són les cordes (la gruixuda a l\'<b>esquerra</b>) i les horitzontals, els trasts. A dalt: ○ a l\'aire, × no es toca.</p>')}${tryIt('<p>Posa la guitarra dreta davant teu, mirant-la de cara: el diagrama és igual que el que veus.</p>')}</div><div class="gbox-diagram"></div></div>`);
       wrap.querySelector('.gbox-diagram').append(chordBox(v, { title: 'C (Do)', color: inst.color }));
       el.append(wrap);
-      const neck = createNeck(stage(el), inst, {});
+      const neck = createNeck(stage(el), inst, { thickTop: settings().thickTop === true });
       neck.show({ mode: 'chord', cur: { id: 'c', chord: 'C', voicing: v }, label: 'C (Do): el mateix acord, al mànec' });
     }
   }
