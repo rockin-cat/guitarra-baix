@@ -38,7 +38,7 @@ Sons: mostres lliures amb llicència MIT (vegeu `assets/sons/LLICENCIA.txt`).
 ## Cançons (versió 2)
 
 «Cançons» obre, des d'un mateix lloc:
-- el **Llibre de temes ROCKIN** (el mateix del joc de teclat: es llegeix el publicat a `rockin-cat.github.io/rockin/js/songbook.js` i, si no hi arriba, la còpia `js/data/llibre.js`);
+- el **Llibre de temes ROCKIN** (el mateix del joc de teclat: es llegeix el publicat a `rockin-cat.github.io/teclat/js/songbook.js` i, si no hi arriba, la còpia `js/data/llibre.js`);
 - les **rodes de cançons** del joc de teclat i les cançons **fetes o obertes al joc de teclat** en aquest navegador (`rockin.play.paths`; només quan els dos jocs s'obren des de rockin-cat.github.io);
 - la **biblioteca compartida** del Generador de diagrames, que és la mateixa que fan servir els jocs de teclat i de bateria (mateix codi del professorat).
 

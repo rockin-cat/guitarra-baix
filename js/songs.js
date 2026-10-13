@@ -9,7 +9,8 @@ import { SONGBOOK as LOCAL_BOOK } from './data/llibre.js';
 import { progressionText } from './theory.js';
 import { STYLES } from './band.js';
 
-const PUBLISHED_BOOK = 'https://rockin-cat.github.io/rockin/js/songbook.js';
+// el joc de teclat es publica al repositori rockin-cat/teclat
+const PUBLISHED_BOOK = 'https://rockin-cat.github.io/teclat/js/songbook.js';
 
 /** Estils del joc de teclat → estils d'aquest joc. */
 const STYLE_MAP = { rock: 'rock', shuffle: 'shuffle', ballad: 'balada', swing: 'shuffle', bossa: 'pop', funk: 'funk', reggaeton: 'reggaeton', rumba: 'rumba', reggae: 'reggae', ska: 'rumba', cumbia: 'rumba', hiphop: 'funk', vals: 'vals', metronome: 'metronom' };
@@ -30,7 +31,7 @@ export async function songbook() {
   if (bookCache) return bookCache;
   let list = LOCAL_BOOK;
   try {
-    const mod = await import(/* @vite-ignore */ PUBLISHED_BOOK);
+    const mod = await import(/* @vite-ignore */ `${PUBLISHED_BOOK}?v=${Math.floor(Date.now() / 600000)}`);
     if (Array.isArray(mod.SONGBOOK) && mod.SONGBOOK.length) list = mod.SONGBOOK;
   } catch { /* sense xarxa o en local: la còpia */ }
   bookCache = list.map((s) => ({

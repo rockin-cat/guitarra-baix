@@ -64,7 +64,7 @@ export function deleteSong(id) { const p = player(); if (!p) return; p.songs = p
 
 /** La cançó amb què treballa el full de ruta: { titol, artista, prog, metre, tempo, estil }. */
 export const workSong = () => player()?.song ?? null;
-export function setWorkSong(song) { const p = player(); if (!p) return; p.song = song ? { titol: song.titol, artista: song.artista ?? '', prog: song.prog, metre: song.metre ?? '4/4', tempo: Number(song.tempo) || 90, estil: song.estil, baix: Array.isArray(song.baix) && song.baix.length ? song.baix : undefined } : null; save(); }
+export function setWorkSong(song) { const p = player(); if (!p) return; p.song = song ? { titol: song.titol, artista: song.artista ?? '', prog: song.prog, metre: song.metre ?? '4/4', tempo: Number(song.tempo) || 90, estil: song.estil, baix: Array.isArray(song.baix) && song.baix.length ? song.baix : undefined, font: song.font ?? null, ref: song.ref ?? null } : null; save(); }
 /** Com toca els acords a la guitarra: { type: 'power', parts } o { type: 'obert', cordes }. */
 export const chordMode = () => player()?.chordMode ?? { type: 'power', parts: 3 };
 export function setChordMode(m) { const p = player(); if (!p) return; p.chordMode = m; save(); }

@@ -94,6 +94,7 @@ function renderHome() {
       </div>
     </div>
     ${name ? `
+      ${updatedNote ? `<p class="note">🔄 ${esc(updatedNote)}</p>` : ''}
       <div class="who-short"><span>Hola, <b>${esc(name)}</b>! Què toques avui?</span><button type="button" class="btn btn-ghost" data-go="who">No soc jo · canvia</button></div>
       <div class="inst-tiles">
         ${Object.values(INSTRUMENTS).map((x) => `<button type="button" class="inst-tile${x.id === i.id ? ' on' : ''}" data-inst="${x.id}" style="--c:${x.color}"><span class="it-icon">${x.id === 'guitarra' ? guitarSvg(x.color) : bassSvg(x.color)}</span><span><b>${esc(x.nom)}</b><small>${ws ? levelLine(x.id) : ''}</small></span></button>`).join('')}
@@ -349,7 +350,7 @@ async function renderSongTab() {
 function loadSong(s, from) {
   const metre = s.metre ?? '4/4';
   editing = false;
-  Object.assign(draft, { titol: s.titol, artista: s.artista ?? '', baix: s.baix ?? null, prog: s.prog, metre, tempo: s.tempo ?? 90, estil: STYLES[s.estil]?.metres.includes(metre) ? s.estil : mapStyle(s.estil, metre), font: from });
+  Object.assign(draft, { titol: s.titol, artista: s.artista ?? '', baix: s.baix ?? null, prog: s.prog, metre, tempo: s.tempo ?? 90, estil: STYLES[s.estil]?.metres.includes(metre) ? s.estil : mapStyle(s.estil, metre), font: from, ref: s.ref ?? s.id ?? null });
   renderSong();
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
@@ -372,7 +373,7 @@ async function loadFromLibrary(id) {
   try {
     const entry = libEntries.find((x) => x.id === id);
     const s = songFromLibrary(await loadLibrarySong(savedCode(), id), entry);
-    loadSong({ ...s, estil: s.estil ?? defaultStyle(s.metre) }, 'biblio');
+    loadSong({ ...s, estil: s.estil ?? defaultStyle(s.metre), ref: id }, 'biblio');
   } catch (e) {
     box?.insertAdjacentHTML('afterbegin', `<p class="err">${esc(errorText(e))}</p>`);
   }
@@ -456,7 +457,7 @@ document.addEventListener('click', (ev) => {
     else { renderMap(); show('map'); }
     return;
   }
-  if (b.dataset.player) { store.setCurrent(b.dataset.player); Object.assign(draft, { prog: '' }); renderHome(); applyAccent(); return; }
+  if (b.dataset.player) { store.setCurrent(b.dataset.player); Object.assign(draft, { prog: '' }); updatedNote = ''; renderHome(); applyAccent(); refreshWorkSong(); return; }
   if (b.dataset.c === 'print') { window.print(); return; }
   const go = b.dataset.go;
   if (go === 'who') { store.setCurrent(null); renderHome(); applyAccent(); return; }
@@ -497,7 +498,30 @@ document.addEventListener('keydown', (e) => {
   }
 });
 
+// ---- La cançó de treball s'actualitza sola si ha canviat al Llibre o a la biblioteca -------------------------------
+
+async function refreshWorkSong() {
+  const ws = store.workSong();
+  if (!ws?.ref) return;
+  let fresh = null;
+  try {
+    if (ws.font === 'llibre') fresh = (await songbook()).find((s) => s.id === ws.ref) ?? null;
+    else if (ws.font === 'biblio' && savedCode()) {
+      const s = songFromLibrary(await loadLibrarySong(savedCode(), ws.ref), { id: ws.ref });
+      fresh = { ...s, estil: s.estil ?? ws.estil };
+    }
+  } catch { return; } // sense xarxa o la cançó ja no hi és: ens quedem amb la còpia
+  if (!fresh) return;
+  const changed = fresh.prog !== ws.prog || fresh.titol !== ws.titol || JSON.stringify(fresh.baix ?? null) !== JSON.stringify(ws.baix ?? null) || String(fresh.metre) !== String(ws.metre);
+  if (!changed || store.workSong()?.ref !== ws.ref) return;
+  store.setWorkSong({ ...ws, ...fresh, estil: STYLES[fresh.estil]?.metres.includes(fresh.metre) ? fresh.estil : ws.estil, font: ws.font, ref: ws.ref });
+  updatedNote = `«${fresh.titol}» s'ha actualitzat amb els canvis ${ws.font === 'llibre' ? 'del Llibre de temes' : 'de la biblioteca compartida'}.`;
+  if (document.body.dataset.view === 'home') renderHome();
+}
+let updatedNote = '';
+
 renderHome();
 show('home');
+refreshWorkSong();
 window.__rockinReady = true;
 window.rockinGB = { store, openStep, LEVELS };
