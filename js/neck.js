@@ -98,16 +98,25 @@ export function createNeck(host, inst, { thickTop = true } = {}) {
   function clear(...layers) { for (const l of layers) l.replaceChildren(); }
 
   function drawVoicing(layer, v, { ring = false } = {}) {
+    const cov = new Set(v.covered ?? []);
     if (v.barre && !ring) {
       const x = fretX(v.barre.fret, frets);
       const ya = y(v.barre.from); const yb = y(v.barre.to);
       el('rect', { x: x - 11, y: Math.min(ya, yb) - 12, width: 22, height: Math.abs(yb - ya) + 24, rx: 11, class: 'barre' }, layerBarre);
     }
     v.frets.forEach((f, s) => {
-      if (f < 0) { if (!ring) muted(s); return; }
-      if (v.barre && !ring && f === v.barre.fret && v.fingers[s] === 1) return; // ja ho fa la celleta
-      dot(layer, s, f, f === 0 ? '' : v.fingers[s] || '', ring ? 'ring' : '');
+      if (f < 0) { if (!ring && !cov.has(s)) muted(s); return; }
+      if (v.barre && !ring && f === v.barre.fret && v.fingers[s] === 1 && !cov.has(s)) return; // ja ho fa la celleta
+      dot(layer, s, f, f === 0 ? '' : v.fingers[s] || '', ring ? 'ring' : cov.has(s) ? 'covered' : '');
     });
+    if (cov.size && !ring) {
+      // cordes tapades, com al Generador de diagrames: es veu la forma, però en gris
+      const ys = [...cov].map(y);
+      const y0 = Math.min(...ys) - gap / 2;
+      const y1 = Math.max(...ys) + gap / 2;
+      el('rect', { x: NUT - 44, y: y0, width: LAST - NUT + 52, height: y1 - y0, class: 'cover' }, layerTech);
+      el('text', { x: NUT + 10, y: (y0 + y1) / 2 + 5, class: 'cover-text' }, layerTech).textContent = `${cov.size === 1 ? 'corda tapada' : `${cov.size} cordes tapades`} · toca només ${6 - cov.size === 1 ? 'la corda' : `les ${6 - cov.size} cordes`} de ${thickTop ? 'sota' : 'dalt'}`;
+    }
   }
 
   let shownKey = '';
@@ -255,6 +264,7 @@ export function chordBox(v, { title = '', color = '#f97316', small = false } = {
     const fy = top + (v.barre.fret - base + 0.5) * gy;
     el('rect', { x: pad + v.barre.from * gx - 6, y: fy - 6, width: (v.barre.to - v.barre.from) * gx + 12, height: 12, rx: 6, fill: color }, svg);
   }
+  const cov = v.covered ?? [];
   v.frets.forEach((f, s) => {
     const x = pad + s * gx;
     if (f < 0) { el('text', { x, y: top - 7, 'text-anchor': 'middle', class: 'cb-mark' }, svg).textContent = '×'; return; }
@@ -264,5 +274,6 @@ export function chordBox(v, { title = '', color = '#f97316', small = false } = {
     el('circle', { cx: x, cy, r: small ? 6 : 9, fill: color }, svg);
     if (!small && v.fingers[s]) el('text', { x, y: cy + 4, 'text-anchor': 'middle', class: 'cb-finger' }, svg).textContent = v.fingers[s];
   });
+  if (cov.length) el('rect', { x: pad - gx / 2, y: top - 20, width: gx * cov.length, height: gy * fretsShown + 22, fill: '#4a4a4a', 'fill-opacity': 0.85 }, svg);
   return svg;
 }

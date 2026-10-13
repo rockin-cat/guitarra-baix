@@ -117,3 +117,16 @@ export function guessKey(bars) {
 
 /** Pentatònica (menor o major) d'una tonalitat. */
 export const pentatonic = (key) => (key.minor ? [0, 3, 5, 7, 10] : [0, 2, 4, 7, 9]).map((i) => mod(key.root + i, 12));
+
+/** El tros d'una cançó per practicar: la primera part que no és la intro (com a molt 8 compassos). */
+export function practicePart(text) {
+  const { bars } = parseProgression(text);
+  if (!bars.length) return text;
+  const starts = bars.map((b, i) => (b.part || i === 0 ? i : -1)).filter((i) => i >= 0);
+  let from = 0;
+  for (const i of starts) if (!/^intro/i.test(bars[i].part ?? '')) { from = i; break; }
+  let to = bars.findIndex((b, i) => i > from && b.part);
+  if (to < 0) to = bars.length;
+  const slice = bars.slice(from, Math.min(to, from + 8));
+  return slice.map((b, i) => `${i === 0 && b.part ? `[${b.part}] ` : ''}${b.map((sg) => sg.chord.symbol).join(' ')}`).join(' | ');
+}

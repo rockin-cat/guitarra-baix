@@ -43,3 +43,10 @@ Sons: mostres lliures amb llicència MIT (vegeu `assets/sons/LLICENCIA.txt`).
 - la **biblioteca compartida** del Generador de diagrames, que és la mateixa que fan servir els jocs de teclat i de bateria (mateix codi del professorat).
 
 Les cançons porten l'estructura: `[Tornada] C | G | …` posa nom a la part, i surt a la pista.
+
+## Sempre a partir d'una cançó (versió 3)
+
+- Qui toca tria **la cançó amb què treballa** (botó «Treballa el full de ruta amb aquesta cançó» a Cançons). Tots els passos es practiquen amb el tros principal de la cançó (o sencera), menys les cartes d'un altre compàs, els riffs tècnics i l'afinador.
+- **Guitarra, nivell 1**: camí dels **power chords** (un dit a la corda 6 per tot el mànec → + 5a → + 8a) i, quan el profe ho decideix, **acords oberts desbloquejant cordes** (només la corda 1, després 1–2… fins a totes), amb les cordes tapades en gris com al Generador de diagrames.
+- El que surt («Em surt!») en aquests camins és com es toquen els acords a la resta de nivells; també es pot canviar a la pràctica (selector «Acords»).
+- Les formes dels acords oberts són les de les cartes de diagrames ROCKIN.

@@ -13,7 +13,7 @@
 
 import { chordAt, mod } from './theory.js';
 import { cardById, cardOnsets } from './data/cartes.js';
-import { INSTRUMENTS, guitarVoicing, bassRole, guitarLadder } from './fretboard.js';
+import { INSTRUMENTS, guitarVoicing, bassRole, guitarLadder, soundingLadder } from './fretboard.js';
 
 const EPS = 1e-6;
 
@@ -69,6 +69,7 @@ function noteEvent(inst, p, beat, dur, chord, extra = {}) {
 }
 
 export const roleLabel = (r) => ({ 1: '1', 3: '3', 5: '5', 8: '8', b7: '7', 7: '7', 10: '3', 12: '5', '-5': '5', '-8': '1' }[r] ?? String(r));
+// (a la guitarra, el paper «1» d'una nota aguda es diu igualment 1: és la mateixa nota)
 
 const segChord = (bar, beat, M) => chordAt(bar, beat / M.beats);
 
@@ -128,10 +129,17 @@ export function partBar(spec, instId, bar, M, k = 0) {
       const chord = segChord(bar, a, M);
       if (instId === 'guitarra') {
         const v = voicingOf(chord);
-        const ladder = guitarLadder(chord, v, 5);
-        const p = ladder[Math.min(ranks[i], ladder.length - 1)];
-        const role = ['1', '3', '5', '8', '10', '12'][ranks[i]] ?? '1';
-        out.push(noteEvent(inst, p && { ...p, role }, a, d, chord, { voicing: v }));
+        if (v.power || v.covered) {
+          // amb power chords o cordes tapades, el contorn va per les notes que sonen
+          const ladder = soundingLadder(chord, v);
+          const p = ladder[ranks[i] % ladder.length];
+          out.push(noteEvent(inst, p, a, d, chord, { voicing: v }));
+        } else {
+          const ladder = guitarLadder(chord, v, 5);
+          const p = ladder[Math.min(ranks[i], ladder.length - 1)];
+          const role = ['1', '3', '5', '8', '10', '12'][ranks[i]] ?? '1';
+          out.push(noteEvent(inst, p && { ...p, role }, a, d, chord, { voicing: v }));
+        }
       } else {
         const role = ['1', '3', '5', '8', '10', '12'][ranks[i]] ?? '1';
         out.push(noteEvent(inst, bassRole(chord, role), a, d, chord));

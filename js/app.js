@@ -63,6 +63,7 @@ function renderHome() {
     </div>
     ${name ? `
       <div class="who-short"><span>Hola, <b>${esc(name)}</b>! Què toques avui?</span><button type="button" class="btn btn-ghost" data-go="who">No soc jo · canvia</button></div>
+      ${workSongBox()}
       <div class="inst-tiles">
         ${Object.values(INSTRUMENTS).map((x) => `<button type="button" class="inst-tile${x.id === i.id ? ' on' : ''}" data-inst="${x.id}" style="--c:${x.color}"><span class="it-icon">${x.id === 'guitarra' ? guitarSvg(x.color) : bassSvg(x.color)}</span><span><b>${esc(x.nom)}</b><small>${levelLine(x.id)}</small></span></button>`).join('')}
       </div>
@@ -133,6 +134,20 @@ function renderMap() {
 // ---- Un nivell -------------------------------------------------------------------------------------------------
 
 let currentLevel = 1;
+const MODE_TEXT = (m) => (typeof m === 'string' ? 'amb celleta' : m.type === 'power' ? ['power chord · un dit a la corda 6', 'power chord · 1 i 5', 'power chord sencer (1, 5, 8)'][m.parts - 1] : m.cordes >= 6 ? 'acords oberts · totes les cordes' : `acords oberts · ${m.cordes === 1 ? 'corda 1' : `cordes 1 a ${m.cordes}`}`);
+
+/** La cançó amb què es treballa el full de ruta (i, a la guitarra, com es fan els acords). */
+function workSongBox() {
+  const ws = store.workSong();
+  const i = inst();
+  return `<div class="work-song">
+      <span style="font-size:26px">🎵</span>
+      <div style="flex:1;min-width:200px">${ws ? `<small>La cançó amb què treballes</small><span class="ws-name">${esc(ws.titol)}</span>${ws.artista ? ` <small style="display:inline">· ${esc(ws.artista)}</small>` : ''}` : '<small>Sempre s\'aprèn a partir d\'una cançó</small><span class="ws-name">Tria la cançó amb què treballes</span>'}
+        ${i.id === 'guitarra' ? `<small>Acords: ${esc(MODE_TEXT(store.chordMode()))} · es canvia a la pràctica o al nivell 1</small>` : ''}</div>
+      <button type="button" class="btn ${ws ? 'btn-ghost' : 'btn-primary'}" data-go="songs">${ws ? 'Canvia de cançó' : 'Tria-la'}</button>
+    </div>`;
+}
+
 function renderLevel(n = currentLevel) {
   currentLevel = n;
   const i = inst();
@@ -141,12 +156,14 @@ function renderLevel(n = currentLevel) {
   v.innerHTML = `
     <div class="view-head"><button type="button" class="btn-back" data-go="map">← Full de ruta</button>
       <div><small class="muted">${esc(i.nom)} · Nivell ${l.n} de 10</small><h2>${esc(l.titol)}</h2><p class="muted">${esc(l.sub)}</p></div></div>
+    ${workSongBox()}
     <ol class="steps">
-      ${l.passos.map((p, k) => { const s = store.stepState(p.id); return `
+      ${l.passos.map((p, k) => { const s = store.stepState(p.id); const ws = store.workSong(); const usesSong = ws && p.canco !== false && p.kind !== 'tune' && p.part?.type !== 'riff' && !(p.metre && p.metre !== ws.metre); return `
+        ${p.grup && p.grup !== l.passos[k - 1]?.grup ? `<li class="step-group">${esc(p.grup)}</li>` : ''}
         <li class="step ${s?.best ?? ''}">
           <span class="step-state" title="${s?.best === 'ok' ? 'Et surt' : s?.best === 'gairebe' ? 'Gairebé' : 'Per fer'}">${icon(s)}</span>
           <div class="step-text"><b>${k + 1}. ${esc(p.titol)}</b><small>${esc(p.text ?? '')}</small>
-            ${p.prog ? `<span class="step-meta">${esc(p.prog)} · ${esc(p.metre ?? '4/4')} · ${p.tempo ?? ''} bpm${s?.best === 'ok' && s.tempo ? ` · t'ha sortit a ${s.tempo}` : ''}</span>` : ''}</div>
+            ${p.prog ? `<span class="step-meta">${usesSong ? `🎵 ${esc(ws.titol)}` : esc(p.prog)} · ${esc(usesSong ? ws.metre : p.metre ?? '4/4')}${s?.best === 'ok' && s.tempo ? ` · t'ha sortit a ${s.tempo} bpm` : ''}</span>` : ''}</div>
           <button type="button" class="btn ${s?.best === 'ok' ? 'btn-ghost' : 'btn-primary'}" data-step="${p.id}">${p.kind === 'cards' ? 'Tria carta' : p.kind === 'tune' ? 'Afina' : s?.best === 'ok' ? 'Repassa' : 'Practica'}</button>
         </li>`; }).join('')}
     </ol>
@@ -170,6 +187,7 @@ function openStep(id) {
     crumb: `Pas ${k + 1} de ${level.passos.length}`,
     onBack: () => { renderLevel(step.nivell); show('level'); },
     onNext: next ? () => openStep(next.id) : null,
+    onChooseSong: () => { songTab = 'llibre'; renderCreator(); show('creator'); },
   });
 }
 
@@ -292,6 +310,7 @@ function renderCreator(msg = '') {
           <button type="button" class="btn btn-ghost" data-c="new">Nova</button>
         </div>
         ${msg ? `<p class="note">${esc(msg)}</p>` : ''}
+        ${parsed.bars.length ? `<div class="row"><button type="button" class="btn ${store.workSong()?.prog === draft.prog ? 'btn-ghost' : 'btn-primary'}" data-c="worksong">${store.workSong()?.prog === draft.prog ? '✓ És la cançó amb què treballes el full de ruta' : '🎵 Treballa el full de ruta amb aquesta cançó'}</button></div>` : ''}
       </form>
       <div class="side-col">
         <div class="panel songs-panel">
@@ -359,7 +378,7 @@ async function renderSongTab() {
 
 function loadSong(s, from) {
   const metre = s.metre ?? '4/4';
-  Object.assign(draft, { titol: s.titol, prog: s.prog, metre, tempo: s.tempo ?? 90, estil: STYLES[s.estil]?.metres.includes(metre) ? s.estil : mapStyle(s.estil, metre), id: null, compose: null });
+  Object.assign(draft, { titol: s.titol, artista: s.artista ?? '', prog: s.prog, metre, tempo: s.tempo ?? 90, estil: STYLES[s.estil]?.metres.includes(metre) ? s.estil : mapStyle(s.estil, metre), id: null, compose: null });
   renderCreator(`«${s.titol}» oberta${from ? ` ${from}` : ''}${s.nota ? `. ${s.nota}` : ''}. Tria el nivell i prem «Fes-me la base».`);
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
@@ -375,8 +394,11 @@ function creatorClick(b) {
     draft.id = s.id;
     songTab = 'meves';
     renderCreator('Desada a «Les meves».');
+  } else if (b.dataset.c === 'worksong') {
+    store.setWorkSong({ ...draft, titol: draft.titol || 'La meva cançó' });
+    renderCreator(`Ara tots els passos del full de ruta es practiquen amb «${draft.titol || 'La meva cançó'}».`);
   } else if (b.dataset.c === 'new') {
-    Object.assign(draft, { titol: '', prog: '', id: null, compose: null });
+    Object.assign(draft, { titol: '', artista: '', prog: '', id: null, compose: null });
     renderCreator();
   } else if (b.dataset.pickcard) {
     const opts = levelOptions(i.id, Number(draft.nivell), draft.metre);

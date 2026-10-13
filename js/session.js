@@ -5,9 +5,9 @@ import * as player from './player.js';
 import { createNeck, chordBox } from './neck.js';
 import { createLane } from './lane.js';
 import { INSTRUMENTS, guitarVoicing, scaleBox, bassRole } from './fretboard.js';
-import { parseProgression, guessKey, pentatonic, mod, pcName, metre as metreOf, midiName } from './theory.js';
+import { parseProgression, guessKey, pentatonic, mod, pcName, metre as metreOf, midiName, practicePart } from './theory.js';
 import { stylesFor, defaultStyle, STYLES } from './band.js';
-import { BINARI, TERNARI, MELODIC, cardById } from './data/cartes.js';
+import { BINARI, TERNARI, MELODIC, cardById, cardMetre } from './data/cartes.js';
 import { tone, audioContext } from './audio.js';
 import { REPTES } from './levels.js';
 import * as store from './store.js';
@@ -30,13 +30,44 @@ export function closeSession() {
 /**
  * Obre un pas. `step` com a levels.js (o fet pel creador). ctx: { inst, onBack, onNext, backLabel, crumb }
  */
-export function openSession(host, step, ctx) {
+const CHORD_MODES = [
+  ['p1', { type: 'power', parts: 1 }, 'Power chord · un dit (corda 6)'],
+  ['p2', { type: 'power', parts: 2 }, 'Power chord · 1 i 5'],
+  ['p3', { type: 'power', parts: 3 }, 'Power chord sencer (1, 5, 8)'],
+  ...[1, 2, 3, 4, 5].map((n) => [`o${n}`, { type: 'obert', cordes: n }, `Acords oberts · ${n === 1 ? 'corda 1' : `cordes 1 a ${n}`}`]),
+  ['o6', { type: 'obert', cordes: 6 }, 'Acords oberts · totes les cordes'],
+  ['celleta', 'celleta', 'Tots amb celleta'],
+];
+const modeKey = (m) => (typeof m === 'string' ? m : m?.type === 'power' ? `p${m.parts}` : `o${m?.cordes ?? 6}`);
+
+/** El pas tal com es toca: amb la cançó de treball i la manera de fer els acords de qui toca. */
+function effectiveStep(base, instId, opts = {}) {
+  const s = { ...base };
+  if (instId === 'guitarra' && base.kind !== 'tune') s.voicing = base.chordMode ?? opts.chordMode ?? base.voicing ?? store.chordMode();
+  const song = store.workSong();
+  const kind = base.kind ?? 'play';
+  const cardId = base.carta ?? base.part?.card;
+  const cm = cardId ? cardMetre(cardById(cardId)) : null;
+  const usable = song && base.canco !== false && !base.custom && kind !== 'tune' && base.part?.type !== 'riff' && (!cm || cm === song.metre);
+  s.songNote = song && !usable && base.canco !== false && kind !== 'tune' && base.part?.type !== 'riff' && !base.custom ? (cm && cm !== song.metre ? `Aquesta carta és de ${cm}: es practica amb una roda pròpia.` : '') : '';
+  if (usable) {
+    s.prog = opts.whole ? song.prog : practicePart(song.prog);
+    s.metre = song.metre;
+    s.estil = STYLES[song.estil]?.metres.includes(song.metre) ? song.estil : STYLES[base.estil]?.metres.includes(song.metre) ? base.estil : defaultStyle(song.metre);
+    s.tempo = Math.min(base.tempo ?? 90, song.tempo ?? 90);
+    s.usesSong = song.titol;
+  }
+  return s;
+}
+
+export function openSession(host, baseStep, ctx) {
   closeSession();
   const inst = INSTRUMENTS[ctx.inst];
+  const step = effectiveStep(baseStep, ctx.inst);
   const S = store.settings();
   const kind = step.kind ?? 'play';
   const st = {
-    step, inst, kind, host, ctx,
+    step, baseStep, inst, kind, host, ctx, whole: false,
     tempo: step.tempo ?? 80,
     rounds: 0, // 0 = automàtic
     guide: S.guide ?? 0,
@@ -93,6 +124,7 @@ export function openSession(host, step, ctx) {
           <label class="toggle" title="Mentre toques tu, sona fluixa la part que has de fer"><input type="checkbox" data-el="guide"> Guia sonora</label>
           <button type="button" class="btn btn-ghost btn-small" data-act="strings" hidden>🔍 Corda a corda</button>
         </div>
+        <div class="ctrl-opts ctrl-song" data-el="songbar"></div>
       </div>
       <div class="assess" data-el="assess" hidden>
         <h3>Com t'ha anat?</h3>
@@ -128,7 +160,15 @@ export function openSession(host, step, ctx) {
   }
   if (inst.id === 'guitarra' && (st.step.part?.type === 'strum' || st.step.part?.type === 'rascat')) $('[data-act="strings"]', root).hidden = false;
 
+  renderSongBar(st);
   root.addEventListener('click', (ev) => onClick(st, ev));
+  root.addEventListener('change', (ev) => {
+    const t = ev.target;
+    if (t.dataset.el === 'cmode') {
+      const m = CHORD_MODES.find(([k]) => k === t.value)?.[1];
+      if (m) { store.setChordMode(m); rebuildStep(st); }
+    } else if (t.dataset.el === 'whole') { st.whole = t.checked; rebuildStep(st); }
+  });
   st.el('rounds').addEventListener('change', (e) => { st.rounds = Number(e.target.value); });
   st.el('metro').addEventListener('change', (e) => { st.metronome = e.target.checked; S.metronome = st.metronome; store.save(); player.setMetronome(st.metronome); });
   st.el('guide').addEventListener('change', (e) => { st.guide = e.target.checked ? 0.3 : 0; S.guide = st.guide; store.save(); player.setGuide(st.guide); });
@@ -137,6 +177,35 @@ export function openSession(host, step, ctx) {
   showIdle(st);
   st.raf = requestAnimationFrame(() => frame(st));
   return st;
+}
+
+function renderSongBar(st) {
+  const bar = st.el('songbar');
+  const b = st.baseStep;
+  const parts = [];
+  if (st.inst.id === 'guitarra' && !b.chordMode && st.kind !== 'tune') {
+    const cur = modeKey(store.chordMode());
+    parts.push(`<label>Acords <select data-el="cmode">${CHORD_MODES.map(([k, , t]) => `<option value="${k}"${k === cur ? ' selected' : ''}>${esc(t)}</option>`).join('')}</select></label>`);
+  }
+  if (st.step.usesSong) {
+    parts.push(`<span class="song-chip">🎵 ${esc(st.step.usesSong)}</span><label class="toggle"><input type="checkbox" data-el="whole"${st.whole ? ' checked' : ''}> Cançó sencera</label>`);
+  } else if (st.step.songNote) parts.push(`<span class="muted small">${esc(st.step.songNote)}</span>`);
+  else if (!store.workSong() && b.canco !== false && !b.custom && st.kind !== 'tune' && b.part?.type !== 'riff' && st.ctx.onChooseSong) {
+    parts.push('<button type="button" class="btn btn-ghost btn-small" data-act="choose-song">🎵 Tria la cançó amb què treballes</button>');
+  }
+  bar.innerHTML = parts.join('');
+  bar.hidden = !parts.length;
+}
+
+function rebuildStep(st) {
+  player.stop();
+  st.step = effectiveStep(st.baseStep, st.inst.id, {});
+  if (st.whole && st.step.usesSong) st.step = effectiveStep(st.baseStep, st.inst.id, { whole: true });
+  setTempo(st, st.step.tempo ?? st.tempo);
+  buildSong(st);
+  renderPulses(st);
+  setButtons(st, false);
+  showIdle(st);
 }
 
 // ---- La cançó del pas --------------------------------------------------------------------------------------
@@ -282,6 +351,7 @@ function onClick(st, ev) {
   if (act === 'slower' || act === 'faster') return setTempo(st, st.tempo + (act === 'faster' ? 5 : -5));
   if (act === 'strings') return stringByString(st);
   if (act === 'next') { closeSession(); st.ctx.onNext?.(); return; }
+  if (act === 'choose-song') { closeSession(); st.ctx.onChooseSong?.(); return; }
   if (act === 'up10') { setTempo(st, st.tempo + 10); hideAssess(st); return go(st, 'play'); }
   if (act === 'again') { hideAssess(st); return go(st, 'full'); }
   if (act === 'again-play') { hideAssess(st); return go(st, 'play'); }
@@ -295,6 +365,8 @@ function setTempo(st, t) {
 function rate(st, r) {
   const id = st.step.id;
   if (id) store.markStep(id, r, st.tempo);
+  // el que surt al camí de power chords o d'acords oberts és com es toquen els acords a la resta de nivells
+  if (r === 'ok' && st.inst.id === 'guitarra' && st.baseStep.chordMode && typeof st.baseStep.chordMode === 'object' && st.baseStep.nivell === 1) store.setChordMode(st.baseStep.chordMode);
   const fb = st.el('feedback');
   const after = st.el('after');
   after.innerHTML = '';
@@ -413,7 +485,7 @@ function frame(st) {
     const dur = Math.max(0.05, Math.min(0.16, gap * 0.7));
     const p = ((pos.abs - cur.abs) * spb + lead) / dur;
     if (cur.kind === 'strum') {
-      const strings = cur.voicing ? cur.voicing.frets.map((f, s) => (f >= 0 ? s : -1)).filter((s) => s >= 0) : [];
+      const strings = cur.voicing ? cur.voicing.midi.map((m, s) => (m != null ? s : -1)).filter((s) => s >= 0) : [];
       st.neck.animate({ pick: { id: cur.id, p, dir: cur.dir, ghost: cur.ghost, strings: cur.dir === 'U' ? strings.slice(-4) : strings } });
     } else {
       st.neck.animate({ pick: { id: cur.id, p, s: cur.pos[0].s, strings: [cur.pos[0].s] } });
@@ -523,7 +595,7 @@ async function stringByString(st) {
     const v = e.voicing;
     timers.push([t, () => st.neck.show({ mode: 'chord', cur: { ...e, id: `cc${e.chord}` }, label: `${e.chord} · corda a corda` })]);
     v.frets.forEach((f, s) => {
-      if (f < 0) return;
+      if (f < 0 || v.midi[s] == null) return;
       const at = t;
       tone(st.inst.sound, v.midi[s], at, 0.9, { gain: 0.5, dest: 'me' });
       timers.push([at, () => st.neck.shake(s)]);

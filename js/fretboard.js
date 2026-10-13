@@ -51,6 +51,24 @@ const OPEN = {
   'Esus4': [[0, 2, 2, 2, 0, 0], [0, 2, 3, 4, 0, 0]],
 };
 
+// Les digitacions de les cartes de diagrames ROCKIN (Generador de diagrames): manen per als acords majors i menors.
+// [trasts de la 6a a la 1a, dits]
+const ROCKIN_SHAPES = {
+  'Am': [[0, 0, 2, 2, 1, 0], [0, 0, 2, 3, 1, 0]], 'A': [[0, 0, 2, 2, 2, 0], [0, 0, 1, 2, 3, 0]],
+  'Bb': [[6, 8, 8, 7, 6, 6], [1, 3, 4, 2, 1, 1]], 'Bbm': [[6, 8, 8, 6, 6, 6], [1, 3, 4, 1, 1, 1]],
+  'Bm': [[2, 2, 4, 4, 3, 2], [1, 1, 3, 4, 2, 1]], 'B': [[2, 2, 4, 4, 4, 2], [1, 1, 2, 3, 4, 1]],
+  'Cm': [[3, 3, 5, 5, 4, 3], [1, 1, 3, 4, 2, 1]], 'C': [[0, 3, 2, 0, 1, 0], [0, 3, 2, 0, 1, 0]],
+  'C#': [[4, 4, 6, 6, 6, 4], [1, 1, 2, 3, 4, 1]], 'C#m': [[4, 4, 6, 6, 5, 4], [1, 1, 3, 4, 2, 1]],
+  'Dm': [[-1, 0, 0, 2, 3, 1], [0, 0, 0, 2, 3, 1]], 'D': [[-1, 0, 0, 2, 3, 2], [0, 0, 0, 1, 3, 2]],
+  'Eb': [[6, 6, 8, 8, 8, 6], [1, 1, 2, 3, 4, 1]], 'Ebm': [[6, 6, 8, 8, 7, 6], [1, 1, 3, 4, 2, 1]],
+  'Em': [[0, 2, 2, 0, 0, 0], [0, 2, 3, 0, 0, 0]], 'E': [[0, 2, 2, 1, 0, 0], [0, 2, 3, 1, 0, 0]],
+  'Fm': [[1, 3, 3, 1, 1, 1], [1, 3, 4, 1, 1, 1]], 'F': [[1, 3, 3, 2, 1, 1], [1, 3, 4, 2, 1, 1]],
+  'F#': [[2, 4, 4, 3, 2, 2], [1, 3, 4, 2, 1, 1]], 'F#m': [[2, 4, 4, 2, 2, 2], [1, 3, 4, 1, 1, 1]],
+  'Gm': [[3, 5, 5, 3, 3, 3], [1, 3, 4, 1, 1, 1]], 'G': [[3, 2, 0, 0, 3, 3], [2, 1, 0, 0, 3, 4]],
+  'Ab': [[4, 6, 6, 5, 4, 4], [1, 3, 4, 2, 1, 1]], 'Abm': [[4, 6, 6, 4, 4, 4], [1, 3, 4, 1, 1, 1]],
+};
+const ENHARMONIC = { 'A#': 'Bb', Db: 'C#', 'D#': 'Eb', Gb: 'F#', 'G#': 'Ab' };
+
 // Formes amb celleta: desplaçament de trast des de la celleta (null = no es toca) i dits.
 const E_FORM = {
   '': [[0, 2, 2, 1, 0, 0], [1, 3, 4, 2, 1, 1]],
@@ -119,22 +137,69 @@ export function powerChord(chord) {
   return build(frets, fingers, `${chord.symbol.replace(/m.*|7.*|sus.*/, '')}5`);
 }
 
+/** Power chord amb la fonamental a la 6a corda (es mou per tot el mànec). parts: 1 = només la fonamental, 2 = + la 5a, 3 = + l'8a. */
+export function powerRoot6(chord, parts = 3) {
+  const f = mod(chord.root - 40, 12);
+  const frets = [f, -1, -1, -1, -1, -1];
+  const fingers = [f ? 1 : 0, 0, 0, 0, 0, 0];
+  if (parts >= 2) { frets[1] = f + 2; fingers[1] = 3; }
+  if (parts >= 3) { frets[2] = f + 2; fingers[2] = 4; }
+  const v = build(frets, fingers, parts === 1 ? chord.symbol : `${chord.symbol.replace(/m(?!aj).*|7.*|sus.*|dim.*/, '')}5`);
+  v.power = parts;
+  return v;
+}
+
+/** Tapa les cordes greus: només sonen (i es veuen) les `n` cordes més agudes. */
+export function coverStrings(v, n) {
+  if (!v || n >= 6) return v;
+  const covered = [0, 1, 2, 3, 4, 5].filter((s) => s < 6 - n);
+  return { ...v, covered, midi: v.midi.map((m, s) => (covered.includes(s) ? null : m)) };
+}
+
 /**
  * Com tocar un acord a la guitarra.
- * mode: 'obert' (si n'hi ha), 'celleta' (sempre amb celleta), 'quinta' (power chord).
+ * mode: 'obert' (forma de les cartes ROCKIN si n'hi ha), 'celleta', 'quinta' (power chord),
+ *       o bé un objecte { type: 'power', parts: 1–3 } | { type: 'obert', cordes: 1–6 }.
  */
 export function guitarVoicing(chord, mode = 'obert') {
   if (!chord) return null;
+  if (mode && typeof mode === 'object') {
+    if (mode.type === 'power') return powerRoot6(chord, mode.parts ?? 3);
+    return coverStrings(guitarVoicing(chord, 'obert'), mode.cordes ?? 6);
+  }
   if (mode === 'quinta' || chord.q === '5') return powerChord(chord);
   const key = chord.symbol.replace(/\/.*/, '');
-  const names = [key, key.replace(/^Db/, 'C#').replace(/^Gb/, 'F#'), key.replace(/^C#/, 'Db').replace(/^G#/, 'Ab').replace(/^D#/, 'Eb').replace(/^A#/, 'Bb')];
+  const root = /^[A-G][#b]?/.exec(key)[0];
+  const names = [key, (ENHARMONIC[root] ?? root) + key.slice(root.length)];
   if (mode !== 'celleta') {
+    for (const n of names) if (ROCKIN_SHAPES[n]) return build(...ROCKIN_SHAPES[n], chord.symbol, ROCKIN_SHAPES[n][0].some((f) => f > 3) ? 'R' : null);
     for (const n of names) if (OPEN[n]) return build(...OPEN[n], chord.symbol);
   }
   const e = E_FORM[chord.q] || !A_FORM[chord.q] ? barreShape(chord, 'E') : null;
   const a = barreShape(chord, 'A');
   const options = [e, a].filter(Boolean).sort((x, y) => x.barre.fret - y.barre.fret);
   return options[0] ?? powerChord(chord);
+}
+
+/** Les notes que sonen d'un acord, de greu a agut, amb el seu paper (1, 3, 5, 8…). */
+export function soundingLadder(chord, v) {
+  const seen = new Set();
+  const out = [];
+  v.frets.forEach((f, s) => {
+    const m = v.midi[s];
+    if (m == null || seen.has(m)) return;
+    seen.add(m);
+    out.push({ s, f, midi: m, role: roleOf(chord, m) });
+  });
+  out.sort((a, b) => a.midi - b.midi);
+  // la fonamental que no és la més greu és l'octava (8)
+  const low = out.find((p) => p.role === '1');
+  for (const p of out) if (p.role === '1' && low && p.midi > low.midi) p.role = '8';
+  return out;
+}
+export function roleOf(chord, midi) {
+  const i = mod(midi - chord.root, 12);
+  return { 0: '1', 3: '3', 4: '3', 7: '5', 6: '5', 8: '5', 10: '7', 11: '7', 2: '9', 5: '4', 9: '6' }[i] ?? '';
 }
 
 /** Totes les posicions (corda, trast) d'una nota MIDI. */
