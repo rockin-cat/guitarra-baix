@@ -25,7 +25,9 @@ function show(view) {
   if (view !== 'guide') closeGuide();
   for (const v of VIEWS) $(`#v-${v}`).hidden = v !== view;
   document.body.dataset.view = view;
-  window.scrollTo({ top: 0 });
+  $(`#v-${view}`).scrollTop = 0;
+  const section = ['level', 'cards', 'session'].includes(view) ? 'map' : view;
+  for (const b of document.querySelectorAll('#rail [data-nav]')) b.classList.toggle('on', b.dataset.nav === section);
   applyAccent();
 }
 
@@ -37,6 +39,11 @@ function applyAccent() {
   const chip = $('#player-chip');
   chip.hidden = !store.currentName();
   $('span', chip).textContent = store.currentName() ?? '';
+  document.body.classList.toggle('no-player', !store.currentName());
+  const ws = store.currentName() ? store.workSong() : null;
+  const pill = $('#song-chip');
+  pill.hidden = !ws;
+  if (ws) pill.innerHTML = `<svg viewBox="0 0 24 24" width="15" height="15"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg><b>${esc(ws.titol)}</b><small>${esc(ws.metre)} · ${ws.tempo} bpm</small>`;
 }
 
 // ---- Progrés (només els passos que quadren amb el compàs de la cançó) ---------------------------------------------
@@ -59,24 +66,6 @@ const bassSvg = (c) => `<svg viewBox="0 0 40 60" width="34" height="50"><rect x=
 
 const MODE_TEXT = (m) => (typeof m === 'string' ? 'amb celleta' : m.type === 'power' ? ['power chord · un dit a la corda 6', 'power chord · 1 i 5', 'power chord sencer (1, 5, 8)'][m.parts - 1] : m.cordes >= 6 ? 'acords oberts · totes les cordes' : `acords oberts · ${m.cordes === 1 ? 'corda 1' : `cordes 1 a ${m.cordes}`}`);
 
-/** La cançó amb què es treballa (amb l'estructura en petit). */
-function workSongBox({ full = false } = {}) {
-  const ws = store.workSong();
-  const i = inst();
-  if (!ws) {
-    return `<div class="work-song empty"><span class="ws-icon">🎵</span><div class="ws-main"><small>Sempre s'aprèn a partir d'una cançó</small><span class="ws-name">Tria la cançó amb què treballes</span>
-      <small>Del Llibre ROCKIN, de la biblioteca del Generador o escrivint-ne els acords. Després, tots els nivells es fan sobre aquesta roda.</small></div>
-      <button type="button" class="btn btn-primary btn-big" data-go="song">Tria la cançó</button></div>`;
-  }
-  return `<div class="work-song">
-      <div class="ws-top"><span class="ws-icon">🎵</span>
-        <div class="ws-main"><small>La cançó amb què treballes</small><span class="ws-name">${esc(ws.titol)}</span>${ws.artista ? ` <small class="ws-art">· ${esc(ws.artista)}</small>` : ''}
-          <small>${esc(ws.metre)} · ${ws.tempo} bpm${i.id === 'guitarra' ? ` · acords: ${esc(MODE_TEXT(store.chordMode()))}` : ''}${i.id === 'baix' && ws.baix?.length ? ` · 🎸 ${ws.baix.length === 1 ? 'una línia' : `${ws.baix.length} línies`} de baix del Generador` : ''}</small></div>
-        <button type="button" class="btn btn-ghost" data-go="song">Canvia de cançó</button></div>
-      ${full ? `<div class="ws-struct">${structureHtml(ws, { compact: true })}</div>` : ''}
-    </div>`;
-}
-
 // ---- Inici ------------------------------------------------------------------------------------------------------
 
 function renderHome() {
@@ -84,43 +73,67 @@ function renderHome() {
   const name = store.currentName();
   const i = inst();
   const ws = store.workSong();
-  const nx = name && ws ? nextStep(i.id) : null;
+  if (!name) {
+    v.innerHTML = `
+      <div class="who-screen">
+        <img class="who-logo" src="assets/brand/rockin-logo.png" alt="ROCKIN · [r]evolucionem la música">
+        <div class="panel who">
+          <h1>Qui toca?</h1>
+          <p class="muted">Tria el teu nom o escriu-ne un de nou. El progrés es guarda en aquest navegador.</p>
+          ${store.players().length ? `<div class="who-list">${store.players().map((p) => `<button type="button" class="who-btn" data-player="${esc(p)}" style="--c:${INSTRUMENTS[store.player(p).inst]?.color ?? '#999'}"><b>${esc(p)}</b><small>${esc(INSTRUMENTS[store.player(p).inst]?.curt ?? '')}${store.player(p).song ? ` · ${esc(store.player(p).song.titol)}` : ''}</small></button>`).join('')}</div>` : ''}
+          <form class="who-form" id="who-form"><input id="who-name" type="text" maxlength="24" placeholder="Escriu el teu nom" autocomplete="off"><button type="submit" class="btn">Som-hi</button></form>
+        </div>
+      </div>`;
+    $('#who-form').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const n = $('#who-name').value.trim();
+      if (!n) return;
+      store.setCurrent(n);
+      renderHome();
+      applyAccent();
+    });
+    return;
+  }
+  const nx = ws ? nextStep(i.id) : null;
+  const levels = LEVELS[i.id];
+  const guideTodo = !store.player()?.guideDone;
+  const nxProg = nx ? levelProgress(nx.level) : null;
   v.innerHTML = `
-    <div class="hero">
-      <img class="hero-logo" src="assets/brand/rockin-logo.png" alt="ROCKIN · [r]evolucionem la música">
-      <div>
-        <h1>Guitarra i baix amb els fulls de ruta ROCKIN</h1>
-        <p>Tries una cançó i la treballes nivell a nivell: primer escoltes, després la banda continua sense el teu instrument i l'animació del mànec et guia. Tot es va sumant sobre la mateixa roda d'acords.</p>
+    <div class="home" style="--c:${i.color}">
+      <div class="home-main">
+        <div class="home-hello"><h1>Hola, ${esc(name)}</h1><span class="muted">${esc(i.nom)}</span>${updatedNote ? `<p class="note">${esc(updatedNote)}</p>` : ''}</div>
+        ${guideTodo ? `<button type="button" class="guide-strip" data-go="guide"><b>Comences de zero?</b> Aprèn a llegir la pantalla: el mànec, la púa, la pista i les cartes.<span>Obre la guia</span></button>` : ''}
+        ${ws ? `
+        <button type="button" class="next-card" data-go="continue">
+          <span class="pick-badge">${nx ? nx.level.n : '✓'}</span>
+          <span class="next-text"><small>${nx ? `Nivell ${nx.level.n} · ${esc(nx.level.titol)}` : 'Full de ruta complet'}</small>
+            <b>${nx ? esc(nx.step.titol) : 'Tria qualsevol pas per repassar-lo'}</b>
+            ${nxProg ? `<span class="pbar"><i style="width:${nxProg.total ? (100 * nxProg.done) / nxProg.total : 0}%"></i></span><em>${nxProg.done} de ${nxProg.total} passos del nivell</em>` : ''}</span>
+          <span class="next-go">▶ Continua</span>
+        </button>
+        <div class="panel home-song">
+          <div class="song-head"><div><small class="muted">La cançó amb què treballes</small><h2>${esc(ws.titol)}</h2>
+            <p class="song-meta">${[ws.artista, ws.metre, `${ws.tempo} bpm`, i.id === 'guitarra' ? MODE_TEXT(store.chordMode()) : ws.baix?.length ? 'línia de baix del Generador' : ''].filter(Boolean).map(esc).join(' · ')}</p></div>
+            <button type="button" class="btn btn-ghost btn-small" data-go="song">Canvia</button></div>
+          <div class="home-struct">${structureHtml(ws, { compact: true })}</div>
+        </div>` : `
+        <button type="button" class="next-card empty" data-go="song">
+          <span class="pick-badge">♫</span>
+          <span class="next-text"><small>Sempre s'aprèn a partir d'una cançó</small><b>Tria la cançó amb què treballes</b>
+            <em>Del Llibre ROCKIN o escrivint-ne els acords. Tots els nivells es fan sobre la seva roda.</em></span>
+          <span class="next-go">Tria-la</span>
+        </button>`}
       </div>
-    </div>
-    ${name ? `
-      ${updatedNote ? `<p class="note">🔄 ${esc(updatedNote)}</p>` : ''}
-      <div class="who-short"><span>Hola, <b>${esc(name)}</b>! Què toques avui?</span><button type="button" class="btn btn-ghost" data-go="who">No soc jo · canvia</button></div>
-      <div class="inst-tiles">
-        ${Object.values(INSTRUMENTS).map((x) => `<button type="button" class="inst-tile${x.id === i.id ? ' on' : ''}" data-inst="${x.id}" style="--c:${x.color}"><span class="it-icon">${x.id === 'guitarra' ? guitarSvg(x.color) : bassSvg(x.color)}</span><span><b>${esc(x.nom)}</b><small>${ws ? levelLine(x.id) : ''}</small></span></button>`).join('')}
+      <div class="panel home-route">
+        <div class="route-head"><h2>Full de ruta</h2><button type="button" class="btn btn-ghost btn-small" data-go="map">Obre</button></div>
+        <ol class="route-list">
+          ${levels.map((l) => { const p = levelProgress(l); const cur = nx?.level.n === l.n; return `
+            <li><button type="button" class="route-row${cur ? ' cur' : ''}${p.total && p.done === p.total ? ' done' : ''}" data-level="${l.n}">
+              <span class="pick-mini">${l.n}</span><span class="route-t">${esc(l.titol)}</span>
+              <span class="pbar"><i style="width:${p.total ? (100 * p.done) / p.total : 0}%"></i></span><small>${p.done}/${p.total}</small></button></li>`; }).join('')}
+        </ol>
       </div>
-      ${!store.player()?.guideDone ? `<button type="button" class="door door-guide" data-go="guide"><span class="door-icon">👀</span><span class="door-text"><b>Comences de zero? Aprèn a llegir la pantalla</b><small>Què vol dir cada cosa del mànec, la púa, la pista i les cartes, i com trobar-ho ${i.id === 'guitarra' ? 'a la guitarra' : 'al baix'}</small></span></button>` : ''}
-      ${workSongBox({ full: true })}
-      ${ws ? `<div class="doors">
-        <button type="button" class="door door-main" data-go="continue"><span class="door-icon">▶</span><span class="door-text"><b>Continua</b><small>${nx ? `Nivell ${nx.level.n} · ${esc(nx.step.titol)}` : 'Has fet tot el full de ruta! Tria qualsevol pas.'}</small></span></button>
-        <button type="button" class="door" data-go="map"><span class="door-icon">🗺️</span><span class="door-text"><b>Full de ruta</b><small>Els 10 nivells de ${esc(i.curt.toLowerCase())}, sobre «${esc(ws.titol)}»</small></span></button>
-        <button type="button" class="door" data-go="skills"><span class="door-icon">🎒</span><span class="door-text"><b>Què sé fer</b><small>El que has desbloquejat i què pots fer a la banda</small></span></button>
-        ${store.player()?.guideDone ? `<button type="button" class="door" data-go="guide"><span class="door-icon">👀</span><span class="door-text"><b>Aprèn a llegir la pantalla</b><small>Què vol dir cada cosa i com trobar-ho a l'instrument</small></span></button>` : ''}
-      </div>` : ''}` : `
-      <div class="panel who">
-        <h2>Qui toca?</h2>
-        <p class="muted small">Tria el teu nom o escriu-ne un de nou. El progrés es guarda en aquest navegador.</p>
-        <div class="who-list">${store.players().map((p) => `<button type="button" class="who-btn" data-player="${esc(p)}"><b>${esc(p)}</b><small>${esc(INSTRUMENTS[store.player(p).inst]?.curt ?? '')}${store.player(p).song ? ` · ${esc(store.player(p).song.titol)}` : ''}</small></button>`).join('')}</div>
-        <form class="who-form" id="who-form"><input id="who-name" type="text" maxlength="24" placeholder="Escriu el teu nom" autocomplete="off"><button type="submit" class="btn">Som-hi</button></form>
-      </div>`}`;
-  $('#who-form')?.addEventListener('submit', (e) => {
-    e.preventDefault();
-    const n = $('#who-name').value.trim();
-    if (!n) return;
-    store.setCurrent(n);
-    renderHome();
-    applyAccent();
-  });
+    </div>`;
 }
 
 function levelLine(instId) {
@@ -137,27 +150,24 @@ function renderMap() {
   const i = inst();
   const v = $('#v-map');
   const levels = LEVELS[i.id];
-  const [w1, w2] = i.id === 'guitarra' ? ['GUITARRA', 'ELÈCTRICA'] : ['BAIX', 'ELÈCTRIC'];
+  const [w1, w2] = i.id === 'guitarra' ? ['Guitarra', 'elèctrica'] : ['Baix', 'elèctric'];
+  const nx = nextStep(i.id);
   v.innerHTML = `
-    <div class="view-head"><button type="button" class="btn-back" data-go="home">← Inici</button></div>
-    ${workSongBox()}
     <div class="poster" style="--c:${i.color}">
       <div class="poster-head">
         <div class="poster-icon">${i.id === 'guitarra' ? guitarSvg(i.color) : bassSvg(i.color)}</div>
-        <div class="poster-w1">${w1}</div>
-        <div class="poster-w2">${w2}</div>
-        <div class="poster-sub">FULL DE RUTA · NIVELLS</div>
+        <div class="poster-title"><span class="poster-w1">${w1}</span> <span class="poster-w2">${w2}</span></div>
+        <div class="poster-sub">Full de ruta · 10 nivells</div>
       </div>
       <div class="poster-grid">
         ${levels.map((l, k) => { const p = levelProgress(l); return `
-          <button type="button" class="ptile${p.total && p.done === p.total ? ' done' : ''}" data-level="${l.n}">
-            <span class="pick-badge">${l.n}</span>
-            <span class="ptile-text"><b>${esc(l.titol.toUpperCase())}</b><small>${esc(l.sub)}</small>
-              <span class="pbar"><i style="width:${p.total ? (100 * p.done) / p.total : 0}%"></i></span><em>${p.done} de ${p.total} passos</em></span>
-            <span class="ptile-icon">${LEVEL_ICONS[k]}</span>
+          <button type="button" class="ptile${p.total && p.done === p.total ? ' done' : ''}${nx?.level.n === l.n ? ' cur' : ''}" data-level="${l.n}">
+            <span class="ptile-top"><span class="pick-badge">${l.n}</span><span class="ptile-icon">${LEVEL_ICONS[k]}</span></span>
+            <b>${esc(l.titol)}</b><small>${esc(l.sub)}</small>
+            <span class="ptile-foot"><span class="pbar"><i style="width:${p.total ? (100 * p.done) / p.total : 0}%"></i></span><em>${p.done} de ${p.total}</em></span>
           </button>`; }).join('')}
       </div>
-      <div class="poster-foot"><span>ENDIRECTE: MÚSICA ALS INSTITUTS</span><em>Pugem de nivell?</em></div>
+      <div class="poster-foot"><span>EnDirecte: Música als Instituts</span><em>Pugem de nivell?</em></div>
     </div>`;
 }
 
@@ -172,8 +182,9 @@ function renderLevel(n = currentLevel) {
   const steps = visibleSteps(l);
   v.innerHTML = `
     <div class="view-head"><button type="button" class="btn-back" data-go="map">← Full de ruta</button>
-      <div><small class="muted">${esc(i.nom)} · Nivell ${l.n} de 10</small><h2>${esc(l.titol)}</h2><p class="muted">${esc(l.sub)}</p></div></div>
-    ${workSongBox()}
+      <span class="pick-badge head-badge" style="--c:${i.color}">${l.n}</span>
+      <div class="vh-text"><h2>${esc(l.titol)}</h2><p class="muted">${esc(l.sub)} · sobre «${esc(store.workSong()?.titol ?? '')}»</p></div>
+      <div class="vh-actions">${n > 1 ? `<button type="button" class="btn btn-ghost btn-small" data-level="${n - 1}">← Nivell ${n - 1}</button>` : ''}${n < 10 ? `<button type="button" class="btn btn-ghost btn-small" data-level="${n + 1}">Nivell ${n + 1} →</button>` : ''}</div></div>
     <ol class="steps">
       ${steps.map((p, k) => { const s = store.stepState(p.id); return `
         ${p.grup && p.grup !== steps[k - 1]?.grup ? `<li class="step-group">${esc(p.grup)}</li>` : ''}
@@ -183,8 +194,7 @@ function renderLevel(n = currentLevel) {
             ${s?.best === 'ok' && s.tempo ? `<span class="step-meta">t'ha sortit a ${s.tempo} bpm</span>` : ''}</div>
           <button type="button" class="btn ${s?.best === 'ok' ? 'btn-ghost' : 'btn-primary'}" data-step="${p.id}">${p.kind === 'cards' ? 'Tria carta' : p.kind === 'tune' ? 'Afina' : s?.best === 'ok' ? 'Repassa' : 'Practica'}</button>
         </li>`; }).join('')}
-    </ol>
-    <div class="row">${n > 1 ? `<button type="button" class="btn btn-ghost" data-level="${n - 1}">← Nivell ${n - 1}</button>` : ''}${n < 10 ? `<button type="button" class="btn btn-ghost" data-level="${n + 1}">Nivell ${n + 1} →</button>` : ''}</div>`;
+    </ol>`;
 }
 
 function openStep(id) {
@@ -224,7 +234,7 @@ function renderCards(step) {
     : step.deck === 'rascats' ? [['Rascats de guitarra', RASCATS.filter(ok)]] : [['Patrons melòdics', MELODIC]];
   v.innerHTML = `
     <div class="view-head"><button type="button" class="btn-back" data-level="${step.nivell}">← Nivell ${step.nivell}</button>
-      <div><small class="muted">${esc(i.nom)} · Nivell ${step.nivell}</small><h2>${esc(step.titol)}</h2><p class="muted">Les cartes que van amb el compàs de la cançó (${esc(m)}). Clica'n una per practicar-la sobre «${esc(store.workSong()?.titol ?? '')}».</p></div></div>
+      <div class="vh-text"><h2>${esc(step.titol)}</h2><p class="muted">Les cartes que van amb el compàs de la cançó (${esc(m)}). Clica'n una per practicar-la sobre «${esc(store.workSong()?.titol ?? '')}».</p></div></div>
     ${groups.map(([t, list]) => `<h3>${esc(t)}</h3>${list.length ? `<div class="card-grid">${list.map((c) => { const s = store.stepState(`${step.id}:${c.id}`); return `<button type="button" class="pcard${s?.best === 'ok' ? ' done' : ''}" data-card="${c.id}"><img src="${c.img}" alt="Carta ${c.id}" loading="lazy">${s?.best === 'ok' ? '<i>✓</i>' : ''}</button>`; }).join('')}</div>` : '<p class="muted">No hi ha cartes d\'aquest tipus per a aquest compàs.</p>'}`).join('')}`;
 }
 
@@ -262,8 +272,6 @@ function renderSong(msg = '') {
   if (!styles.find((s) => s.id === draft.estil)) draft.estil = defaultStyle(draft.metre);
   const isWork = sameSong(ws, draft);
   v.innerHTML = `
-    <div class="view-head"><button type="button" class="btn-back" data-go="home">← Inici</button>
-      <div><small class="muted">${esc(inst().nom)}</small><h2>La teva cançó</h2><p class="muted">Tria la cançó amb què treballaràs tot el full de ruta. Si no és a cap llista, escriu-ne els acords.</p></div></div>
     ${msg ? `<p class="note">${esc(msg)}</p>` : ''}
     <div class="creator">
       <div class="song-col">
@@ -296,7 +304,7 @@ function renderSong(msg = '') {
       </div>
       <div class="side-col">
         <div class="panel songs-panel">
-          <h3>Tria una cançó</h3>
+          <h3>Tria la cançó amb què treballaràs tot el full de ruta</h3>
           <button type="button" class="btn btn-ghost new-song" data-c="new">✎ No hi és? Escriu-ne els acords</button>
           <div class="tabs" role="tablist">${SONG_TABS.map(([id, t]) => `<button type="button" role="tab" class="tab${id === songTab ? ' on' : ''}" data-tab="${id}">${esc(t)}</button>`).join('')}</div>
           <div id="song-list"></div>
@@ -355,7 +363,7 @@ function loadSong(s, from) {
   editing = false;
   Object.assign(draft, { titol: s.titol, artista: s.artista ?? '', baix: s.baix ?? null, prog: s.prog, metre, tempo: s.tempo ?? 90, estil: STYLES[s.estil]?.metres.includes(metre) ? s.estil : mapStyle(s.estil, metre), font: from, ref: s.ref ?? s.id ?? null });
   renderSong();
-  window.scrollTo({ top: 0, behavior: 'smooth' });
+  $('#v-song .song-col')?.scrollTo({ top: 0 });
 }
 
 let libEntries = [];
@@ -408,9 +416,9 @@ function renderSkills() {
   const unlocked = levels.filter((x) => x.unlocked);
   const nx = nextStep(i.id);
   v.innerHTML = `
-    <div class="view-head"><button type="button" class="btn-back" data-go="home">← Inici</button>
-      <div><small class="muted">${esc(i.nom)} · ${esc(store.currentName() ?? '')}</small><h2>Què sé fer</h2><p class="muted">El que has desbloquejat al joc i què vol dir quan toques amb la teva banda.</p></div>
-      <button type="button" class="btn btn-ghost" data-c="print" style="margin-left:auto">🖨 Imprimeix</button></div>
+    <div class="view-head">
+      <div class="vh-text"><h2>Què sé fer</h2><p class="muted">El que has desbloquejat al joc i què vol dir quan toques amb la teva banda.</p></div>
+      <div class="vh-actions"><button type="button" class="btn btn-ghost btn-small" data-c="print">Imprimeix</button></div></div>
     <div class="skills-top panel" style="--c:${i.color}">
       <div><small class="muted">Cançó</small><b>${esc(song?.titol ?? '—')}</b></div>
       ${i.id === 'guitarra' ? `<div><small class="muted">Acords</small><b>${esc(MODE_TEXT(store.chordMode()))}</b></div>` : ''}

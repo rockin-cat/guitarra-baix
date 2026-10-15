@@ -35,6 +35,10 @@ python3 tools/serve.py
 
 Sons: mostres lliures amb llicència MIT (vegeu `assets/sons/LLICENCIA.txt`).
 
+## Pantalla (versió 13)
+
+Barra de navegació a l'esquerra (a baix al mòbil) i cada pantalla cap a la finestra: si un bloc és llarg, només es desplaça aquell bloc. L'instrument només es canvia a la barra de dalt.
+
 ## Cançons (versió 2)
 
 «Cançons» obre, des d'un mateix lloc:

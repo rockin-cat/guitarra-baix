@@ -54,9 +54,9 @@ export function renderGuide(host, instId, { onDone } = {}) {
     host.innerHTML = '';
     const p = PAGES[page];
     const root = h(`<div class="guide">
-      <div class="view-head"><button type="button" class="btn-back" data-go="home">← Inici</button>
-        <div><small class="muted">${esc(inst.nom)} · Aprèn a llegir la pantalla</small><h2>${page + 1}. ${esc(p.t)}</h2></div></div>
-      <div class="guide-tabs">${PAGES.map((x, i) => `<button type="button" class="gtab${i === page ? ' on' : ''}" data-gp="${i}" title="${esc(x.t)}">${i + 1}</button>`).join('')}</div>
+      <div class="view-head">
+        <div class="vh-text"><small class="muted">Aprèn a llegir la pantalla · ${page + 1} de ${PAGES.length}</small><h2>${esc(p.t)}</h2></div>
+        <div class="guide-tabs">${PAGES.map((x, i) => `<button type="button" class="gtab${i === page ? ' on' : ''}${i < page ? ' seen' : ''}" data-gp="${i}" title="${esc(x.t)}">${i + 1}</button>`).join('')}</div></div>
       <div class="guide-body"></div>
       <div class="row guide-nav">
         ${page > 0 ? '<button type="button" class="btn btn-ghost" data-gnav="-1">← Enrere</button>' : ''}
@@ -71,7 +71,7 @@ export function renderGuide(host, instId, { onDone } = {}) {
       else if (b.dataset.gnav) page += Number(b.dataset.gnav);
       else { closeGuide(); onDone?.(); return; }
       render();
-      window.scrollTo({ top: 0 });
+      host.scrollTop = 0;
     });
   }
 

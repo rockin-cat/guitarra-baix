@@ -97,57 +97,59 @@ export function openSession(host, baseStep, ctx) {
     <div class="session" data-kind="${kind}">
       <div class="view-head">
         <button type="button" class="btn-back" data-act="back">← ${esc(ctx.backLabel ?? 'Torna')}</button>
-        <button type="button" class="btn btn-ghost btn-small help-btn" data-go="guide" title="Què vol dir cada cosa de la pantalla">👀 Com es llegeix?</button>
-        <div class="sess-title">
-          <small>${esc([inst.nom, levelText, ctx.crumb].filter(Boolean).join(' · '))}</small>
+        <div class="vh-text sess-title">
+          <small>${esc([levelText, ctx.crumb].filter(Boolean).join(' · '))}</small>
           <h2>${esc(step.titol)}</h2>
         </div>
+        <div class="vh-actions"><button type="button" class="btn btn-ghost btn-small help-btn" data-go="guide" title="Què vol dir cada cosa de la pantalla">Com es llegeix?</button></div>
       </div>
       <div class="sess-grid">
-        <div class="stage">
-          <div class="stage-top">
-            <div class="mode-badge" data-el="badge">PREPARA'T</div>
-            <div class="pulses" data-el="pulses"></div>
-            <div class="bigcount" data-el="big"></div>
+        <div class="sess-main">
+          <div class="stage">
+            <div class="stage-top">
+              <div class="mode-badge" data-el="badge">PREPARA'T</div>
+              <div class="pulses" data-el="pulses"></div>
+              <div class="bigcount" data-el="big"></div>
+            </div>
+            <div class="neck-host" data-el="neck"></div>
+            <canvas class="lane" data-el="lane"></canvas>
           </div>
-          <div class="neck-host" data-el="neck"></div>
-          <canvas class="lane" data-el="lane"></canvas>
+          <div class="composer" data-el="composer" hidden></div>
+          <div class="tuner" data-el="tuner" hidden></div>
+          <div class="controls" data-el="controls">
+            <div class="ctrl-main">
+              <button type="button" class="btn btn-primary btn-big" data-act="full">▶ Escolta i toca</button>
+              <button type="button" class="btn btn-ghost" data-act="listen">Només escolta</button>
+              <button type="button" class="btn btn-ghost" data-act="play">Només toca</button>
+              <button type="button" class="btn" data-act="stop" disabled>■ Atura</button>
+            </div>
+            <div class="ctrl-opts">
+              <span class="tempo">Tempo <button type="button" class="icon-btn" data-act="slower" title="Més lent">−</button> <b data-el="tempo"></b> <button type="button" class="icon-btn" data-act="faster" title="Més ràpid">+</button></span>
+              <label>Voltes <select data-el="rounds"><option value="0">auto</option><option value="1">1</option><option value="2">2</option><option value="4">4</option><option value="-1">sense parar</option></select></label>
+              <label class="toggle"><input type="checkbox" data-el="metro"> Metrònom</label>
+              <label class="toggle" title="Mentre toques tu, sona fluixa la part que has de fer"><input type="checkbox" data-el="guide"> Guia sonora</label>
+              <button type="button" class="btn btn-ghost btn-small" data-act="strings" hidden>Corda a corda</button>
+            </div>
+            <div class="ctrl-opts ctrl-song" data-el="songbar"></div>
+          </div>
         </div>
         <aside class="side">
+          <div class="assess" data-el="assess" hidden>
+            <h3>Com t'ha anat?</h3>
+            <div class="rate-row">
+              <button type="button" class="btn btn-ghost" data-rate="no">Encara no</button>
+              <button type="button" class="btn btn-ghost" data-rate="gairebe">Gairebé</button>
+              <button type="button" class="btn btn-primary" data-rate="ok">Em surt!</button>
+            </div>
+            <p class="feedback" data-el="feedback"></p>
+            <div class="row" data-el="after"></div>
+          </div>
           <div class="card-host" data-el="card"></div>
           <div class="explain">
             <p>${esc(step.text ?? '')}</p>
             ${step.com?.length ? `<ul>${step.com.map((c) => `<li>${esc(c)}</li>`).join('')}</ul>` : ''}
           </div>
         </aside>
-      </div>
-      <div class="composer" data-el="composer" hidden></div>
-      <div class="tuner" data-el="tuner" hidden></div>
-      <div class="controls" data-el="controls">
-        <div class="ctrl-main">
-          <button type="button" class="btn btn-primary btn-big" data-act="full">▶ Escolta i toca</button>
-          <button type="button" class="btn btn-ghost" data-act="listen">👂 Només escolta</button>
-          <button type="button" class="btn btn-ghost" data-act="play">${inst.id === 'baix' ? '🎸' : '🎸'} Només toca</button>
-          <button type="button" class="btn" data-act="stop" disabled>■ Atura</button>
-        </div>
-        <div class="ctrl-opts">
-          <span class="tempo">Tempo <button type="button" class="icon-btn" data-act="slower" title="Més lent">−</button> <b data-el="tempo"></b> <button type="button" class="icon-btn" data-act="faster" title="Més ràpid">+</button></span>
-          <label>Voltes <select data-el="rounds"><option value="0">auto</option><option value="1">1</option><option value="2">2</option><option value="4">4</option><option value="-1">sense parar</option></select></label>
-          <label class="toggle"><input type="checkbox" data-el="metro"> Metrònom</label>
-          <label class="toggle" title="Mentre toques tu, sona fluixa la part que has de fer"><input type="checkbox" data-el="guide"> Guia sonora</label>
-          <button type="button" class="btn btn-ghost btn-small" data-act="strings" hidden>🔍 Corda a corda</button>
-        </div>
-        <div class="ctrl-opts ctrl-song" data-el="songbar"></div>
-      </div>
-      <div class="assess" data-el="assess" hidden>
-        <h3>Com t'ha anat?</h3>
-        <div class="row">
-          <button type="button" class="btn btn-ghost" data-rate="no">Encara no em surt</button>
-          <button type="button" class="btn btn-ghost" data-rate="gairebe">Gairebé</button>
-          <button type="button" class="btn btn-primary" data-rate="ok">Em surt!</button>
-        </div>
-        <p class="feedback" data-el="feedback"></p>
-        <div class="row" data-el="after"></div>
       </div>
     </div>`);
   host.appendChild(root);
