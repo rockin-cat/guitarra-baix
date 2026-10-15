@@ -541,3 +541,48 @@ main { grid-area: main; min-height: 0; min-width: 0; position: relative; display
   #player-chip .player-ico { margin: 0; }
   .lane { height: 130px; }
 }
+
+/* Només mà dreta */
+.stage { position: relative; }
+.stage.hand-only .neck-host, .stage.hand-only .lane { display: none; }
+.hand-host { padding: 6px 4px 4px; }
+.hand-chord { font: 800 26px Ubuntu, sans-serif; color: var(--accent-soft); min-height: 32px; margin-bottom: 6px; }
+.hand-row { display: flex; align-items: center; gap: 22px; }
+.hand-card { width: clamp(110px, 16vw, 170px); border-radius: 10px; box-shadow: 0 2px 10px rgba(0, 0, 0, .4); transition: opacity 1.6s ease; flex: none; }
+.hand-strip { flex: 1; display: grid; grid-template-columns: repeat(var(--n), minmax(0, 1fr)); gap: 6px; }
+.hcell { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 10px 2px 8px; border-radius: 10px; background: var(--nit2); transition: background .08s, transform .08s; }
+.hcell.beat { box-shadow: inset 0 0 0 1px #334055; }
+.hcell svg { width: 100%; max-width: 54px; height: clamp(70px, 14vh, 130px); fill: none; stroke: var(--accent); stroke-width: 7; stroke-linecap: round; stroke-linejoin: round; transition: opacity 1.6s ease, stroke .08s; }
+.hcell.up svg { transform: rotate(180deg); }
+.hcell.air svg { stroke: #5b6474; stroke-width: 5; stroke-dasharray: 2 9; }
+.hcell small { font: 700 16px Ubuntu, sans-serif; color: #9aa4b2; }
+.hcell.beat small { color: #fff; }
+.hcell.on { background: color-mix(in srgb, var(--accent) 30%, var(--nit2)); transform: translateY(-3px); }
+.hcell.on.hit svg { stroke: #fff; filter: drop-shadow(0 0 8px var(--accent)); }
+.hcell.on.air svg { stroke: #cbd5e1; }
+.hand-legend { display: flex; gap: 18px; margin: 10px 0 0; font-size: 13px; color: #9aa4b2; }
+.hand-legend i { display: inline-block; width: 22px; height: 0; border-top: 4px solid var(--accent); vertical-align: middle; margin-right: 6px; border-radius: 2px; }
+.hand-legend i.lg-air { border-top: 3px dotted #5b6474; }
+
+/* L'ajuda que es retira (s'esvaeix a poc a poc) */
+.stage .lane, .stage .neck-host, .side .card-host { transition: opacity 1.6s ease, filter 1.6s ease; }
+.stage[data-help="1"] .lane { opacity: .3; filter: blur(1px); }
+.stage[data-help="2"] .lane { opacity: 0; }
+.stage[data-help="2"] .neck-host { opacity: .3; }
+.stage[data-help="3"] .lane, .stage[data-help="3"] .neck-host { opacity: 0; }
+.side[data-help="2"] .card-host { opacity: .35; }
+.side[data-help="3"] .card-host { opacity: 0; }
+.stage[data-help="1"] .hcell.on { background: var(--nit2); transform: none; }
+.stage[data-help="1"] .hcell.on.hit svg { stroke: var(--accent); filter: none; }
+.stage[data-help="2"] .hcell svg { opacity: .18; }
+.stage[data-help="2"] .hcell.on { background: var(--nit2); transform: none; }
+.stage[data-help="2"] .hand-card { opacity: .3; }
+.stage[data-help="3"] .hcell svg, .stage[data-help="3"] .hand-card, .stage[data-help="3"] .hcell small { opacity: 0; }
+.stage[data-help="3"] .hcell.on { background: var(--nit2); transform: none; }
+.stage[data-help="3"] .hcell { transition: background 1.6s; }
+.help-note { position: absolute; left: 50%; top: 58px; transform: translateX(-50%); background: var(--groc); color: var(--tinta); font-weight: 700; padding: 8px 16px; border-radius: 999px; opacity: 0; pointer-events: none; white-space: nowrap; z-index: 2; }
+.help-note.show { animation: helpnote 3.2s ease forwards; }
+@keyframes helpnote { 0% { opacity: 0; transform: translate(-50%, -6px); } 12% { opacity: 1; transform: translate(-50%, 0); } 75% { opacity: 1; } 100% { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .help-note.show { animation: none; opacity: 1; } .stage .lane, .stage .neck-host, .hcell svg, .hand-card { transition: none; } }
+@media (max-width: 760px) { .hand-row { flex-direction: column; align-items: stretch; } .hand-card { width: 110px; align-self: center; } }
+.hand-mode .side .rcard { display: none; }

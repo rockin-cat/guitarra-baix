@@ -66,3 +66,8 @@ Les cançons porten l'estructura: `[Tornada] C | G | …` posa nom a la part, i 
 ## Llibre ROCKIN obert (versió 12)
 
 `js/data/llibre-obert.js` és una còpia de les cançons de la biblioteca compartida del Generador (acords amb l'estructura, compàs, tempo, estil i línia de baix; sense lletres), perquè l'alumnat les obri sense el codi del professorat. És una foto del 13-10-2026: les cançons noves o els canvis a la biblioteca no hi arriben fins que es torna a generar el fitxer. Al «Llibre ROCKIN» surten per nivells i, a sota, les del Llibre de temes del joc de teclat que no hi són.
+
+## Només mà dreta i ajuda que es retira (versió 14)
+
+- Als passos de rascat (i a les cartes de rascat), «Només mà dreta» amaga el mànec i la pista: surt la carta i les fletxes del rascat en gran, que s'encenen amb el pols (fletxa plena: toques; puntejada: la mà passa sense tocar). Està encès per defecte i es recorda.
+- «Retira l'ajuda a poc a poc» (a tots els passos): mentre toques tu, l'ajuda visual s'esvaeix en quatre trams (tota → la pista s'apaga → gairebé res → només el pols). Amb voltes automàtiques es fan prou compassos per arribar al final.

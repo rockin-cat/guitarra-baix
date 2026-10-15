@@ -112,7 +112,9 @@ export function openSession(host, baseStep, ctx) {
               <div class="bigcount" data-el="big"></div>
             </div>
             <div class="neck-host" data-el="neck"></div>
+            <div class="hand-host" data-el="hand" hidden></div>
             <canvas class="lane" data-el="lane"></canvas>
+            <div class="help-note" data-el="helpnote"></div>
           </div>
           <div class="composer" data-el="composer" hidden></div>
           <div class="tuner" data-el="tuner" hidden></div>
@@ -129,6 +131,8 @@ export function openSession(host, baseStep, ctx) {
               <label class="toggle"><input type="checkbox" data-el="metro"> Metrònom</label>
               <label class="toggle" title="Mentre toques tu, sona fluixa la part que has de fer"><input type="checkbox" data-el="guide"> Guia sonora</label>
               <button type="button" class="btn btn-ghost btn-small" data-act="strings" hidden>Corda a corda</button>
+              <label class="toggle" data-el="handwrap" hidden title="Amaga el mànec i la pista: només la carta i les fletxes del rascat"><input type="checkbox" data-el="handonly"> Només mà dreta</label>
+              <label class="toggle" title="Mentre toques tu, l'ajuda visual es va esvaint fins que ho fas sol"><input type="checkbox" data-el="fade"> Retira l'ajuda a poc a poc</label>
             </div>
             <div class="ctrl-opts ctrl-song" data-el="songbar"></div>
           </div>
@@ -161,6 +165,8 @@ export function openSession(host, baseStep, ctx) {
   st.el('tempo').textContent = st.tempo;
   st.el('metro').checked = st.metronome;
   st.el('guide').checked = st.guide > 0;
+  st.fade = !!S.fadeHelp;
+  st.el('fade').checked = st.fade;
 
   if (kind === 'tune') return setupTuner(st);
 
@@ -174,6 +180,11 @@ export function openSession(host, baseStep, ctx) {
     $('[data-act="play"]', root).hidden = true;
   }
   if (inst.id === 'guitarra' && (st.step.part?.type === 'strum' || st.step.part?.type === 'rascat')) $('[data-act="strings"]', root).hidden = false;
+  if (inst.id === 'guitarra' && st.step.part?.type === 'rascat') {
+    st.el('handwrap').hidden = false;
+    st.el('handonly').checked = S.handOnly !== false;
+    setHandOnly(st, S.handOnly !== false);
+  }
 
   renderSongBar(st);
   root.addEventListener('click', (ev) => onClick(st, ev));
@@ -193,6 +204,8 @@ export function openSession(host, baseStep, ctx) {
   st.el('rounds').addEventListener('change', (e) => { st.rounds = Number(e.target.value); });
   st.el('metro').addEventListener('change', (e) => { st.metronome = e.target.checked; S.metronome = st.metronome; store.save(); player.setMetronome(st.metronome); });
   st.el('guide').addEventListener('change', (e) => { st.guide = e.target.checked ? 0.3 : 0; S.guide = st.guide; store.save(); player.setGuide(st.guide); });
+  st.el('fade').addEventListener('change', (e) => { st.fade = e.target.checked; S.fadeHelp = st.fade; store.save(); if (!st.fade) setHelp(st, 0); });
+  st.el('handonly').addEventListener('change', (e) => { S.handOnly = e.target.checked; store.save(); setHandOnly(st, e.target.checked); });
 
   renderPulses(st);
   showIdle(st);
@@ -229,6 +242,7 @@ function rebuildStep(st) {
   setTempo(st, st.step.tempo ?? st.tempo);
   buildSong(st);
   renderPulses(st);
+  if (st.handOnly) buildHand(st);
   setButtons(st, false);
   showIdle(st);
 }
@@ -293,8 +307,11 @@ function randomCompose(st, n) {
 function roundsFor(st) {
   if (st.rounds === -1) return Infinity;
   if (st.rounds > 0) return st.rounds;
+  // retirant l'ajuda: quatre trams (tota l'ajuda, menys, gairebé res, res)
+  if (st.fade) return Math.max(1, Math.ceil((4 * helpStep(st)) / st.bars.length));
   return Math.max(1, Math.ceil(8 / st.bars.length));
 }
+const helpStep = (st) => Math.max(2, Math.min(4, st.bars.length));
 
 function makePlan(st, what) {
   const L = st.bars.length;
@@ -334,6 +351,8 @@ async function go(st, what) {
   st.plan = makePlan(st, what);
   st.what = what;
   st.ranPlay = false;
+  st.playStart = null;
+  setHelp(st, 0);
   st.reptes = shuffle([...REPTES]);
   player.start(st.song, st.plan, {
     metronome: st.metronome,
@@ -350,6 +369,7 @@ function stopRun(st) {
 
 function finished(st, natural) {
   if (current !== st) return;
+  setHelp(st, 0);
   setButtons(st, false);
   showIdle(st);
   if (st.kind !== 'improv' && (st.what === 'full' || st.what === 'play') && (natural || st.ranPlay)) showAssess(st);
@@ -426,6 +446,83 @@ function hideAssess(st) { st.el('assess').hidden = true; }
 
 // ---- Cada fotograma ----------------------------------------------------------------------------------------
 
+// ---- Només mà dreta: la carta de rascat i les fletxes, que s'encenen amb el pols -------------------------
+
+function handMoves(st) {
+  const p = st.step.part;
+  return p?.strum ?? cardById(p?.card)?.strum ?? 'DUDUDUDU';
+}
+
+function setHandOnly(st, on) {
+  st.handOnly = on;
+  st.root.querySelector('.stage').classList.toggle('hand-only', on);
+  st.root.classList.toggle('hand-mode', on);
+  st.el('hand').hidden = !on;
+  if (on) buildHand(st);
+  if (st.song && !player.isPlaying()) showIdle(st);
+}
+
+function buildHand(st) {
+  const M = st.M ?? metreOf(st.step.metre ?? '4/4');
+  const moves = [...handMoves(st)];
+  const n = moves.length;
+  const per = Math.max(1, Math.round(n / M.pulses));
+  const compound = M.sub === 3;
+  const label = (i) => {
+    if (compound) return String(i + 1);
+    const k = i % per;
+    if (k === 0) return String(Math.floor(i / per) + 1);
+    return per === 2 ? 'i' : ['', 'i', 'a', 'i'][k] ?? '·';
+  };
+  const arrow = '<svg viewBox="0 0 40 90" aria-hidden="true"><path d="M20 4v62"/><path d="M6 52l14 18 14-18"/></svg>';
+  const card = cardById(st.step.carta ?? st.step.part?.card);
+  st.el('hand').innerHTML = `
+    <div class="hand-chord" data-el="hchord"></div>
+    <div class="hand-row">
+      ${card ? `<img class="hand-card" src="${card.img}" alt="Carta ${esc(card.id)}">` : ''}
+      <div class="hand-strip" style="--n:${n}">
+        ${moves.map((m, i) => `<div class="hcell ${m === m.toLowerCase() ? 'air' : 'hit'} ${m.toUpperCase() === 'U' ? 'up' : 'down'}${i % per === 0 ? ' beat' : ''}" title="${m === m.toLowerCase() ? 'la mà passa sense tocar' : m.toUpperCase() === 'U' ? 'amunt' : 'avall'}">${arrow}<small>${label(i)}</small></div>`).join('')}
+      </div>
+    </div>
+    <p class="hand-legend"><span><i class="lg-hit"></i> toques</span><span><i class="lg-air"></i> la mà passa sense tocar</span></p>`;
+  st.handCells = [...st.el('hand').querySelectorAll('.hcell')];
+  st.handIdx = -2;
+}
+
+function drawHand(st, beat, chord) {
+  if (!st.handCells) return;
+  const n = st.handCells.length;
+  const idx = beat < 0 ? -1 : Math.floor((beat + 0.04) / (st.M.beats / n)) % n;
+  if (idx !== st.handIdx) {
+    if (st.handCells[st.handIdx]) st.handCells[st.handIdx].classList.remove('on');
+    if (st.handCells[idx]) st.handCells[idx].classList.add('on');
+    st.handIdx = idx;
+  }
+  const hc = st.el('hchord');
+  if (hc && hc.textContent !== chord) hc.textContent = chord;
+}
+
+// ---- L'ajuda que es retira --------------------------------------------------------------------------------
+
+const HELP_NOTES = ['', 'Ara la pista es va apagant…', 'Gairebé sense ajuda: escolta la banda.', 'Ara sol: només el pols.'];
+const HELP_NOTES_HAND = ['', 'Les fletxes ja no s\'encenen: segueix el pols.', 'Les fletxes s\'esvaeixen…', 'Ara sol: només el pols.'];
+
+function setHelp(st, level) {
+  if (st.helpLevel === level) return;
+  st.helpLevel = level;
+  const stage = st.root?.querySelector('.stage');
+  if (!stage) return;
+  stage.dataset.help = String(level);
+  st.root.querySelector('.side')?.setAttribute('data-help', String(level));
+  const note = st.el('helpnote');
+  if (level > 0) {
+    note.textContent = (st.handOnly ? HELP_NOTES_HAND : HELP_NOTES)[level];
+    note.classList.remove('show');
+    void note.offsetWidth;
+    note.classList.add('show');
+  } else note.classList.remove('show');
+}
+
 function renderPulses(st) {
   const M = st.M ?? metreOf('4/4');
   st.el('pulses').innerHTML = Array.from({ length: M.pulses }, (_, i) => `<span>${i + 1}</span>`).join('');
@@ -466,6 +563,12 @@ function frame(st) {
   if (mode === 'play' || mode === 'answer') st.ranPlay = true;
   const M = st.M;
   const pulse = Math.floor(pos.beat / M.pulseLen);
+  if (st.fade && mode === 'play' && st.kind !== 'improv') {
+    st.playStart ??= pos.i;
+    const total = roundsFor(st) * st.bars.length;
+    const per = Number.isFinite(total) ? Math.max(1, total / 4) : helpStep(st);
+    setHelp(st, Math.min(3, Math.floor((pos.i - st.playStart) / per)));
+  } else if (st.helpLevel) setHelp(st, 0);
 
   // marcador superior
   const badge = st.el('badge');
@@ -522,6 +625,7 @@ function frame(st) {
   } else st.neck.animate({});
   // carta i diagrames
   updateSide(st, content, pos, cur ?? next);
+  if (st.handOnly) drawHand(st, mode === 'count' ? -1 : pos.beat, (cur ?? next)?.chord ?? chordNow?.symbol ?? '');
   // la pista també ensenya els compassos que encara no s'han programat
   const bars = pos.bars.slice();
   for (let j = Math.max(0, pos.i); j <= pos.i + 3; j++) {
@@ -605,6 +709,7 @@ function showIdle(st) {
   else if (e?.kind === 'strum') st.neck.show({ mode: 'chord', cur: { ...e, id: 'idle' }, label: `Comença amb: ${e.chord}` });
   else if (e) st.neck.show({ mode: 'notes', cur: { ...e, id: 'idle' }, label: `Primera nota: ${e.chord ?? ''}` });
   updateSide(st, null, { beat: 0 }, e);
+  if (st.handOnly) drawHand(st, -1, e?.chord ?? '');
   drawIdleLane(st);
 }
 
