@@ -40,6 +40,9 @@ const CHORD_MODES = [
 ];
 const modeKey = (m) => (typeof m === 'string' ? m : m?.type === 'power' ? `p${m.parts}` : `o${m?.cordes ?? 6}`);
 
+/** La línia de baix del Generador substitueix només els passos de fonamentals sense carta: els d'octaves, arpegis o cartes demanen el seu patró. */
+const genLineFits = (part) => part?.type === 'bass' && !part.card && (part.roles ?? ['1']).every((r) => r === '1');
+
 /** El pas tal com es toca: amb la cançó de treball i la manera de fer els acords de qui toca. */
 function effectiveStep(base, instId, opts = {}) {
   const s = { ...base };
@@ -57,7 +60,7 @@ function effectiveStep(base, instId, opts = {}) {
     if (Array.isArray(base.voice)) s.voice = 'melody';
     // baix: la línia que el professorat ha escrit al Generador per a aquesta cançó
     const lines = song.baix ?? [];
-    if (instId === 'baix' && lines.length && ['bass', 'arp'].includes(base.part?.type) && store.useGenBass()) {
+    if (instId === 'baix' && lines.length && genLineFits(base.part) && store.useGenBass()) {
       const li = Math.min(opts.lineIdx ?? 0, lines.length - 1);
       s.part = { type: 'linia', line: lines[li] };
       s.genLine = lines[li].nom;
@@ -222,7 +225,7 @@ function renderSongBar(st) {
     parts.push(`<label>Acords <select data-el="cmode">${CHORD_MODES.map(([k, , t]) => `<option value="${k}"${k === cur ? ' selected' : ''}>${esc(t)}</option>`).join('')}</select></label>`);
   }
   const lines = store.workSong()?.baix ?? [];
-  if (st.inst.id === 'baix' && st.step.usesSong && lines.length && ['bass', 'arp'].includes(b.part?.type)) {
+  if (st.inst.id === 'baix' && st.step.usesSong && lines.length && genLineFits(b.part)) {
     const on = store.useGenBass();
     parts.push(`<label>Línia de baix <select data-el="gline"><option value="-1"${on ? '' : ' selected'}>la del nivell</option>${lines.map((l, i) => `<option value="${i}"${on && (st.lineIdx ?? 0) === i ? ' selected' : ''}>del Generador: ${esc(l.nom)}</option>`).join('')}</select></label>`);
   }

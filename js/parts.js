@@ -13,7 +13,23 @@
 
 import { chordAt, mod } from './theory.js';
 import { cardById, cardOnsets } from './data/cartes.js';
-import { INSTRUMENTS, guitarVoicing, bassRole, guitarLadder, soundingLadder } from './fretboard.js';
+import { INSTRUMENTS, guitarVoicing, bassRole, guitarLadder, soundingLadder, positionsOf } from './fretboard.js';
+
+/** La mateixa nota (o l'octava) en un lloc amb `minFret` trasts com a mínim i una corda més aguda per a la quinta. */
+function movedRoot(inst, root, minFret) {
+  const midi = inst.tuning[root.s] + root.f;
+  for (const m of [midi, midi + 12]) {
+    const c = positionsOf(inst, m, 12).filter((p) => p.f >= minFret && p.s < inst.tuning.length - 1).sort((a, b) => a.f - b.f || a.s - b.s);
+    if (c.length) return { s: c[0].s, f: c[0].f };
+  }
+  return null;
+}
+/** La quinta just per sobre de la fonamental, a la corda següent. */
+function fifthAbove(inst, root) {
+  const s = Math.min(root.s + 1, inst.tuning.length - 1);
+  const f = inst.tuning[root.s] + root.f + 7 - inst.tuning[s];
+  return f >= 0 ? { s, f, role: '5' } : { s: root.s, f: root.f + 7, role: '5' };
+}
 
 const EPS = 1e-6;
 
@@ -177,19 +193,23 @@ export function partBar(spec, instId, bar, M, k = 0) {
         root = { s: s0, f: pc.frets[s0] };
       } else root = bassRole(chord, '1');
       const t = Array.isArray(spec.tech) ? spec.tech[k % spec.tech.length] : spec.tech ?? 'h';
-      const from = root.f >= 2 ? root.f - 2 : root.f;
-      const to = root.f >= 2 ? root.f : root.f + 2;
-      const first = t === 'b' ? { s: root.s, f: from } : { s: root.s, f: from };
+      // un bending o un glissando no es poden fer des d'una corda a l'aire (ni un hammer-on que arribi a la fonamental):
+      // la fonamental es busca on hi hagi trasts per sota
+      const minFret = t === 'b' || t === 's' ? 3 : t === 'h' ? 2 : 0;
+      if (root.f < minFret) root = movedRoot(inst, root, minFret) ?? root;
+      const bs = t === 'b' && instId === 'baix' ? 1 : 2; // al baix, el bending és d'un semitò
+      const from = t === 'p' ? root.f : root.f - bs;
+      const to = t === 'p' ? root.f + 2 : root.f;
       const d1 = t === 'h' || t === 'p' ? Math.min(len, 1) : Math.min(len, len >= 4 ? 2 : len / 2);
-      const e = noteEvent(inst, first, a0, d1, chord, {});
-      e.tech = { type: t, to: t === 'b' ? from : to, semis: to - from || 2 };
+      const e = noteEvent(inst, { s: root.s, f: from }, a0, d1, chord, {});
+      e.tech = { type: t, to: t === 'b' ? from : to, semis: bs };
       e.label = { h: `${from}h${to}`, s: `${from}/${to}`, b: `${from}↗`, p: `${to}p${from}` }[t];
       if (t === 'p') { e.pos = [{ s: root.s, f: to }]; e.notes = [inst.tuning[root.s] + to]; e.tech.to = from; }
       out.push(e);
       if (len > d1) {
         const r2 = { ...root, role: '1' };
         out.push(noteEvent(inst, r2, a0 + d1, Math.min(1, len - d1), chord));
-        if (len - d1 > 1) out.push(noteEvent(inst, { s: Math.min(root.s + 1, inst.tuning.length - 1), f: root.f + 2, role: '5' }, a0 + d1 + 1, len - d1 - 1, chord));
+        if (len - d1 > 1) out.push(noteEvent(inst, fifthAbove(inst, root), a0 + d1 + 1, len - d1 - 1, chord));
       }
     }
   } else if (spec.type === 'riff') {

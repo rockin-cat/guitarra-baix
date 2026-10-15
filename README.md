@@ -71,3 +71,8 @@ Les cançons porten l'estructura: `[Tornada] C | G | …` posa nom a la part, i 
 
 - Als passos de rascat (i a les cartes de rascat), «Només mà dreta» amaga el mànec i la pista: surt la carta i les fletxes del rascat en gran, que s'encenen amb el pols (fletxa plena: toques; puntejada: la mà passa sense tocar). Està encès per defecte i es recorda.
 - «Retira l'ajuda a poc a poc» (a tots els passos): mentre toques tu, l'ajuda visual s'esvaeix en quatre trams (tota → la pista s'apaga → gairebé res → només el pols). Amb voltes automàtiques es fan prou compassos per arribar al final.
+
+## Res d'impossible (versió 15)
+
+- Recursos tècnics sobre la cançó: el bending i el glissando ja no surten mai des d'una corda a l'aire, ni un hammer-on que no arribi a la fonamental. Si la fonamental és a l'aire o massa avall, es busca la mateixa nota (o l'octava) on hi hagi trasts per sota. Al baix, el bending és d'un semitò. El pull-off ara acaba a la fonamental.
+- Baix: la línia del Generador només substitueix els passos de fonamentals (sense carta). Els passos d'octaves, arpegis i cartes fan el seu patró, que sempre parteix de la fonamental a la 4a o 3a corda (així l'octava sempre hi cap). La desena i la dotzena, si queden fora de la mà, es fan una octava avall.

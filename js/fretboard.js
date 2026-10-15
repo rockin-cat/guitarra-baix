@@ -246,10 +246,12 @@ export function bassRole(chord, role) {
   const r = bassRoot(chord);
   const midi = r.midi + roleSemis(chord, role);
   const all = positionsOf(inst, midi);
-  if (!all.length) return { ...r, role: String(role) };
+  if (!all.length) return role === '10' || role === '12' ? { ...bassRole(chord, role === '10' ? '3' : '5'), role: String(role) } : { ...r, role: String(role) };
   const ref = r.f === 0 ? 1 : r.f;
   const cost = (p) => (p.s < r.s && role !== '-5' ? 3 : 0) + Math.abs(p.f - ref) + (p.f === 0 && r.f === 0 ? -1 : 0) + (p.f - ref > 3 ? 4 : 0) + (ref - p.f > 2 && p.f !== 0 ? 4 : 0);
   const p = all.sort((a, b) => cost(a) - cost(b))[0];
+  // la desena i la dotzena, si cauen massa lluny de la mà, es fan una octava avall (3 i 5)
+  if ((role === '10' || role === '12') && (p.f - ref > 4 || p.s < r.s)) return { ...bassRole(chord, role === '10' ? '3' : '5'), role: String(role) };
   return { ...p, role: String(role) };
 }
 
