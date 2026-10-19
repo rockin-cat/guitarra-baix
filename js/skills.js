@@ -3,6 +3,7 @@
 import { LEVELS, stepFits } from './levels.js';
 import { cardById, cardMetre } from './data/cartes.js';
 import * as store from './store.js';
+import { reached } from './assoliment.js';
 
 /** Què pots fer a la banda quan tens un nivell (per instrument). */
 export const BANDA = {
@@ -57,16 +58,17 @@ export function summary(instId) {
     const cards = [];
     for (const p of steps) {
       if (store.stepState(p.id)?.best === 'ok' && p.carta) cards.push(p.carta);
-      if (p.kind === 'cards') for (const [k, v] of Object.entries(store.player()?.steps ?? {})) if (k.startsWith(`${p.id}:`) && v.best === 'ok') cards.push(k.split(':')[1]);
+      if (p.kind === 'cards') for (const [k, v] of Object.entries(store.player()?.steps ?? {})) if (k.startsWith(`${p.id}:`) && reached(v)) cards.push(k.split(':')[1]);
     }
     let banda = BANDA[instId][l.n] ?? '';
     if (instId === 'guitarra' && l.n === 1) {
       // el pas més avançat que surt (els passos van en ordre: un dit → power chord → acords oberts)
-      const last = ok.filter((p) => p.chordMode && typeof p.chordMode === 'object').at(-1);
+      const last = [...ok, ...almost].sort((a, b) => steps.indexOf(a) - steps.indexOf(b)).filter((p) => p.chordMode && typeof p.chordMode === 'object').at(-1);
       banda = last ? guitarLevel1(last.chordMode) : '';
     }
-    const tempos = ok.map((p) => store.stepState(p.id)?.tempo).filter(Boolean);
-    return { level: l, steps, ok, almost, cards: [...new Set(cards)], banda, unlocked: ok.length > 0, done: steps.length && ok.length === steps.length, tempo: tempos.length ? Math.max(...tempos) : null };
+    // un pas compta com a fet a partir d'«A prop»; els de «Totes les cartes», quan alguna carta ho és
+    const doneSteps = steps.filter((p) => reached(store.stepState(p.id)) || (p.kind === 'cards' && Object.entries(store.player()?.steps ?? {}).some(([k, v]) => k.startsWith(`${p.id}:`) && reached(v))) || (p.grup ?? '').startsWith('Acords oberts'));
+    return { level: l, steps, ok, almost, cards: [...new Set(cards)], banda, unlocked: ok.length + almost.length > 0, doneCount: doneSteps.length, done: steps.length && doneSteps.length === steps.length };
   });
   return { levels, song: ws };
 }

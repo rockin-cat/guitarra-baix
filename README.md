@@ -4,7 +4,7 @@ Tutor d'estudi de **guitarra elèctrica** i **baix elèctric** amb els fulls de 
 
 1. **Escolta**: sona la banda i la teva part, i l'animació ensenya què es fa.
 2. **Ara tu**: la banda continua sense el teu instrument; el mànec, la púa i la pista et guien.
-3. **Com t'ha anat?**: «Encara no» baixa el tempo, encén la guia sonora i torna a ensenyar-ho; «Em surt» proposa pujar el tempo o passar al pas següent.
+3. **Com t'ha anat?**: tu marques el nivell (**En procés**, **A prop** o **Ja ho tens!**) i el joc et diu què pots fer (vegeu «Nivell d'assoliment», a sota).
 
 A més, **La meva cançó**: escrius acords (`C | G | Am | F`, dos acords en un compàs separats per un espai), compàs, tempo, estil i nivell, i el joc fa la base i l'animació. Es poden desar i carregar de la biblioteca del Generador de diagrames (mateix codi del professorat).
 
@@ -52,7 +52,7 @@ Les cançons porten l'estructura: `[Tornada] C | G | …` posa nom a la part, i 
 
 - Qui toca tria **la cançó amb què treballa** (botó «Treballa el full de ruta amb aquesta cançó» a Cançons). Tots els passos es practiquen amb el tros principal de la cançó (o sencera), menys les cartes d'un altre compàs, els riffs tècnics i l'afinador.
 - **Guitarra, nivell 1**: camí dels **power chords** (un dit a la corda 6 per tot el mànec → + 5a → + 8a) i, quan el profe ho decideix, **acords oberts desbloquejant cordes** (només la corda 1, després 1–2… fins a totes), amb les cordes tapades en gris com al Generador de diagrames.
-- El que surt («Em surt!») en aquests camins és com es toquen els acords a la resta de nivells; també es pot canviar a la pràctica (selector «Acords»).
+- El que surt («Ja ho tens!») en aquests camins és com es toquen els acords a la resta de nivells; també es pot canviar a la pràctica (selector «Acords»).
 - Les formes dels acords oberts són les de les cartes de diagrames ROCKIN.
 - **Tot és acumulatiu sobre la mateixa roda** (versió 4): també els recursos tècnics (nivell 8: el hammer-on, el glissando… arriben a la fonamental de cada acord de la cançó), la melodia per cantar (nivell 4: surt de les notes dels acords) i les celletes (nivell 6). Només queden fora les cartes d'un altre compàs i l'afinador.
 - **Baix del Generador** (versió 5): si la cançó de treball ve de la biblioteca i el professorat hi ha escrit una línia de baix (escriptor de baix o tabulatura), els passos de línia de baix (tipus `bass` i `arp`) toquen aquesta línia, amb els trasts al mànec. El selector «Línia de baix» de la pràctica permet tornar a «la del nivell» (es recorda per alumne).
@@ -76,3 +76,11 @@ Les cançons porten l'estructura: `[Tornada] C | G | …` posa nom a la part, i 
 
 - Recursos tècnics sobre la cançó: el bending i el glissando ja no surten mai des d'una corda a l'aire, ni un hammer-on que no arribi a la fonamental. Si la fonamental és a l'aire o massa avall, es busca la mateixa nota (o l'octava) on hi hagi trasts per sota. Al baix, el bending és d'un semitò. El pull-off ara acaba a la fonamental.
 - Baix: la línia del Generador només substitueix els passos de fonamentals (sense carta). Els passos d'octaves, arpegis i cartes fan el seu patró, que sempre parteix de la fonamental a la 4a o 3a corda (així l'octava sempre hi cap). La desena i la dotzena, si queden fora de la mà, es fan una octava avall.
+
+## Nivell d'assoliment (versió 16)
+
+- En acabar de tocar marques **En procés**, **A prop** o **Ja ho tens!** (es desen com abans: `no`, `gairebe`, `ok`). Un pas compta com a fet a partir d'«A prop»; els de «Totes les cartes», quan alguna carta ho és.
+- Si no és «Ja ho tens!», **Què t'ha faltat?**: tries una o més coses concretes segons el tipus de pas (canviar d'acord a temps, trobar les notes, mantenir el ritme de la carta, seguir la banda, la mà dreta, saber on som de la cançó…). Es desa al pas (`gaps`) i surt la propera vegada, a la pràctica i a la llista del nivell.
+- **Què pots fer**: consells segons el que ha faltat, a més del tempo i la guia sonora. Si un pas queda «En procés» dues vegades seguides, proposa tornar a un pas anterior que treballa aquella habilitat (amb botó). Amb «Ja ho tens!», el pas següent o, si el nivell és complet, el nivell següent.
+- Quan tot el camí és a «A prop» o més: «Has acabat el camí. Ja pots portar-ho al teu grup…», a l'inici, al full de ruta i a «Què sé fer».
+- Ja no surt el tempo màxim de cada pas ni de cada nivell. La improvisació lliure («Lliure, amb reptes») no puntua.

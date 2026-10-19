@@ -35,13 +35,17 @@ export function removePlayer(name) { delete data.players[name]; if (data.current
 export function setInstrument(inst) { const p = player(); if (p) { p.inst = inst; save(); } }
 export const instrumentOf = () => player()?.inst ?? 'guitarra';
 
-/** status: 'no' (encara no), 'gairebe', 'ok' */
+/** status: 'no' (En procés), 'gairebe' (A prop), 'ok' (Ja ho tens!). `best` és intern: el nivell més alt assolit. */
 export function markStep(id, status, tempo) {
   const p = player();
   if (!p) return null;
   const s = (p.steps[id] ??= { status: null, tempo: 0, attempts: 0, best: null });
   s.attempts++;
+  // quantes vegades seguides ha quedat «En procés»
+  s.noRun = status === 'no' ? (s.status === 'no' ? (s.noRun ?? 1) : 0) + 1 : 0;
   s.status = status;
+  // el que ha faltat es tria després de marcar; un intent nou comença net
+  s.gaps = [];
   const rank = { no: 0, gairebe: 1, ok: 2 };
   if (s.best == null || rank[status] > rank[s.best] || (status === s.best && tempo > s.tempo)) { s.best = status; s.tempo = tempo; }
   s.last = Date.now();
@@ -49,6 +53,13 @@ export function markStep(id, status, tempo) {
   return s;
 }
 export const stepState = (id) => player()?.steps[id] ?? null;
+/** Què t'ha faltat a l'últim intent (camp opcional `gaps` del pas). */
+export function setGaps(id, gaps) {
+  const s = player()?.steps[id];
+  if (!s) return;
+  s.gaps = [...gaps];
+  save();
+}
 
 export const songs = () => player()?.songs ?? [];
 export function saveSong(song) {

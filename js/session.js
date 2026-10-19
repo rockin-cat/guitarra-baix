@@ -11,6 +11,7 @@ import { BINARI, TERNARI, MELODIC, cardById, cardMetre } from './data/cartes.js'
 import { tone, audioContext } from './audio.js';
 import { REPTES } from './levels.js';
 import * as store from './store.js';
+import { pill, gapsFor, tipsFor, gapText, GAPS } from './assoliment.js';
 
 const $ = (sel, root = document) => root.querySelector(sel);
 const h = (html) => { const t = document.createElement('template'); t.innerHTML = html.trim(); return t.content.firstElementChild; };
@@ -144,11 +145,12 @@ export function openSession(host, baseStep, ctx) {
           <div class="assess" data-el="assess" hidden>
             <h3>Com t'ha anat?</h3>
             <div class="rate-row">
-              <button type="button" class="btn btn-ghost" data-rate="no">Encara no</button>
-              <button type="button" class="btn btn-ghost" data-rate="gairebe">Gairebé</button>
-              <button type="button" class="btn btn-primary" data-rate="ok">Em surt!</button>
+              <button type="button" class="btn btn-ghost" data-rate="no">En procés</button>
+              <button type="button" class="btn btn-ghost" data-rate="gairebe">A prop</button>
+              <button type="button" class="btn btn-primary" data-rate="ok">Ja ho tens!</button>
             </div>
             <p class="feedback" data-el="feedback"></p>
+            <div class="result" data-el="result"></div>
             <div class="row" data-el="after"></div>
           </div>
           <div class="card-host" data-el="card"></div>
@@ -389,10 +391,13 @@ function setButtons(st, playing) {
 // ---- Clics -------------------------------------------------------------------------------------------------
 
 function onClick(st, ev) {
-  const b = ev.target.closest('[data-act],[data-rate]');
+  const b = ev.target.closest('[data-act],[data-rate],[data-gap]');
   if (!b) return;
   const act = b.dataset.act;
   if (b.dataset.rate) return rate(st, b.dataset.rate);
+  if (b.dataset.gap) return toggleGap(st, b.dataset.gap);
+  if (act === 'goto') { closeSession(); st.ctx.nav?.goStep(b.dataset.id); return; }
+  if (act === 'golevel') { closeSession(); st.ctx.nav?.goLevel(Number(b.dataset.n)); return; }
   if (act === 'back') { closeSession(); st.ctx.onBack?.(); return; }
   if (act === 'full' || act === 'listen' || act === 'play') return go(st, act);
   if (act === 'stop') return stopRun(st);
@@ -412,36 +417,106 @@ function setTempo(st, t) {
 
 function rate(st, r) {
   const id = st.step.id;
-  if (id) store.markStep(id, r, st.tempo);
+  const before = id ? store.stepState(id) : null;
+  const levelWasDone = !!st.ctx.nav?.levelDone();
+  const s = id ? store.markStep(id, r, st.tempo) : null;
   // el que surt al camí de power chords o d'acords oberts és com es toquen els acords a la resta de nivells
   if (r === 'ok' && st.inst.id === 'guitarra' && st.baseStep.chordMode && typeof st.baseStep.chordMode === 'object' && st.baseStep.nivell === 1) store.setChordMode(st.baseStep.chordMode);
-  const fb = st.el('feedback');
+  for (const x of st.root.querySelectorAll('[data-rate]')) x.classList.toggle('chosen', x.dataset.rate === r);
+  const res = { r, played: st.tempo, orig: st.step.tempo ?? st.tempo, wasOk: before?.best === 'ok', noRun: s?.noRun ?? (r === 'no' ? 1 : 0), levelWasDone, gaps: [], lastGaps: st.lastGaps ?? [] };
+  if (r === 'no') {
+    res.slower = Math.max(40, st.tempo - 10);
+    setTempo(st, res.slower);
+    res.guideOn = !st.guide;
+    if (!st.guide) { st.guide = 0.3; st.el('guide').checked = true; }
+  }
+  st.result = res;
+  st.el('feedback').textContent = '';
+  renderResult(st);
+  st.ctx.onRated?.();
+}
+
+function toggleGap(st, g) {
+  const res = st.result;
+  if (!res) return;
+  res.gaps = res.gaps.includes(g) ? res.gaps.filter((x) => x !== g) : [...res.gaps, g];
+  if (st.step.id) store.setGaps(st.step.id, res.gaps);
+  renderResult(st);
+}
+
+/** El resultat en tres blocs: nivell, què t'ha faltat i què pots fer. */
+function renderResult(st) {
+  const res = st.result;
+  const { r } = res;
+  const nav = st.ctx.nav;
+  const box = st.el('result');
   const after = st.el('after');
   after.innerHTML = '';
-  for (const x of st.root.querySelectorAll('[data-rate]')) x.classList.toggle('chosen', x.dataset.rate === r);
-  if (r === 'no') {
-    const slower = Math.max(40, st.tempo - 10);
-    setTempo(st, slower);
-    if (!st.guide) { st.guide = 0.3; st.el('guide').checked = true; }
-    fb.textContent = `Cap problema: és qüestió de repetir. Baixem el tempo a ${slower} i encenem la guia sonora (sentiràs fluixa la teva part mentre toques).`;
-    after.append(h('<button type="button" class="btn btn-primary" data-act="again">♪ T\'ho ensenyo i tornem-hi</button>'));
-  } else if (r === 'gairebe') {
-    fb.textContent = 'Ja hi ets a prop. Una altra volta al mateix tempo; si vols, apaga la guia sonora.';
-    after.append(h('<button type="button" class="btn btn-primary" data-act="again-play">▶ Torna-hi</button>'), h('<button type="button" class="btn btn-ghost" data-act="again">👂 Escolta-ho un altre cop</button>'));
-  } else {
-    const orig = st.step.tempo ?? st.tempo;
-    fb.textContent = st.tempo < orig ? `Molt bé! Ara prova d'acostar-te al tempo original (${orig}).` : 'Molt bé! Pots pujar el tempo o passar al pas següent.';
-    after.append(h('<button type="button" class="btn btn-ghost" data-act="up10">⏩ Més ràpid (+10)</button>'));
-    if (st.ctx.onNext) after.append(h('<button type="button" class="btn btn-primary" data-act="next">Pas següent →</button>'));
+  // 1 · nivell
+  const data = st.kind === 'improv' ? '' : `A ${res.played} bpm${res.played < res.orig ? ` · el pas va a ${res.orig}` : ''}`;
+  let html = `<div class="res-block res-level">${pill(r, 'big')}${data ? `<span class="res-data">${esc(data)}</span>` : ''}</div>`;
+  // 2 · què t'ha faltat
+  const options = gapsFor(st.step, st.inst.id);
+  if (r !== 'ok') {
+    html += `<div class="res-block"><h4>Què t'ha faltat?</h4><p class="muted small">Marca el que no ha anat bé (pots triar-ne més d'un).</p>
+      <div class="gap-chips">${options.map((g) => `<button type="button" class="gap-chip${res.gaps.includes(g) ? ' on' : ''}" data-gap="${g}" aria-pressed="${res.gaps.includes(g)}">${esc(gapText(g))}</button>`).join('')}</div>
+      ${res.lastGaps.length ? `<p class="muted small last-gaps">La darrera vegada: ${esc(res.lastGaps.map(gapText).join(', '))}.</p>` : ''}</div>`;
   }
-  st.ctx.onRated?.();
+  // 3 · què pots fer
+  const tips = [];
+  if (r === 'no') {
+    tips.push(`És qüestió de repetir. Hem baixat el tempo a ${res.slower}${res.guideOn ? ' i encès la guia sonora (sentiràs fluixa la teva part mentre toques)' : ''}.`);
+    if (!res.gaps.length) tips.push('Escolta-ho un altre cop abans de tornar-hi: fixa\'t en una sola cosa cada vegada.');
+  } else if (r === 'gairebe') {
+    tips.push('Una altra volta al mateix tempo; si vols, apaga la guia sonora o prova «Retira l\'ajuda a poc a poc».');
+  } else {
+    if (res.played < res.orig) tips.push(`Ara prova d'acostar-te al tempo del pas (${res.orig}).`);
+    if (res.wasOk) tips.push('Això ja ho tens: no cal practicar-ho més aquí. Porta-ho al teu grup.');
+    else if (res.played >= res.orig && st.kind !== 'improv') tips.push('Si vols, prova\'l una mica més ràpid, o passa al pas següent.');
+  }
+  tips.push(...tipsFor(res.gaps));
+  // recomanació de nivell
+  let rec = '';
+  const here = st.step.id;
+  if (r === 'no' && res.noRun >= 2 && nav) {
+    const target = res.gaps.map((g) => ({ g, id: GAPS[g]?.base?.[st.inst.id] })).find((x) => x.id && nav.isBefore(x.id, here))
+      ?? (nav.prev ? { id: nav.prev.id } : null);
+    if (target) {
+      const info = nav.info(target.id);
+      rec = `<p>Ja són ${res.noRun} vegades seguides «En procés». Potser t'anirà bé tornar a <b>«${esc(info.titol)}»</b> (nivell ${info.nivell})${target.g ? `, que treballa «${esc(gapText(target.g).toLowerCase())}»` : ''}, i després tornar aquí.</p>`;
+      after.append(h(`<button type="button" class="btn btn-ghost" data-act="goto" data-id="${esc(target.id)}">↩ Ves a «${esc(info.titol)}»</button>`));
+    }
+  } else if (r !== 'no' && nav?.pathDone()) {
+    rec = '<p class="path-end-inline"><b>Has acabat el camí.</b> Ja pots portar-ho al teu grup: a partir d\'ara, aquesta eina només la necessites per repassar alguna cosa concreta.</p>';
+  } else if (r === 'ok' && !res.levelWasDone && nav?.levelDone() && nav.nextLevel) {
+    res.levelRec = true;
+    rec = `<p>Has acabat el nivell ${st.step.nivell}. El següent: <b>Nivell ${nav.nextLevel.n} · ${esc(nav.nextLevel.titol)}</b>.</p>`;
+  }
+  html += `<div class="res-block"><h4>Què pots fer</h4><ul class="res-tips">${tips.map((t) => `<li>${esc(t)}</li>`).join('')}</ul>${rec}</div>`;
+  box.innerHTML = html;
+  // botons
+  if (r === 'no') after.prepend(h('<button type="button" class="btn btn-primary" data-act="again">♪ T\'ho ensenyo i tornem-hi</button>'));
+  else if (r === 'gairebe') {
+    after.prepend(h('<button type="button" class="btn btn-primary" data-act="again-play">▶ Torna-hi</button>'), h('<button type="button" class="btn btn-ghost" data-act="again">👂 Escolta-ho un altre cop</button>'));
+    if (st.ctx.onNext) after.append(h('<button type="button" class="btn btn-ghost" data-act="next">Pas següent →</button>'));
+  } else {
+    if (st.kind !== 'improv') after.append(h('<button type="button" class="btn btn-ghost" data-act="up10">⏩ Més ràpid (+10)</button>'));
+    if (res.levelRec) after.append(h(`<button type="button" class="btn btn-primary" data-act="golevel" data-n="${nav.nextLevel.n}">Nivell ${nav.nextLevel.n} →</button>`));
+    else if (st.ctx.onNext) after.append(h('<button type="button" class="btn btn-primary" data-act="next">Pas següent →</button>'));
+  }
+  if (r !== 'no' && nav?.pathDone()) after.append(h('<button type="button" class="btn btn-ghost" data-go="skills">Què sé fer</button>'));
 }
 
 function showAssess(st) {
   const a = st.el('assess');
   a.hidden = false;
-  st.el('feedback').textContent = st.step.id ? 'Tu saps millor que ningú com ha sonat. Marca-ho i el joc et proposa què fer.' : 'Marca com ha anat i el joc et proposa què fer.';
+  const prev = st.step.id ? store.stepState(st.step.id) : null;
+  st.lastGaps = prev?.status !== 'ok' ? (prev?.gaps ?? []).filter((g) => GAPS[g]) : [];
+  st.el('feedback').textContent = (st.step.id ? 'Tu saps millor que ningú com ha sonat. Marca-ho i el joc et proposa què fer.' : 'Marca com ha anat i el joc et proposa què fer.')
+    + (st.lastGaps.length ? ` La darrera vegada et va faltar: ${st.lastGaps.map(gapText).join(', ').toLowerCase()}.` : '');
+  st.el('result').innerHTML = '';
   st.el('after').innerHTML = '';
+  st.result = null;
   for (const x of st.root.querySelectorAll('[data-rate]')) x.classList.remove('chosen');
   a.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 }

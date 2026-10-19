@@ -13,6 +13,7 @@ import { songbook, WHEELS, keyboardSongs, mapStyle, sameTitle } from './songs.js
 import { structureHtml } from './songview.js';
 import { summary } from './skills.js';
 import { renderGuide, closeGuide } from './guide.js';
+import { reached, pill, gapText } from './assoliment.js';
 
 const $ = (sel, root = document) => root.querySelector(sel);
 const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
@@ -51,15 +52,23 @@ function applyAccent() {
 const metreNow = () => store.workSong()?.metre ?? '4/4';
 const fits = (p) => stepFits(p, metreNow(), (id) => cardMetre(cardById(id)));
 const visibleSteps = (l) => l.passos.filter(fits);
-const icon = (st) => (st?.best === 'ok' ? '✓' : st?.best === 'gairebe' ? '◐' : st?.best === 'no' ? '·' : '○');
+// un pas és fet a partir d'«A prop»; els de «Totes les cartes» quan alguna carta ho és
+const stepDone = (p) => (p.kind === 'cards'
+  ? Object.entries(store.player()?.steps ?? {}).some(([k, v]) => k.startsWith(`${p.id}:`) && reached(v))
+  : reached(store.stepState(p.id)));
+// els acords oberts són un camí alternatiu als power chords: no cal fer-los tots dos
+const optional = (p) => (p.grup ?? '').startsWith('Acords oberts');
 function levelProgress(level) {
   const steps = visibleSteps(level);
-  return { done: steps.filter((p) => store.stepState(p.id)?.best === 'ok').length, total: steps.length };
+  return { done: steps.filter(stepDone).length, total: steps.length };
 }
 function nextStep(instId) {
-  for (const l of LEVELS[instId]) for (const p of visibleSteps(l)) if (store.stepState(p.id)?.best !== 'ok' && !(p.grup ?? '').startsWith('Acords oberts')) return { level: l, step: p };
+  for (const l of LEVELS[instId]) for (const p of visibleSteps(l)) if (!stepDone(p) && !optional(p)) return { level: l, step: p };
   return null;
 }
+const levelDone = (l) => visibleSteps(l).every((p) => stepDone(p) || optional(p));
+const pathDone = (instId) => !!store.workSong() && !nextStep(instId);
+const pathEndHtml = () => `<div class="panel path-end"><b>Has acabat el camí.</b> Ja pots portar-ho al teu grup: a partir d'ara, aquesta eina només la necessites per repassar alguna cosa concreta.</div>`;
 
 const guitarSvg = (c) => `<svg viewBox="0 0 40 60" width="34" height="50"><rect x="18" y="2" width="4" height="30" fill="#2b3446"/><rect x="16" y="0" width="8" height="8" rx="2" fill="${c}"/><path d="M20 26c-7 0-11 5-9 10-5 2-6 10-2 15 4 6 18 6 22 0 4-5 3-13-2-15 2-5-2-10-9-10z" fill="${c}"/><rect x="18" y="26" width="4" height="22" fill="#2b3446"/></svg>`;
 const bassSvg = (c) => `<svg viewBox="0 0 40 60" width="34" height="50"><rect x="18.5" y="2" width="3" height="32" fill="#2b3446"/><rect x="17" y="0" width="6" height="7" rx="2" fill="${c}"/><path d="M20 28c-6 0-9 4-8 9-4 2-5 9-2 14 3 6 17 6 20 0 3-5 2-12-2-14 1-5-2-9-8-9z" fill="${c}"/><rect x="18.5" y="28" width="3" height="20" fill="#2b3446"/></svg>`;
@@ -106,11 +115,12 @@ function renderHome() {
         ${ws ? `
         <button type="button" class="next-card" data-go="continue">
           <span class="pick-badge">${nx ? nx.level.n : '✓'}</span>
-          <span class="next-text"><small>${nx ? `Nivell ${nx.level.n} · ${esc(nx.level.titol)}` : 'Full de ruta complet'}</small>
-            <b>${nx ? esc(nx.step.titol) : 'Tria qualsevol pas per repassar-lo'}</b>
+          <span class="next-text"><small>${nx ? `Nivell ${nx.level.n} · ${esc(nx.level.titol)}` : 'Has acabat el camí'}</small>
+            <b>${nx ? esc(nx.step.titol) : 'Porta-ho al teu grup. Aquí només cal tornar-hi per repassar alguna cosa concreta.'}</b>
             ${nxProg ? `<span class="pbar"><i style="width:${nxProg.total ? (100 * nxProg.done) / nxProg.total : 0}%"></i></span><em>${nxProg.done} de ${nxProg.total} passos del nivell</em>` : ''}</span>
-          <span class="next-go">▶ Continua</span>
+          <span class="next-go">${nx ? '▶ Continua' : 'Repassa'}</span>
         </button>
+        ${nx ? '' : pathEndHtml()}
         <div class="panel home-song">
           <div class="song-head"><div><small class="muted">La cançó amb què treballes</small><h2>${esc(ws.titol)}</h2>
             <p class="song-meta">${[ws.artista, ws.metre, `${ws.tempo} bpm`, i.id === 'guitarra' ? MODE_TEXT(store.chordMode()) : ws.baix?.length ? 'línia de baix del Generador' : ''].filter(Boolean).map(esc).join(' · ')}</p></div>
@@ -138,8 +148,8 @@ function renderHome() {
 
 function levelLine(instId) {
   let nx = null;
-  for (const l of LEVELS[instId]) { for (const p of visibleSteps(l)) if (store.stepState(p.id)?.best !== 'ok') { nx = l; break; } if (nx) break; }
-  return nx ? `Nivell ${nx.n} de 10 · ${esc(nx.titol)}` : 'Full de ruta complet';
+  for (const l of LEVELS[instId]) { for (const p of visibleSteps(l)) if (!stepDone(p) && !optional(p)) { nx = l; break; } if (nx) break; }
+  return nx ? `Nivell ${nx.n} de 10 · ${esc(nx.titol)}` : 'Has acabat el camí';
 }
 
 // ---- Full de ruta (com el pòster) ----------------------------------------------------------------------------
@@ -167,6 +177,7 @@ function renderMap() {
             <span class="ptile-foot"><span class="pbar"><i style="width:${p.total ? (100 * p.done) / p.total : 0}%"></i></span><em>${p.done} de ${p.total}</em></span>
           </button>`; }).join('')}
       </div>
+      ${store.workSong() && !nx ? pathEndHtml() : ''}
       <div class="poster-foot"><span>EnDirecte: Música als Instituts</span><em>Pugem de nivell?</em></div>
     </div>`;
 }
@@ -189,9 +200,9 @@ function renderLevel(n = currentLevel) {
       ${steps.map((p, k) => { const s = store.stepState(p.id); return `
         ${p.grup && p.grup !== steps[k - 1]?.grup ? `<li class="step-group">${esc(p.grup)}</li>` : ''}
         <li class="step ${s?.best ?? ''}">
-          <span class="step-state" title="${s?.best === 'ok' ? 'Et surt' : s?.best === 'gairebe' ? 'Gairebé' : 'Per fer'}">${icon(s)}</span>
+          <span class="step-state">${p.kind === 'cards' ? (stepDone(p) ? '<span class="lvl-pill lvl-gairebe">Fet</span>' : pill(null)) : pill(s?.best)}</span>
           <div class="step-text"><b>${k + 1}. ${esc(p.titol)}</b><small>${esc(p.text ?? '')}</small>
-            ${s?.best === 'ok' && s.tempo ? `<span class="step-meta">t'ha sortit a ${s.tempo} bpm</span>` : ''}</div>
+            ${s?.status !== 'ok' && s?.gaps?.length ? `<span class="step-gaps">La darrera vegada et va faltar: ${esc(s.gaps.map(gapText).join(', ').toLowerCase())}</span>` : ''}</div>
           <button type="button" class="btn ${s?.best === 'ok' ? 'btn-ghost' : 'btn-primary'}" data-step="${p.id}">${p.kind === 'cards' ? 'Tria carta' : p.kind === 'tune' ? 'Afina' : s?.best === 'ok' ? 'Repassa' : 'Practica'}</button>
         </li>`; }).join('')}
     </ol>`;
@@ -217,6 +228,17 @@ function openStep(id) {
     onBack: () => { renderLevel(step.nivell); show('level'); },
     onNext: next ? () => openStep(next.id) : null,
     onChooseSong: () => { renderSong(); show('song'); },
+    nav: {
+      prev: steps[idx - 1] ?? null,
+      next: next ?? null,
+      nextLevel: LEVELS[i.id][step.nivell] ?? null,
+      info: (sid) => steps.find((x) => x.id === sid) ?? { titol: sid, nivell: '' },
+      isBefore: (a, b) => { const ia = steps.findIndex((x) => x.id === a); return ia >= 0 && ia < steps.findIndex((x) => x.id === b); },
+      goStep: (sid) => openStep(sid),
+      goLevel: (n) => { renderLevel(n); show('level'); },
+      levelDone: () => levelDone(level),
+      pathDone: () => pathDone(i.id),
+    },
   });
 }
 
@@ -423,17 +445,18 @@ function renderSkills() {
       <div><small class="muted">Cançó</small><b>${esc(song?.titol ?? '—')}</b></div>
       ${i.id === 'guitarra' ? `<div><small class="muted">Acords</small><b>${esc(MODE_TEXT(store.chordMode()))}</b></div>` : ''}
       <div><small class="muted">Nivells desbloquejats</small><b>${unlocked.length} de 10</b></div>
-      <div><small class="muted">Ara treballes</small><b>${nx ? `Nivell ${nx.level.n} · ${esc(nx.step.titol)}` : 'Tot fet!'}</b></div>
+      <div><small class="muted">Ara treballes</small><b>${nx ? `Nivell ${nx.level.n} · ${esc(nx.step.titol)}` : 'Has acabat el camí'}</b></div>
     </div>
+    ${song && !nx ? pathEndHtml() : ''}
     <div class="panel banda">
       <h3>🎸 A la banda ja pots…</h3>
-      ${unlocked.length ? `<ul>${unlocked.map((x) => `<li><span class="pick-mini" style="--c:${i.color}">${x.level.n}</span>${esc(x.banda)}</li>`).join('')}</ul>` : '<p class="muted">Encara res: comença pel nivell 1 i, quan et surti un pas, marca «Em surt!».</p>'}
+      ${unlocked.length ? `<ul>${unlocked.map((x) => `<li><span class="pick-mini" style="--c:${i.color}">${x.level.n}</span>${esc(x.banda)}</li>`).join('')}</ul>` : '<p class="muted">Encara res: comença pel nivell 1 i, quan un pas et surti, marca «A prop» o «Ja ho tens!».</p>'}
     </div>
     <div class="skills-grid">
       ${levels.map((x) => `
         <div class="skill ${x.done ? 'done' : x.unlocked ? 'on' : ''}" style="--c:${i.color}">
-          <div class="skill-head"><span class="pick-badge">${x.level.n}</span><div><b>${esc(x.level.titol)}</b><small>${x.ok.length} de ${x.steps.length} passos${x.tempo ? ` · fins a ${x.tempo} bpm` : ''}</small></div><span class="skill-state">${x.done ? '✓' : x.unlocked ? '◐' : '🔒'}</span></div>
-          ${x.ok.length ? `<ul class="skill-steps">${x.ok.map((p) => `<li>✓ ${esc(p.titol)}</li>`).join('')}${x.almost.map((p) => `<li class="almost">◐ ${esc(p.titol)}</li>`).join('')}</ul>` : x.almost.length ? `<ul class="skill-steps">${x.almost.map((p) => `<li class="almost">◐ ${esc(p.titol)}</li>`).join('')}</ul>` : ''}
+          <div class="skill-head"><span class="pick-badge">${x.level.n}</span><div><b>${esc(x.level.titol)}</b><small>${x.doneCount} de ${x.steps.length} passos</small></div><span class="skill-state">${x.done ? '✓' : x.unlocked ? '' : '🔒'}</span></div>
+          ${x.ok.length || x.almost.length ? `<ul class="skill-steps">${x.ok.map((p) => `<li>${pill('ok')} ${esc(p.titol)}</li>`).join('')}${x.almost.map((p) => `<li class="almost">${pill('gairebe')} ${esc(p.titol)}</li>`).join('')}</ul>` : ''}
           ${x.cards.length ? `<div class="skill-cards">${x.cards.map((id) => `<img src="${cardById(id)?.img}" alt="Carta ${esc(id)}" title="Carta ${esc(id)}">`).join('')}</div>` : ''}
           <p class="skill-banda">${esc(x.banda)}</p>
         </div>`).join('')}
