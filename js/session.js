@@ -12,6 +12,7 @@ import { tone, audioContext } from './audio.js';
 import { REPTES } from './levels.js';
 import * as store from './store.js';
 import { pill, gapsFor, tipsFor, gapText, GAPS } from './assoliment.js';
+import * as auto from './autoregulacio.js';
 
 const $ = (sel, root = document) => root.querySelector(sel);
 const h = (html) => { const t = document.createElement('template'); t.innerHTML = html.trim(); return t.content.firstElementChild; };
@@ -345,6 +346,8 @@ function makePlan(st, what) {
 }
 
 async function go(st, what) {
+  // si torna a tocar sense triar cap opció, es desa què ha canviat (o «repetir igual»)
+  if (st.rec && !st.rec.choice && st.recAt) auto.choose(st.rec, st.tempo < st.recAt.tempo ? 'slower' : st.tempo > st.recAt.tempo ? 'faster' : !!st.guide !== st.recAt.guide ? (st.guide ? 'guide-on' : 'guide-off') : 'repeat');
   hideAssess(st);
   setButtons(st, true);
   st.el('badge').textContent = 'Carregant sons…';
@@ -391,11 +394,12 @@ function setButtons(st, playing) {
 // ---- Clics -------------------------------------------------------------------------------------------------
 
 function onClick(st, ev) {
-  const b = ev.target.closest('[data-act],[data-rate],[data-gap]');
+  const b = ev.target.closest('[data-act],[data-rate],[data-gap],[data-opt]');
   if (!b) return;
   const act = b.dataset.act;
   if (b.dataset.rate) return rate(st, b.dataset.rate);
   if (b.dataset.gap) return toggleGap(st, b.dataset.gap);
+  if (b.dataset.opt) return pickOption(st, b.dataset.opt, b.dataset.id);
   if (act === 'goto') { closeSession(); st.ctx.nav?.goStep(b.dataset.id); return; }
   if (act === 'golevel') { closeSession(); st.ctx.nav?.goLevel(Number(b.dataset.n)); return; }
   if (act === 'back') { closeSession(); st.ctx.onBack?.(); return; }
@@ -424,13 +428,10 @@ function rate(st, r) {
   if (r === 'ok' && st.inst.id === 'guitarra' && st.baseStep.chordMode && typeof st.baseStep.chordMode === 'object' && st.baseStep.nivell === 1) store.setChordMode(st.baseStep.chordMode);
   for (const x of st.root.querySelectorAll('[data-rate]')) x.classList.toggle('chosen', x.dataset.rate === r);
   const res = { r, played: st.tempo, orig: st.step.tempo ?? st.tempo, wasOk: before?.best === 'ok', noRun: s?.noRun ?? (r === 'no' ? 1 : 0), levelWasDone, gaps: [], lastGaps: st.lastGaps ?? [] };
-  if (r === 'no') {
-    res.slower = Math.max(40, st.tempo - 10);
-    setTempo(st, res.slower);
-    res.guideOn = !st.guide;
-    if (!st.guide) { st.guide = 0.3; st.el('guide').checked = true; }
-  }
   st.result = res;
+  // el registre de decisions: l'efecte de la tria anterior i un registre nou (si ja n'hi ha un d'aquest resultat, es corregeix)
+  if (id && !st.rec) { auto.fillEffect(id, r); st.rec = auto.record({ step: id, r, gaps: [], wasOk: res.wasOk }); st.recAt = { tempo: st.tempo, guide: !!st.guide }; }
+  else if (st.rec) auto.updateRecord(st.rec, { level: auto.levelOf(r), wasOk: res.wasOk || undefined });
   st.el('feedback').textContent = '';
   renderResult(st);
   st.ctx.onRated?.();
@@ -441,6 +442,7 @@ function toggleGap(st, g) {
   if (!res) return;
   res.gaps = res.gaps.includes(g) ? res.gaps.filter((x) => x !== g) : [...res.gaps, g];
   if (st.step.id) store.setGaps(st.step.id, res.gaps);
+  if (st.rec) auto.updateRecord(st.rec, { gaps: [...res.gaps] });
   renderResult(st);
 }
 
@@ -462,49 +464,97 @@ function renderResult(st) {
       <div class="gap-chips">${options.map((g) => `<button type="button" class="gap-chip${res.gaps.includes(g) ? ' on' : ''}" data-gap="${g}" aria-pressed="${res.gaps.includes(g)}">${esc(gapText(g))}</button>`).join('')}</div>
       ${res.lastGaps.length ? `<p class="muted small last-gaps">La darrera vegada: ${esc(res.lastGaps.map(gapText).join(', '))}.</p>` : ''}</div>`;
   }
-  // 3 · què pots fer
-  const tips = [];
-  if (r === 'no') {
-    tips.push(`És qüestió de repetir. Hem baixat el tempo a ${res.slower}${res.guideOn ? ' i encès la guia sonora (sentiràs fluixa la teva part mentre toques)' : ''}.`);
-    if (!res.gaps.length) tips.push('Escolta-ho un altre cop abans de tornar-hi: fixa\'t en una sola cosa cada vegada.');
-  } else if (r === 'gairebe') {
-    tips.push('Una altra volta al mateix tempo; si vols, apaga la guia sonora o prova «Retira l\'ajuda a poc a poc».');
-  } else {
-    if (res.played < res.orig) tips.push(`Ara prova d'acostar-te al tempo del pas (${res.orig}).`);
-    if (res.wasOk) tips.push('Això ja ho tens: no cal practicar-ho més aquí. Porta-ho al teu grup.');
-    else if (res.played >= res.orig && st.kind !== 'improv') tips.push('Si vols, prova\'l una mica més ràpid, o passa al pas següent.');
-  }
-  tips.push(...tipsFor(res.gaps));
-  // recomanació de nivell
-  let rec = '';
-  const here = st.step.id;
-  if (r === 'no' && res.noRun >= 2 && nav) {
-    const target = res.gaps.map((g) => ({ g, id: GAPS[g]?.base?.[st.inst.id] })).find((x) => x.id && nav.isBefore(x.id, here))
-      ?? (nav.prev ? { id: nav.prev.id } : null);
-    if (target) {
-      const info = nav.info(target.id);
-      rec = `<p>Ja són ${res.noRun} vegades seguides «En procés». Potser t'anirà bé tornar a <b>«${esc(info.titol)}»</b> (nivell ${info.nivell})${target.g ? `, que treballa «${esc(gapText(target.g).toLowerCase())}»` : ''}, i després tornar aquí.</p>`;
-      after.append(h(`<button type="button" class="btn btn-ghost" data-act="goto" data-id="${esc(target.id)}">↩ Ves a «${esc(info.titol)}»</button>`));
-    }
-  } else if (r !== 'no' && nav?.pathDone()) {
-    rec = '<p class="path-end-inline"><b>Has acabat el camí.</b> Ja pots portar-ho al teu grup: a partir d\'ara, aquesta eina només la necessites per repassar alguna cosa concreta.</p>';
-  } else if (r === 'ok' && !res.levelWasDone && nav?.levelDone() && nav.nextLevel) {
-    res.levelRec = true;
-    rec = `<p>Has acabat el nivell ${st.step.nivell}. El següent: <b>Nivell ${nav.nextLevel.n} · ${esc(nav.nextLevel.titol)}</b>.</p>`;
-  }
-  html += `<div class="res-block"><h4>Què pots fer</h4><ul class="res-tips">${tips.map((t) => `<li>${esc(t)}</li>`).join('')}</ul>${rec}</div>`;
+  // els consells del que ha faltat són informació (no decisió)
+  const tips = tipsFor(res.gaps);
+  if (tips.length) html += `<div class="res-block"><h4>Consells</h4><ul class="res-tips">${tips.map((t) => `<li>${esc(t)}</li>`).join('')}</ul></div>`;
+  // 3 · què creus que necessites ara? (l'eina no recomana: tu tries)
+  const opts = optionsFor(st);
+  html += `<div class="res-block"><h4>Què creus que necessites ara?</h4><div class="opt-list">${opts.map((o) => `<button type="button" class="opt-btn" data-opt="${o.id}"${o.to ? ` data-id="${esc(o.to)}"` : ''}>${esc(o.text)}</button>`).join('')}</div></div>`;
+  // informació del camí
+  if (r !== 'no' && nav?.pathDone()) html += '<p class="path-end-inline"><b>Has acabat el camí.</b> Ja pots portar-ho al teu grup: a partir d\'ara, aquesta eina només la necessites per repassar alguna cosa concreta.</p>';
+  else if (r === 'ok' && !res.levelWasDone && nav?.levelDone() && nav.nextLevel) html += `<p class="muted small">Has acabat el nivell ${st.step.nivell}. El següent és el <b>nivell ${nav.nextLevel.n} · ${esc(nav.nextLevel.titol)}</b>.</p>`;
   box.innerHTML = html;
-  // botons
-  if (r === 'no') after.prepend(h('<button type="button" class="btn btn-primary" data-act="again">♪ T\'ho ensenyo i tornem-hi</button>'));
-  else if (r === 'gairebe') {
-    after.prepend(h('<button type="button" class="btn btn-primary" data-act="again-play">▶ Torna-hi</button>'), h('<button type="button" class="btn btn-ghost" data-act="again">👂 Escolta-ho un altre cop</button>'));
-    if (st.ctx.onNext) after.append(h('<button type="button" class="btn btn-ghost" data-act="next">Pas següent →</button>'));
-  } else {
-    if (st.kind !== 'improv') after.append(h('<button type="button" class="btn btn-ghost" data-act="up10">⏩ Més ràpid (+10)</button>'));
-    if (res.levelRec) after.append(h(`<button type="button" class="btn btn-primary" data-act="golevel" data-n="${nav.nextLevel.n}">Nivell ${nav.nextLevel.n} →</button>`));
-    else if (st.ctx.onNext) after.append(h('<button type="button" class="btn btn-primary" data-act="next">Pas següent →</button>'));
-  }
   if (r !== 'no' && nav?.pathDone()) after.append(h('<button type="button" class="btn btn-ghost" data-go="skills">Què sé fer</button>'));
+  // la proposta que hauria fet l'eina: es desa però no es mostra
+  const sug = suggestion(st, opts);
+  if (st.rec) auto.updateRecord(st.rec, { suggested: sug?.id ?? null, suggestedTo: sug?.to });
+}
+
+/** Passos anteriors que treballen el que has marcat (o el pas anterior, si no has marcat res). */
+function backTargets(st) {
+  const nav = st.ctx.nav;
+  if (!nav || !st.step.id) return [];
+  const here = st.step.id;
+  const out = [];
+  for (const g of st.result.gaps) {
+    const id = GAPS[g]?.base?.[st.inst.id];
+    if (id && id !== here && nav.isBefore(id, here) && !out.some((x) => x.id === id)) out.push({ id, g });
+  }
+  if (!out.length && nav.prev && st.result.r !== 'ok') out.push({ id: nav.prev.id });
+  return out.slice(0, 2);
+}
+
+/** Les opcions, en un ordre fix (cap destacada). Només les que l'eina pot fer de veritat. */
+function optionsFor(st) {
+  const res = st.result;
+  const { r } = res;
+  const o = [];
+  if (r === 'ok') o.push({ id: 'faster', text: `Pujar el tempo (a ${Math.min(200, st.tempo + 10)}) i tornar-hi` });
+  else o.push({ id: 'slower', text: `Baixar el tempo (a ${Math.max(40, st.tempo - 10)}) i tornar-hi` });
+  if (st.kind !== 'improv') o.push(st.guide ? { id: 'guide-off', text: 'Treure la guia sonora i tornar-hi' } : { id: 'guide-on', text: 'Posar la guia sonora (sentiràs fluixa la teva part) i tornar-hi' });
+  // practicar només el que falla: només quan l'eina ho pot aïllar
+  if (res.gaps.includes('forma') && !$('[data-act="strings"]', st.root).hidden) o.push({ id: 'strings', text: 'Comprovar l\'acord corda a corda' });
+  if (res.gaps.includes('dreta') && !st.el('handwrap').hidden && !st.handOnly) o.push({ id: 'hand', text: 'Practicar només la mà dreta' });
+  for (const t of backTargets(st)) {
+    const info = st.ctx.nav.info(t.id);
+    o.push({ id: 'back', to: t.id, text: `Tornar a «${info.titol}» (nivell ${info.nivell})${t.g ? `, que treballa ${gapText(t.g).toLowerCase()}` : ''}` });
+  }
+  o.push({ id: 'repeat', text: 'Repetir igual' });
+  if (st.ctx.onNext) o.push({ id: 'next', to: st.ctx.nav?.next?.id, text: 'Passar al pas següent' });
+  if (r === 'ok' && res.wasOk) o.push({ id: 'done', text: 'Ja no cal: ho porto al grup' });
+  return o;
+}
+
+/** El que l'eina hauria proposat (la lògica d'abans). Només es veu a «Què sé fer». */
+function suggestion(st, opts) {
+  const res = st.result;
+  const has = (id) => opts.find((x) => x.id === id);
+  if (res.r === 'no') {
+    if (res.noRun >= 2) {
+      const backs = opts.filter((x) => x.id === 'back');
+      const byGap = backs.find((x) => /, que treballa /.test(x.text));
+      if (byGap || backs[0]) return byGap ?? backs[0];
+    }
+    if (res.gaps.length && (has('strings') || has('hand'))) return has('strings') ?? has('hand');
+    return has('slower') ?? has('repeat');
+  }
+  if (res.r === 'gairebe') return has('guide-off') ?? has('repeat');
+  if (res.wasOk) return has('done');
+  if (res.played < res.orig) return has('faster');
+  return has('next') ?? has('faster');
+}
+
+/** L'alumne tria: es desa i es fa. */
+function pickOption(st, id, to) {
+  if (!st.result) return;
+  const extra = {};
+  if (id === 'back' || id === 'next') { extra.to = to || undefined; if (id === 'back' && to) extra.toOk = store.stepState(to)?.best === 'ok' || undefined; }
+  auto.choose(st.rec, id, extra);
+  const again = st.what === 'play' ? 'play' : 'full';
+  if (id === 'slower') { setTempo(st, st.tempo - 10); hideAssess(st); return go(st, again); }
+  if (id === 'faster') { setTempo(st, st.tempo + 10); hideAssess(st); return go(st, again); }
+  if (id === 'guide-on' || id === 'guide-off') {
+    st.guide = id === 'guide-on' ? 0.3 : 0;
+    st.el('guide').checked = st.guide > 0;
+    store.settings().guide = st.guide; store.save();
+    hideAssess(st); return go(st, again);
+  }
+  if (id === 'strings') { hideAssess(st); return stringByString(st); }
+  if (id === 'hand') { st.el('handonly').checked = true; store.settings().handOnly = true; store.save(); setHandOnly(st, true); hideAssess(st); return go(st, again); }
+  if (id === 'repeat') { hideAssess(st); return go(st, again); }
+  if (id === 'back' && to) { closeSession(); st.ctx.nav?.goStep(to); return; }
+  if (id === 'next') { closeSession(); st.ctx.onNext?.(); return; }
+  if (id === 'done') { closeSession(); if (st.ctx.nav?.goMap) st.ctx.nav.goMap(); else st.ctx.onBack?.(); }
 }
 
 function showAssess(st) {
@@ -512,11 +562,12 @@ function showAssess(st) {
   a.hidden = false;
   const prev = st.step.id ? store.stepState(st.step.id) : null;
   st.lastGaps = prev?.status !== 'ok' ? (prev?.gaps ?? []).filter((g) => GAPS[g]) : [];
-  st.el('feedback').textContent = (st.step.id ? 'Tu saps millor que ningú com ha sonat. Marca-ho i el joc et proposa què fer.' : 'Marca com ha anat i el joc et proposa què fer.')
+  st.el('feedback').textContent = (st.step.id ? 'Tu saps millor que ningú com ha sonat. Marca-ho i tria què vols fer ara.' : 'Marca com ha anat i tria què vols fer ara.')
     + (st.lastGaps.length ? ` La darrera vegada et va faltar: ${st.lastGaps.map(gapText).join(', ').toLowerCase()}.` : '');
   st.el('result').innerHTML = '';
   st.el('after').innerHTML = '';
   st.result = null;
+  st.rec = null;
   for (const x of st.root.querySelectorAll('[data-rate]')) x.classList.remove('chosen');
   a.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 }

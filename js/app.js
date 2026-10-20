@@ -14,6 +14,7 @@ import { structureHtml } from './songview.js';
 import { summary } from './skills.js';
 import { renderGuide, closeGuide } from './guide.js';
 import { reached, pill, gapText } from './assoliment.js';
+import { decided, observations, lastDecisions, MIN_DECISIONS } from './autoregulacio.js';
 
 const $ = (sel, root = document) => root.querySelector(sel);
 const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
@@ -236,6 +237,7 @@ function openStep(id) {
       isBefore: (a, b) => { const ia = steps.findIndex((x) => x.id === a); return ia >= 0 && ia < steps.findIndex((x) => x.id === b); },
       goStep: (sid) => openStep(sid),
       goLevel: (n) => { renderLevel(n); show('level'); },
+      goMap: () => { renderMap(); show('map'); },
       levelDone: () => levelDone(level),
       pathDone: () => pathDone(i.id),
     },
@@ -460,7 +462,27 @@ function renderSkills() {
           ${x.cards.length ? `<div class="skill-cards">${x.cards.map((id) => `<img src="${cardById(id)?.img}" alt="Carta ${esc(id)}" title="Carta ${esc(id)}">`).join('')}</div>` : ''}
           <p class="skill-banda">${esc(x.banda)}</p>
         </div>`).join('')}
-    </div>`;
+    </div>
+    ${pathHtml(i.id)}`;
+}
+
+/** «Com tries el teu camí»: si les tries que fas després de practicar et funcionen. */
+function stepTitle(instId, id) {
+  const [base, card] = String(id).split(':');
+  const p = allSteps(instId).find((x) => x.id === base);
+  if (card) return `${p?.titol ?? base} · carta ${card}`;
+  return p?.titol ?? id;
+}
+function pathHtml(instId) {
+  const n = decided().length;
+  if (n < MIN_DECISIONS) {
+    return `<div class="panel cami-panel"><h3>Com tries el teu camí</h3><p class="muted">Després de cada intent tries què vols fer: baixar el tempo, posar o treure la guia, tornar a un pas anterior, passar al següent… Quan hagis pres unes quantes decisions (${n} de ${MIN_DECISIONS}), aquí veuràs quines t'han funcionat.</p></div>`;
+  }
+  const last = lastDecisions((id) => stepTitle(instId, id));
+  return `<div class="panel cami-panel"><h3>Com tries el teu camí</h3>
+    <ul class="cami-obs">${observations().map((t) => `<li>${esc(t)}</li>`).join('')}</ul>
+    <details class="cami-last"><summary>Les teves últimes decisions</summary>
+      <ul>${last.map((x) => `<li>${x.html}</li>`).join('')}</ul></details></div>`;
 }
 
 // ---- Navegació -------------------------------------------------------------------------------------------------

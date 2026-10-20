@@ -276,7 +276,7 @@ export function renderGuide(host, instId, { onDone } = {}) {
         <div class="stage-top"><div class="mode-badge" data-mode="play">ARA TU</div><div class="pulses"><span>1</span><span>2</span><span class="on">3</span><span>4</span></div></div><p>La banda continua <b>sense el teu instrument</b>: ara toques tu.</p>
       </div>
       ${tryIt('<p>Les rodones del marcador són els temps. La primera, la groga, és l\'inici del compàs: és on solen canviar els acords.</p>')}
-      ${box('I al final…', '<p>El joc no t\'escolta: <b>tu dius com ha anat</b> («En procés», «A prop», «Ja ho tens!») i què t\'ha faltat. El joc et proposa què fer: baixar el tempo, tornar a un pas anterior o passar al següent.</p>')}`;
+      ${box('I al final…', '<p>El joc no t\'escolta: <b>tu dius com ha anat</b> («En procés», «A prop», «Ja ho tens!») i què t\'ha faltat. Després tries tu què necessites: baixar el tempo, treure o posar la guia, tornar a un pas anterior, repetir o passar al següent. A «Què sé fer» veuràs quines tries t\'han funcionat.</p>')}`;
     for (const s of el.querySelectorAll('.stage-top')) s.style.cssText = 'background:#111827;border-radius:10px;padding:8px 12px;color:#fff;margin-top:10px';
   }
 

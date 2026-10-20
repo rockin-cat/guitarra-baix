@@ -609,3 +609,15 @@ main { grid-area: main; min-height: 0; min-width: 0; position: relative; display
 .path-end { border-left: 5px solid var(--ok); background: #f1faf4; color: var(--tinta); margin: 12px 0; padding: 12px 16px; }
 .poster .path-end { margin: 0 18px 12px; }
 .path-end-inline { background: #f1faf4; border-radius: 8px; padding: 8px 10px; }
+
+/* Què creus que necessites ara? (cap opció destacada) i «Com tries el teu camí» */
+.opt-list { display: flex; flex-direction: column; gap: 6px; margin: 6px 0; }
+.opt-btn { font: inherit; font-size: 14px; text-align: left; padding: 9px 12px; border-radius: 10px; border: 1px solid var(--linia); background: #fff; color: var(--tinta); cursor: pointer; }
+.opt-btn:hover, .opt-btn:focus-visible { border-color: var(--tinta); }
+.cami-panel { margin-top: 14px; }
+.cami-obs { margin: 6px 0; padding-left: 18px; }
+.cami-obs li { margin: 4px 0; }
+.cami-last summary { cursor: pointer; font-weight: 700; margin-top: 6px; }
+.cami-last ul { margin: 6px 0; padding-left: 18px; font-size: 14px; }
+.cami-last li { margin: 4px 0; }
+@media print { .cami-last ul { display: block; } }
