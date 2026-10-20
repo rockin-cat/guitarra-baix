@@ -106,7 +106,7 @@ export function openSession(host, baseStep, ctx) {
           <small>${esc([levelText, ctx.crumb].filter(Boolean).join(' · '))}</small>
           <h2>${esc(step.titol)}</h2>
         </div>
-        <div class="vh-actions"><button type="button" class="btn btn-ghost btn-small help-btn" data-go="guide" title="Què vol dir cada cosa de la pantalla">Com es llegeix?</button></div>
+        <div class="vh-actions"><button type="button" class="btn btn-ghost btn-small help-btn" data-go="guide" title="Què vol dir cada cosa de la pantalla">Com es llegeix?</button><button type="button" class="btn btn-ghost btn-small fs-btn" data-fs title="Pantalla completa">⛶ Pantalla completa</button></div>
       </div>
       <div class="sess-grid">
         <div class="sess-main">
@@ -727,8 +727,10 @@ function frame(st) {
   } else if (cur || next) {
     const e = cur ?? next;
     if (e.kind === 'strum') {
-      const change = next && next.chord !== e.chord ? next.abs - pos.abs : Infinity;
-      st.neck.show({ mode: 'chord', cur: e, next, showNext: change <= Math.max(1, M.pulseLen), label: e.chord });
+      // l'acord següent («Ara ve») apareix amb l'antelació triada a Configuració (per defecte, 2 temps)
+      const nxt = nextChange(st, pos, e);
+      const lead = Math.min(store.settings().nextLead ?? 2, M.pulses) * M.pulseLen;
+      st.neck.show({ mode: 'chord', cur: e, next: nxt?.e ?? next, showNext: !!nxt && nxt.dist <= lead + 1e-6, label: e.chord });
     } else {
       st.neck.show({ mode: 'notes', cur: e, next, showNext: true, label: e.chord ?? '' });
       if (cur?.tech) st.neck.techPhase(cur, (pos.abs - cur.abs) / cur.dur);
@@ -763,6 +765,13 @@ function frame(st) {
     if (sg) bars[j] = { seg: sg, content: sg.mode === 'count' ? null : st.song.content(sg.k) };
   }
   st.lane.draw({ ...pos, bars }, { voice: !!st.step.voice });
+}
+
+/** El primer esdeveniment amb un acord diferent de l'actual (pot ser d'aquí a més d'un compàs). */
+function nextChange(st, pos, e) {
+  const { list } = eventsAround(st, pos);
+  const n = list.filter((x) => x.abs > pos.abs + 0.02 && x.chord && x.chord !== e.chord && x.voicing).sort((a, b) => a.abs - b.abs)[0];
+  return n ? { e: n, dist: n.abs - pos.abs } : null;
 }
 
 function chordAtBeat(bar, beat, M) {

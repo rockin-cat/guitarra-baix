@@ -499,7 +499,8 @@ document.addEventListener('click', (ev) => {
   if (!b) return;
   if (b.id === 'home-link') { ev.preventDefault(); renderHome(); show('home'); return; }
   if (b.id === 'player-chip') { store.setCurrent(null); renderHome(); show('home'); return; }
-  if (b.id === 'settings-btn') { $('#set-thick').checked = store.settings().thickTop === true; $('#settings').showModal(); return; }
+  if (b.id === 'settings-btn') { $('#set-thick').checked = store.settings().thickTop === true; $('#set-lead').value = String(store.settings().nextLead ?? 2); $('#settings').showModal(); return; }
+  if (b.dataset.fs !== undefined) { toggleFullscreen(); return; }
   if (b.dataset.inst && b.closest('#inst-switch, .inst-tiles')) {
     if (!store.currentName()) return;
     store.setInstrument(b.dataset.inst);
@@ -540,8 +541,24 @@ document.addEventListener('click', (ev) => {
 
 $('#settings').addEventListener('close', () => {
   store.settings().thickTop = $('#set-thick').checked;
+  store.settings().nextLead = Number($('#set-lead').value) || 2;
   store.save();
 });
+
+// ---- Pantalla completa ---------------------------------------------------------------------------------------
+
+function toggleFullscreen() {
+  const el = document.documentElement;
+  if (document.fullscreenElement || document.webkitFullscreenElement) (document.exitFullscreen ?? document.webkitExitFullscreen)?.call(document);
+  else (el.requestFullscreen ?? el.webkitRequestFullscreen)?.call(el)?.catch?.(() => {});
+}
+function onFullscreen() {
+  const on = !!(document.fullscreenElement || document.webkitFullscreenElement);
+  document.body.classList.toggle('is-fs', on);
+  for (const b of document.querySelectorAll('[data-fs]')) { b.classList.toggle('on', on); b.title = on ? 'Surt de la pantalla completa' : 'Pantalla completa'; }
+}
+document.addEventListener('fullscreenchange', onFullscreen);
+document.addEventListener('webkitfullscreenchange', onFullscreen);
 
 document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape' && document.body.dataset.view === 'session' && !document.querySelector('dialog[open]')) {

@@ -85,3 +85,8 @@ Les cançons porten l'estructura: `[Tornada] C | G | …` posa nom a la part, i 
 - **Com tries el teu camí** (a «Què sé fer», a partir de 5 decisions): frases sobre si les tries t'han funcionat i les teves últimes decisions; només aquí es veu què hauria proposat l'eina.
 - Quan tot el camí és a «A prop» o més: «Has acabat el camí. Ja pots portar-ho al teu grup…», a l'inici, al full de ruta i a «Què sé fer».
 - Ja no surt el tempo màxim de cada pas ni de cada nivell. La improvisació lliure («Lliure, amb reptes») no puntua.
+
+## «Ara ve» abans i pantalla completa (versió 18)
+
+- L'acord següent («Ara ve», l'anell discontinu al mànec) surt 2 temps abans del canvi per defecte. A ⚙︎ Configuració es pot posar 1 temps o 1 compàs abans.
+- Botó de pantalla completa a la barra de dalt i a la pantalla de pràctica. A la pràctica, en pantalla completa s'amaguen la barra de dalt i el menú lateral i la pista es fa més alta.

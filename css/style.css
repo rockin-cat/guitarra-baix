@@ -621,3 +621,12 @@ main { grid-area: main; min-height: 0; min-width: 0; position: relative; display
 .cami-last ul { margin: 6px 0; padding-left: 18px; font-size: 14px; }
 .cami-last li { margin: 4px 0; }
 @media print { .cami-last ul { display: block; } }
+
+/* Pantalla completa: a la pràctica, només l'escenari */
+.chip.on { background: var(--tinta); color: var(--groc); }
+.fs-btn.on { background: var(--tinta); color: var(--groc); border-color: var(--tinta); }
+body.is-fs[data-view="session"] { grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); grid-template-areas: "main"; }
+body.is-fs[data-view="session"] .topbar, body.is-fs[data-view="session"] .rail { display: none; }
+body.is-fs[data-view="session"] .lane { height: clamp(110px, calc(100dvh - 520px), 220px); }
+.set-row { display: flex; flex-direction: column; gap: 6px; margin-top: 16px; font-weight: 500; }
+.set-row select { max-width: 220px; }
