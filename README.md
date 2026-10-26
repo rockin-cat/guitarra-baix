@@ -112,3 +112,10 @@ Amb un cable jack → USB (o l'ampli connectat per USB), el joc escolta la guita
 
 - Botó **Afinador** a la barra de dalt (obre el quadre de la guitarra directament a l'afinador). El quadre ara es diu «La teva guitarra»: connectar, afinador, so d'ampli i retard.
 - **Sense fitxers vells**: `index.html` porta un mapa d'importació amb la versió a cada mòdul (`?v=23`), així el navegador no barreja versions. Per pujar de versió: `python3 tools/versio.py 24 "dd-mm-aaaa"`.
+
+## Pràctica més senzilla (versió 24)
+
+- Dos botons grans: **👂 Escolta** (t'ho ensenya) i **▶ Toca** (et toca a tu, amb la banda). Mentre sona, només hi ha **■ Atura**. Barra d'espai = Toca / Atura.
+- **L'ajuda es retira sola**, pas a pas: amb guia sonora → sense guia → l'ajuda de la pantalla s'esvaeix → més ràpid fins al tempo de la cançó. Puja quan et surt i baixa quan no («La propera vegada, …»). Els punts al costat de Toca diuen on ets. Es desa per a cada pas i alumne.
+- Tota la resta (tempo, voltes, metrònom, guia sonora, retirar l'ajuda a mà, només mà dreta, corda a corda, escolta i toca seguit, acords, cançó sencera, connectar la guitarra) és a **⚙ Opcions**, tancat. Si l'alumne hi toca la guia o l'ajuda, l'ajuda automàtica s'atura en aquell pas.
+- **«Com t'ha anat?»** surt al mig de l'escenari en acabar (ja no al lateral), amb el que canviarà la propera vegada i les opcions (▶ Torna-hi, pas següent…).

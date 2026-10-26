@@ -586,7 +586,7 @@ document.addEventListener('keydown', (e) => {
   if (e.key === ' ' && document.body.dataset.view === 'session' && !/INPUT|TEXTAREA|SELECT/.test(document.activeElement?.tagName)) {
     e.preventDefault();
     const stop = document.querySelector('#v-session [data-act="stop"]');
-    if (stop && !stop.disabled) stop.click(); else document.querySelector('#v-session [data-act="full"]')?.click();
+    if (stop && !stop.hidden && !stop.disabled) stop.click(); else document.querySelector('#v-session [data-act="play"]')?.click();
   }
 });
 
