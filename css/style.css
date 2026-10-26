@@ -670,3 +670,5 @@ body.is-fs[data-view="session"] .lane { height: clamp(110px, calc(100dvh - 520px
 .tl-needle { position: absolute; left: 50%; top: -5px; bottom: -5px; width: 4px; margin-left: -2px; border-radius: 2px; background: var(--tinta); transition: left .1s; }
 .tl-body.in-tune .tl-needle, .tuner-live.in-tune .tl-needle { background: #1f9d55; }
 .tl-cents { min-width: 90px; font-weight: 700; }
+.listen-chip.on { background: #1f9d55; color: #fff; }
+@media (max-width: 760px) { .listen-chip { font-size: 0; padding: 7px 9px; } .listen-chip::first-letter { font-size: 15px; } }

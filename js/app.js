@@ -501,6 +501,7 @@ document.addEventListener('click', (ev) => {
   if (b.id === 'player-chip') { store.setCurrent(null); renderHome(); show('home'); return; }
   if (b.id === 'settings-btn') { $('#set-thick').checked = store.settings().thickTop === true; $('#set-lead').value = String(store.settings().nextLead ?? 2); $('#settings').showModal(); return; }
   if (b.dataset.fs !== undefined) { toggleFullscreen(); return; }
+  if (b.id === 'listen-chip') { openListen(); return; }
   if (b.dataset.inst && b.closest('#inst-switch, .inst-tiles')) {
     if (!store.currentName()) return;
     store.setInstrument(b.dataset.inst);
@@ -544,6 +545,22 @@ $('#settings').addEventListener('close', () => {
   store.settings().nextLead = Number($('#set-lead').value) || 2;
   store.save();
 });
+
+// ---- Connecta la guitarra (també des de la barra de dalt) ---------------------------------------------------------
+
+async function openListen() {
+  const L = await import('./listen.js');
+  L.openDialog({ onChange: () => listenChip(L) });
+  listenChip(L);
+}
+function listenChip(L) {
+  const c = $('#listen-chip');
+  const on = L.isOn();
+  c.classList.toggle('on', on);
+  c.textContent = on ? '🎸 T\'escolto' : '🎸 Connecta la guitarra';
+  const sb = document.querySelector('#v-session [data-act="listen-dlg"]');
+  if (sb) { sb.classList.toggle('on', on); sb.textContent = c.textContent; }
+}
 
 // ---- Pantalla completa ---------------------------------------------------------------------------------------
 
