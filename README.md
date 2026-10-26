@@ -90,3 +90,14 @@ Les cançons porten l'estructura: `[Tornada] C | G | …` posa nom a la part, i 
 
 - L'acord següent («Ara ve», l'anell discontinu al mànec) surt 2 temps abans del canvi per defecte. A ⚙︎ Configuració es pot posar 1 temps o 1 compàs abans.
 - Botó de pantalla completa a la barra de dalt i a la pantalla de pràctica. A la pràctica, en pantalla completa s'amaguen la barra de dalt i el menú lateral i la pista es fa més alta.
+
+## El joc t'escolta (versió 19, prova)
+
+Amb un cable jack → USB (o l'ampli connectat per USB), el joc escolta la guitarra o el baix i corregeix com el de bateria.
+
+- **🎸 Connecta la guitarra** (a la pràctica): tries l'entrada, veus el nivell i la nota que sent, ajustes el retard (sonen clics i toques una corda a cada clic) i tries com d'exigent (fàcil, normal, exigent). Es recorda.
+- Mentre toques tu («Ara tu»): a cada cop surt «Perfecte!», «Una mica aviat/tard», «Era Re (corda 4, trast 0)», «Era G», «L'acord no sona net», «Cop de més», «Aquí la mà no toca» (fletxa grisa) o «No ha sonat». Els hammer-on, pull-off, bendings i glissandos es comproven per la nota a què arriben. La barra «aviat — tard» ensenya si vas avançat o endarrerit.
+- En acabar: «El joc t'ha escoltat: 86 %», a temps, notes/acords bons, consells, i marca el nivell (Ja ho tens! ≥ 90 %, A prop ≥ 75 %) i el que ha faltat. L'alumne ho pot canviar.
+- Al nivell 7 (afinar), un afinador amb agulla.
+- Fitxers: `js/dsp.js` (altura amb YIN, croma dels acords), `js/listen.js` (entrada, atacs, diàleg i calibratge), `js/gjudge.js` (el jutge).
+- Limitacions: amb distorsió forta els acords s'avaluen pitjor; no distingeix si el rascat va amunt o avall; amb el micròfon de l'ordinador s'equivoca més que amb cable.

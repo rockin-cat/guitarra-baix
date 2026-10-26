@@ -13,6 +13,8 @@ import { REPTES } from './levels.js';
 import * as store from './store.js';
 import { pill, gapsFor, tipsFor, gapText, GAPS } from './assoliment.js';
 import * as auto from './autoregulacio.js';
+import * as listen from './listen.js';
+import { createJudge, verdictText, verdictClass } from './gjudge.js';
 
 const $ = (sel, root = document) => root.querySelector(sel);
 const h = (html) => { const t = document.createElement('template'); t.innerHTML = html.trim(); return t.content.firstElementChild; };
@@ -22,6 +24,8 @@ let current = null; // la sessió oberta
 
 export function closeSession() {
   if (!current) return;
+  current.judge?.destroy();
+  current.judge = null;
   player.stop();
   cancelAnimationFrame(current.raf);
   current.lane?.destroy();
@@ -93,6 +97,7 @@ export function openSession(host, baseStep, ctx) {
     compose: kind === 'compose' ? (step.bars ? step.bars.map((b) => ({ ...b })) : null) : null,
   };
   current = st;
+  window.__rkSession = st; // per a les proves
   document.body.style.setProperty('--accent', inst.color);
   document.body.style.setProperty('--accent-soft', inst.colorSoft);
 
@@ -120,6 +125,11 @@ export function openSession(host, baseStep, ctx) {
             <div class="hand-host" data-el="hand" hidden></div>
             <canvas class="lane" data-el="lane"></canvas>
             <div class="help-note" data-el="helpnote"></div>
+            <div class="verdicts" data-el="verdicts"></div>
+            <div class="lhud" data-el="lhud" hidden>
+              <span class="lhud-l">aviat</span><div class="tc-track"><i class="tc-mid"></i><div class="tc-dots" data-el="tcdots"></div><i class="tc-needle" data-el="tcneedle"></i></div><span class="lhud-l">tard</span>
+              <span class="lmeter" title="El senyal de la guitarra"><i data-el="lmeter"></i></span>
+            </div>
           </div>
           <div class="composer" data-el="composer" hidden></div>
           <div class="tuner" data-el="tuner" hidden></div>
@@ -138,6 +148,7 @@ export function openSession(host, baseStep, ctx) {
               <button type="button" class="btn btn-ghost btn-small" data-act="strings" hidden>Corda a corda</button>
               <label class="toggle" data-el="handwrap" hidden title="Amaga el mànec i la pista: només la carta i les fletxes del rascat"><input type="checkbox" data-el="handonly"> Només mà dreta</label>
               <label class="toggle" title="Mentre toques tu, l'ajuda visual es va esvaint fins que ho fas sol"><input type="checkbox" data-el="fade"> Retira l'ajuda a poc a poc</label>
+              <button type="button" class="btn btn-ghost btn-small listen-btn" data-act="listen-dlg" title="Amb un cable jack → USB, el joc t'escolta i et corregeix">🎸 Connecta la guitarra</button>
             </div>
             <div class="ctrl-opts ctrl-song" data-el="songbar"></div>
           </div>
@@ -193,6 +204,7 @@ export function openSession(host, baseStep, ctx) {
   }
 
   renderSongBar(st);
+  updateListenUi(st);
   root.addEventListener('click', (ev) => onClick(st, ev));
   root.addEventListener('change', (ev) => {
     const t = ev.target;
@@ -355,6 +367,14 @@ async function go(st, what) {
     await player.prepare(st.inst.id);
   } catch { /* sense so, l'animació funciona igual */ }
   if (current !== st) return;
+  // escolta la guitarra (si s'havia connectat abans, es torna a obrir l'entrada)
+  if (listen.settings().on && !listen.isOn()) { try { await listen.start(); } catch { listen.settings().on = false; } }
+  st.judge?.destroy();
+  st.judge = listen.isOn() && st.kind !== 'improv' && st.kind !== 'compose' ? createJudge(st.inst.id, { onVerdict: (v) => showVerdict(st, v) }) : null;
+  st.listenSum = null;
+  resetDots(st);
+  updateListenUi(st);
+  if (current !== st) return;
   st.song.tempo = st.tempo;
   st.plan = makePlan(st, what);
   st.what = what;
@@ -380,8 +400,89 @@ function finished(st, natural) {
   setHelp(st, 0);
   setButtons(st, false);
   showIdle(st);
+  const judge = st.judge;
+  if (judge && st.ranPlay) {
+    // les últimes anàlisis triguen una mica: el resultat surt quan han acabat
+    setTimeout(() => {
+      if (current !== st) return;
+      const sum = judge.summary();
+      judge.destroy();
+      if (st.judge === judge) st.judge = null;
+      showAssess(st);
+      if (sum.n >= 4) applyListen(st, sum);
+    }, 450);
+    return;
+  }
   if (st.kind !== 'improv' && (st.what === 'full' || st.what === 'play') && (natural || st.ranPlay)) showAssess(st);
   if (st.kind === 'improv' && st.ranPlay) showAssess(st);
+}
+
+// ---- El joc t'escolta ---------------------------------------------------------------------------------------
+
+function updateListenUi(st) {
+  const on = listen.isOn();
+  const b = $('[data-act="listen-dlg"]', st.root);
+  if (b) { b.textContent = on ? '🎸 T\'escolto' : '🎸 Connecta la guitarra'; b.classList.toggle('on', on); }
+  st.el('lhud').hidden = !on;
+}
+
+function resetDots(st) {
+  st.el('tcdots').innerHTML = '';
+  st.el('tcneedle').style.left = '50%';
+  st.dts = [];
+}
+
+function showVerdict(st, v) {
+  if (current !== st || st.helpLevel >= 3) return;
+  const box = st.el('verdicts');
+  const d = document.createElement('div');
+  d.className = `verdict v-${verdictClass(v.kind)}`;
+  d.textContent = verdictText(v, st.inst.id);
+  box.append(d);
+  setTimeout(() => d.remove(), 900);
+  while (box.children.length > 3) box.firstChild.remove();
+  if (v.dt != null && ['perfect', 'good', 'dirty', 'wrongnote', 'wrongchord'].includes(v.kind)) {
+    const ms = v.dt * 1000;
+    st.dts.push(ms);
+    const dot = document.createElement('i');
+    dot.className = `tc-dot k-${verdictClass(v.kind)}`;
+    dot.style.left = `${tcPos(ms)}%`;
+    st.el('tcdots').append(dot);
+    while (st.el('tcdots').children.length > 16) st.el('tcdots').firstChild.remove();
+    const recent = st.dts.slice(-12);
+    st.el('tcneedle').style.left = `${tcPos(recent.reduce((a, b) => a + b, 0) / recent.length)}%`;
+  }
+}
+const tcPos = (ms) => 50 + Math.max(-1, Math.min(1, ms / 100)) * 48;
+
+/** El resultat que ha escoltat el joc: marca el nivell i el que ha faltat (l'alumne ho pot canviar). */
+function applyListen(st, sum) {
+  st.listenSum = sum;
+  rate(st, sum.level);
+  const options = gapsFor(st.step, st.inst.id);
+  const gaps = sum.gaps.filter((g) => options.includes(g));
+  if (st.result && gaps.length && sum.level !== 'ok') {
+    st.result.gaps = gaps;
+    if (st.step.id) store.setGaps(st.step.id, gaps);
+    if (st.rec) auto.updateRecord(st.rec, { gaps: [...gaps], heard: Math.round(sum.score * 100) });
+  } else if (st.rec) auto.updateRecord(st.rec, { heard: Math.round(sum.score * 100) });
+  st.el('feedback').textContent = 'El joc t\'ha escoltat i ha marcat el nivell. Si creus que no és així, tria\'n un altre.';
+  renderResult(st);
+}
+
+/** Registra els cops dels compassos que toques tu (el que està sonant i el següent). */
+function feedJudge(st, pos) {
+  const ctx = audioContext();
+  const outLat = ctx.outputLatency || ctx.baseLatency || 0;
+  for (let j = Math.max(0, pos.i); j <= pos.i + 1; j++) {
+    const seg = pos.bars[j]?.seg ?? st.plan?.(j);
+    if (!seg || seg.mode !== 'play') continue;
+    const content = pos.bars[j]?.content ?? st.song.content(seg.k);
+    if (!content) continue;
+    const t = pos.t0 + j * pos.barDur;
+    st.judge.addBar(j, content.part, (beat) => t + beat * pos.spq + outLat, pos.spq);
+  }
+  st.judge.tick(pos.time);
 }
 
 function setButtons(st, playing) {
@@ -405,6 +506,7 @@ function onClick(st, ev) {
   if (act === 'back') { closeSession(); st.ctx.onBack?.(); return; }
   if (act === 'full' || act === 'listen' || act === 'play') return go(st, act);
   if (act === 'stop') return stopRun(st);
+  if (act === 'listen-dlg') return listen.openDialog({ onChange: () => updateListenUi(st) });
   if (act === 'slower' || act === 'faster') return setTempo(st, st.tempo + (act === 'faster' ? 5 : -5));
   if (act === 'strings') return stringByString(st);
   if (act === 'next') { closeSession(); st.ctx.onNext?.(); return; }
@@ -457,6 +559,12 @@ function renderResult(st) {
   // 1 · nivell
   const data = st.kind === 'improv' ? '' : `A ${res.played} bpm${res.played < res.orig ? ` · el pas va a ${res.orig}` : ''}`;
   let html = `<div class="res-block res-level">${pill(r, 'big')}${data ? `<span class="res-data">${esc(data)}</span>` : ''}</div>`;
+  const L = st.listenSum;
+  if (L) {
+    html += `<div class="res-block res-heard"><h4>El joc t'ha escoltat: ${Math.round(L.score * 100)} %</h4>
+      <div class="heard-stats"><span><b>${L.onTime}/${L.timed}</b> a temps</span>${L.pitched ? `<span><b>${L.right}/${L.pitched}</b> ${L.strums ? (L.strums === L.pitched ? 'acords bons' : 'acords i notes bons') : 'notes bones'}</span>` : ''}${L.missed ? `<span><b>${L.missed}</b> sense sonar</span>` : ''}${L.extras + L.air ? `<span><b>${L.extras + L.air}</b> de més</span>` : ''}</div>
+      ${L.tips.length ? `<ul class="res-tips">${L.tips.map((t) => `<li>${esc(t)}</li>`).join('')}</ul>` : ''}</div>`;
+  }
   // 2 · què t'ha faltat
   const options = gapsFor(st.step, st.inst.id);
   if (r !== 'ok') {
@@ -690,6 +798,8 @@ function frame(st) {
   const seg = pos.bar?.seg ?? st.plan?.(pos.i);
   const mode = seg?.mode ?? 'count';
   if (mode === 'play' || mode === 'answer') st.ranPlay = true;
+  if (st.judge) feedJudge(st, pos);
+  if (listen.isOn()) st.el('lmeter').style.width = `${Math.round(listen.level() * 100)}%`;
   const M = st.M;
   const pulse = Math.floor(pos.beat / M.pulseLen);
   if (st.fade && mode === 'play' && st.kind !== 'improv') {
@@ -964,13 +1074,39 @@ function setupTuner(st) {
   } else {
     html = `<p class="muted">El Mi major, corda a corda i després sencer. Toca\'l alhora i compara.</p><div class="tune-row"><button type="button" class="tune-btn wide" data-t="chk"><b>▶ Mi major</b><small>corda a corda</small></button></div>`;
   }
-  box.innerHTML = `${html}<div class="row"><button type="button" class="btn" data-t="stop">■ Atura</button></div>`;
+  box.innerHTML = `${html}<div class="row"><button type="button" class="btn" data-t="stop">■ Atura</button></div>
+    <div class="tuner-live"><div class="tl-head"><b>Afinador</b><button type="button" class="btn btn-ghost btn-small" data-t="listen">🎸 Connecta la guitarra</button></div>
+      <div class="tl-body" hidden><span class="tl-note">—</span><div class="tl-scale"><i class="tl-zero"></i><i class="tl-needle"></i></div><span class="tl-cents"></span></div>
+      <p class="muted small tl-help">Amb el cable connectat, toca una corda a l'aire: l'agulla diu si està baixa (esquerra) o alta (dreta).</p></div>`;
+  // l'afinador de veritat, si el joc t'escolta
+  const live = box.querySelector('.tl-body');
+  const tunerLoop = () => {
+    if (current !== st) return;
+    requestAnimationFrame(tunerLoop);
+    live.hidden = !listen.isOn();
+    box.querySelector('[data-t="listen"]').textContent = listen.isOn() ? '🎸 T\'escolto' : '🎸 Connecta la guitarra';
+    if (!listen.isOn()) return;
+    const m = listen.currentNote();
+    if (m == null) return;
+    // la corda més propera
+    let best = 0;
+    inst.tuning.forEach((t, s) => { if (Math.abs(t - m) < Math.abs(inst.tuning[best] - m)) best = s; });
+    const cents = Math.round((m - inst.tuning[best]) * 100);
+    const near = Math.abs(cents) <= 300;
+    live.querySelector('.tl-note').textContent = near ? `Corda ${n - best} · ${inst.stringNames[best]}` : midiName(Math.round(m));
+    const c = Math.max(-50, Math.min(50, near ? cents : 0));
+    live.querySelector('.tl-needle').style.left = `${50 + c}%`;
+    live.querySelector('.tl-cents').textContent = !near ? '' : Math.abs(cents) <= 5 ? 'Afinada ✓' : cents < 0 ? `Baixa (${cents})` : `Alta (+${cents})`;
+    live.classList.toggle('in-tune', near && Math.abs(cents) <= 5);
+  };
+  requestAnimationFrame(tunerLoop);
   const stopTune = () => { clearTimeout(st.tuneTimer); st.tuneTimer = null; player.stop(); st.neck.clear(); for (const b of box.querySelectorAll('.tune-btn')) b.classList.remove('on'); };
   box.addEventListener('click', async (ev) => {
     const b = ev.target.closest('[data-t]');
     if (!b) return;
     stopTune();
     if (b.dataset.t === 'stop') return;
+    if (b.dataset.t === 'listen') { listen.openDialog(); return; }
     await player.prepare(inst.id);
     b.classList.add('on');
     const ctx = audioContext();
