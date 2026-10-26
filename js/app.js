@@ -505,6 +505,7 @@ document.addEventListener('click', (ev) => {
   if (b.dataset.inst && b.closest('#inst-switch, .inst-tiles')) {
     if (!store.currentName()) return;
     store.setInstrument(b.dataset.inst);
+    import('./listen.js').then((L) => L.applyMonitor());
     applyAccent();
     const view = document.body.dataset.view;
     if (view === 'map') renderMap();

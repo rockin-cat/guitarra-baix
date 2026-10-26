@@ -21,7 +21,7 @@ export function createLane(canvas, { color = '#f97316' } = {}) {
   const ro = new ResizeObserver(fit);
   ro.observe(canvas);
 
-  function draw(pos, { voice = false } = {}) {
+  function draw(pos, { voice = false, marks = null } = {}) {
     const c = ctx2;
     c.setTransform(dpr, 0, 0, dpr, 0, 0);
     c.clearRect(0, 0, w, h);
@@ -109,6 +109,23 @@ export function createLane(canvas, { color = '#f97316' } = {}) {
           c.font = `${v.speak ? 700 : 600} 15px Ubuntu, sans-serif`;
           c.fillText(v.text, x + 2, rowVoice);
           if (v.sing) { c.fillStyle = 'rgba(154,209,255,0.25)'; c.fillRect(x, rowVoice + 5, Math.max(4, v.dur * ppb - 4), 3); }
+        }
+      }
+    }
+    // el que ha sentit el joc: un anell de color al cop que tocava i un punt on has tocat tu
+    if (marks?.length) {
+      const COL = { ok: '#44d17a', mid: '#ffb347', bad: '#ff5a5a' };
+      for (const m of marks) {
+        const x = X(m.abs);
+        if (x < -20 || x > w + 20) continue;
+        c.strokeStyle = c.fillStyle = COL[m.cls] ?? '#fff';
+        if (m.ring) {
+          c.lineWidth = 3;
+          c.beginPath(); c.arc(x + 8, rowEv, 21, 0, Math.PI * 2); c.stroke();
+        } else {
+          c.beginPath(); c.arc(x, rowEv + 30, 5, 0, Math.PI * 2); c.fill();
+          c.lineWidth = 2;
+          c.beginPath(); c.moveTo(x, rowEv + 22); c.lineTo(x, rowEv + 38); c.stroke();
         }
       }
     }

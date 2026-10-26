@@ -101,3 +101,9 @@ Amb un cable jack → USB (o l'ampli connectat per USB), el joc escolta la guita
 - Al nivell 7 (afinar), un afinador amb agulla.
 - Fitxers: `js/dsp.js` (altura amb YIN, croma dels acords), `js/listen.js` (entrada, atacs, diàleg i calibratge), `js/gjudge.js` (el jutge).
 - Limitacions: amb distorsió forta els acords s'avaluen pitjor; no distingeix si el rascat va amunt o avall; amb el micròfon de l'ordinador s'equivoca més que amb cable.
+
+## Sentir la guitarra, afinador i senyals a la pantalla (versions 20–22)
+
+- Botó **🎸 Connecta la guitarra** també a la barra de dalt (verd quan escolta).
+- Al diàleg: **afinador** (corda més propera, agulla, «apreta / afluixa la clavilla», i les cordes que ja estan afinades es marquen en verd) i **sentir la guitarra per l'ordinador** amb so d'ampli: Net, Net amb reverb, Una mica de distorsió, Distorsió, i volum (amb auriculars; si ja sona per l'ampli, apagat). Al baix, menys distorsió i reverb.
+- Quan toques endollat: a la pista, un anell verd/taronja/vermell al cop que tocava i un punt on has tocat tu; l'escenari fa un llampec del mateix color; al mode mà dreta, la fletxa s'encén del color.

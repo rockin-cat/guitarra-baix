@@ -36,7 +36,7 @@ export function createJudge(instId, { onVerdict } = {}) {
   const inLat = () => settings().inLat ?? 0.02;
 
   /** Registra els cops d'un compàs. events: part del compàs; at(beat) → temps (rellotge de l'àudio, ja «sentit»). */
-  function addBar(key, events, at, spq) {
+  function addBar(key, events, at, spq, abs0 = null) {
     if (registered.has(key)) return;
     registered.add(key);
     const list = [];
@@ -72,7 +72,8 @@ export function createJudge(instId, { onVerdict } = {}) {
       const gap = Math.min(onsets[i + 1] ? onsets[i + 1].time - x.time : 1, i ? x.time - onsets[i - 1].time : 1);
       x.win = Math.max(0.07, Math.min(0.14, gap * 0.45)) * T.win;
     });
-    for (const x of list) expected.push({ ...x, status: 'pending', win: x.win ?? 0.12 });
+    const t0 = at(0);
+    for (const x of list) expected.push({ ...x, status: 'pending', win: x.win ?? 0.12, abs: abs0 == null ? null : abs0 + (x.time - t0) / spq, spq });
   }
 
   const offOnset = onOnset(({ t: tin }) => {

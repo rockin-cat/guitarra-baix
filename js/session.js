@@ -372,6 +372,7 @@ async function go(st, what) {
   st.judge?.destroy();
   st.judge = listen.isOn() && st.kind !== 'improv' && st.kind !== 'compose' ? createJudge(st.inst.id, { onVerdict: (v) => showVerdict(st, v) }) : null;
   st.listenSum = null;
+  st.marks = [];
   resetDots(st);
   updateListenUi(st);
   if (current !== st) return;
@@ -424,6 +425,8 @@ function updateListenUi(st) {
   const b = $('[data-act="listen-dlg"]', st.root);
   if (b) { b.textContent = on ? '🎸 T\'escolto' : '🎸 Connecta la guitarra'; b.classList.toggle('on', on); }
   st.el('lhud').hidden = !on;
+  const chip = document.getElementById('listen-chip');
+  if (chip) { chip.classList.toggle('on', on); chip.textContent = on ? '🎸 T\'escolto' : '🎸 Connecta la guitarra'; }
 }
 
 function resetDots(st) {
@@ -433,7 +436,27 @@ function resetDots(st) {
 }
 
 function showVerdict(st, v) {
-  if (current !== st || st.helpLevel >= 3) return;
+  if (current !== st) return;
+  // marques a la pista (com al joc de bateria): el cop que tocava, de color, i on has tocat tu
+  const cls = verdictClass(v.kind);
+  st.marks ??= [];
+  const e = v.exp;
+  if (e?.abs != null) st.marks.push({ abs: e.abs, cls, ring: true });
+  if (e?.abs != null && v.dt != null) st.marks.push({ abs: e.abs + v.dt / e.spq, cls });
+  else if (!e) { const p = player.position(); if (p) st.marks.push({ abs: p.abs - 0.03 / p.spq, cls }); }
+  if (st.marks.length > 80) st.marks.splice(0, st.marks.length - 80);
+  // l'escenari fa un llampec verd o vermell, i al mode mà dreta, la fletxa
+  const stage = st.root.querySelector('.stage');
+  stage.classList.remove('fl-ok', 'fl-mid', 'fl-bad');
+  void stage.offsetWidth;
+  if (cls) stage.classList.add(`fl-${cls}`);
+  if (st.handOnly && st.handCells?.[st.handIdx] && v.kind !== 'missed') {
+    const cell = st.handCells[st.handIdx];
+    cell.classList.remove('h-ok', 'h-mid', 'h-bad');
+    void cell.offsetWidth;
+    cell.classList.add(`h-${cls}`);
+  }
+  if (st.helpLevel >= 3) return;
   const box = st.el('verdicts');
   const d = document.createElement('div');
   d.className = `verdict v-${verdictClass(v.kind)}`;
@@ -480,7 +503,7 @@ function feedJudge(st, pos) {
     const content = pos.bars[j]?.content ?? st.song.content(seg.k);
     if (!content) continue;
     const t = pos.t0 + j * pos.barDur;
-    st.judge.addBar(j, content.part, (beat) => t + beat * pos.spq + outLat, pos.spq);
+    st.judge.addBar(j, content.part, (beat) => t + beat * pos.spq + outLat, pos.spq, j * st.M.beats);
   }
   st.judge.tick(pos.time);
 }
@@ -874,7 +897,7 @@ function frame(st) {
     const sg = st.plan?.(j);
     if (sg) bars[j] = { seg: sg, content: sg.mode === 'count' ? null : st.song.content(sg.k) };
   }
-  st.lane.draw({ ...pos, bars }, { voice: !!st.step.voice });
+  st.lane.draw({ ...pos, bars }, { voice: !!st.step.voice, marks: st.marks });
 }
 
 /** El primer esdeveniment amb un acord diferent de l'actual (pot ser d'aquí a més d'un compàs). */

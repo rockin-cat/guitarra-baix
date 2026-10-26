@@ -5,6 +5,7 @@
 import { audioContext, resumeAudio, click } from './audio.js';
 import { yin, freqToMidi, chroma } from './dsp.js';
 import * as store from './store.js';
+import { INSTRUMENTS } from './fretboard.js';
 
 const WORKLET = `
 class RkTap extends AudioWorkletProcessor {
@@ -60,11 +61,12 @@ export async function start(deviceId = settings().deviceId) {
   sink.gain.value = 0; // no se sent: només s'analitza (la guitarra ja sona per l'ampli o els auriculars)
   src.connect(node); node.connect(sink); sink.connect(ctx.destination);
   L = {
-    stream, src, node, sink, sr: ctx.sampleRate, chunks: [],
+    stream, src, node, sink, sr: ctx.sampleRate, chunks: [], amp: null,
     hp: 0, prevX: 0, env: 0, slow: 0, noise: 0.002, lastOnset: -1, level: 0, peakHold: 0,
     label: stream.getAudioTracks()[0]?.label ?? '',
   };
   node.port.onmessage = (e) => ingest(e.data.t, e.data.buf);
+  applyMonitor();
   const s = settings();
   if (deviceId) s.deviceId = deviceId;
   store.save();
@@ -74,8 +76,78 @@ export async function start(deviceId = settings().deviceId) {
 export function stop() {
   if (!L) return;
   try { L.node.port.onmessage = null; L.src.disconnect(); L.node.disconnect(); L.sink.disconnect(); } catch { /* ja desconnectat */ }
+  if (L.amp) try { L.amp.out.disconnect(); } catch { /* */ }
   for (const t of L.stream.getTracks()) t.stop();
   L = null;
+}
+
+// ---- Sentir la guitarra a l'ordinador: un ampli petit (una mica de distorsió, caixa i reverb) -------------------
+
+export const PRESETS = {
+  net: { nom: 'Net', drive: 0, reverb: 0.08 },
+  reverb: { nom: 'Net amb reverb', drive: 0, reverb: 0.3 },
+  crunch: { nom: 'Una mica de distorsió', drive: 0.3, reverb: 0.2 },
+  dist: { nom: 'Distorsió', drive: 0.75, reverb: 0.18 },
+};
+export const monitor = () => (settings().monitor ??= { on: false, preset: store.instrumentOf?.() === 'baix' ? 'net' : 'crunch', vol: 0.8 });
+
+function impulse(ctx, secs = 1.8) {
+  const n = Math.round(ctx.sampleRate * secs);
+  const b = ctx.createBuffer(2, n, ctx.sampleRate);
+  for (let c = 0; c < 2; c++) {
+    const d = b.getChannelData(c);
+    for (let i = 0; i < n; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / n) ** 2.6 * (i < ctx.sampleRate * 0.012 ? i / (ctx.sampleRate * 0.012) : 1);
+  }
+  return b;
+}
+
+function buildAmp(ctx, bass) {
+  const mono = ctx.createGain();
+  mono.channelCount = 1; mono.channelCountMode = 'explicit'; mono.channelInterpretation = 'speakers';
+  const hp = ctx.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = bass ? 30 : 75;
+  const pre = ctx.createGain();
+  const shaper = ctx.createWaveShaper(); shaper.oversample = '4x';
+  const mid = ctx.createBiquadFilter(); mid.type = 'peaking'; mid.frequency.value = bass ? 500 : 750; mid.Q.value = 0.8; mid.gain.value = -3;
+  const pres = ctx.createBiquadFilter(); pres.type = 'peaking'; pres.frequency.value = bass ? 1200 : 2400; pres.Q.value = 1; pres.gain.value = 2;
+  const cab = ctx.createBiquadFilter(); cab.type = 'lowpass'; cab.frequency.value = bass ? 3500 : 5200; cab.Q.value = 0.7;
+  const post = ctx.createGain();
+  const dry = ctx.createGain();
+  const conv = ctx.createConvolver(); conv.buffer = impulse(ctx);
+  const wet = ctx.createGain();
+  const out = ctx.createGain();
+  mono.connect(hp); hp.connect(pre); pre.connect(shaper); shaper.connect(mid); mid.connect(pres); pres.connect(cab); cab.connect(post);
+  post.connect(dry); dry.connect(out);
+  post.connect(conv); conv.connect(wet); wet.connect(out);
+  return { mono, pre, shaper, post, dry, wet, out, bass };
+}
+
+/** Engega, apaga o canvia el so de l'ampli segons la configuració. */
+export function applyMonitor() {
+  if (!L) return;
+  const ctx = audioContext();
+  const m = monitor();
+  const bass = store.instrumentOf?.() === 'baix';
+  if (!m.on) {
+    if (L.amp) { L.amp.out.gain.setTargetAtTime(0, ctx.currentTime, 0.03); }
+    return;
+  }
+  if (!L.amp || L.amp.bass !== bass) {
+    if (L.amp) try { L.src.disconnect(L.amp.mono); L.amp.out.disconnect(); } catch { /* */ }
+    L.amp = buildAmp(ctx, bass);
+    L.src.connect(L.amp.mono);
+    L.amp.out.connect(ctx.destination);
+  }
+  const P = PRESETS[m.preset] ?? PRESETS.crunch;
+  const drive = bass ? P.drive * 0.5 : P.drive;
+  const k = 1 + drive * 40;
+  const curve = new Float32Array(2048);
+  for (let i = 0; i < curve.length; i++) { const x = (i / (curve.length - 1)) * 2 - 1; curve[i] = Math.tanh(k * x) / Math.tanh(k); }
+  L.amp.shaper.curve = curve;
+  L.amp.pre.gain.value = 1 + drive * 3;
+  L.amp.post.gain.value = drive ? 0.55 : 0.9;
+  L.amp.wet.gain.value = (bass ? 0.4 : 1) * P.reverb;
+  L.amp.dry.gain.value = 1;
+  L.amp.out.gain.setTargetAtTime(Math.max(0, Math.min(1.5, m.vol ?? 0.8)), ctx.currentTime, 0.03);
 }
 
 /** cb({ t }) a cada atac (t = temps del rellotge de l'àudio en què ha entrat el so). Torna la funció per treure'l. */
@@ -239,7 +311,15 @@ export function openDialog({ onChange } = {}) {
         <li>Connecta el cable a l'ordinador i tria'l aquí:
           <div class="row"><select id="ld-dev"><option value="">Entrada per defecte</option></select><button type="button" class="btn btn-ghost btn-small" id="ld-on">Escolta</button></div></li>
         <li>Toca una corda: la barra s'ha de moure. <div class="ld-meter"><i id="ld-bar"></i></div><span class="ld-note" id="ld-note">—</span></li>
+        <li>Afina: toca cada corda a l'aire i porta l'agulla al mig.
+          <div class="tl-body ld-tuner"><span class="tl-note" id="ld-tstr">—</span><div class="tl-scale"><i class="tl-zero"></i><i class="tl-needle" id="ld-needle"></i></div><span class="tl-cents" id="ld-cents"></span></div>
+          <div class="ld-strings" id="ld-strings"></div></li>
         <li>Ajusta el retard: sonaran clics i toca una corda a cada clic. <div class="row"><button type="button" class="btn btn-ghost btn-small" id="ld-cal">Ajusta el retard</button><span class="muted small" id="ld-cal-out">${s.inLat != null ? `Ara: ${Math.round(s.inLat * 1000)} ms` : ''}</span></div></li>
+        <li>Vols sentir la guitarra per l'ordinador (amb so d'ampli)?
+          <div class="row"><label class="toggle"><input type="checkbox" id="ld-mon"> Sí, fes-la sonar</label>
+            <select id="ld-preset">${Object.entries(PRESETS).map(([k, p]) => `<option value="${k}">${p.nom}</option>`).join('')}</select>
+            <label class="ld-vol">Volum <input type="range" id="ld-vol" min="0" max="1.5" step="0.05"></label></div>
+          <p class="muted small">Fes servir auriculars a l'ordinador (amb altaveus i micròfon pot xiular). Si ja la sents per l'ampli, deixa-ho apagat.</p></li>
       </ol>
       <label class="set-row">Com d'exigent
         <select id="ld-tol"><option value="facil">Fàcil (per començar)</option><option value="normal">Normal</option><option value="exigent">Exigent</option></select></label>
@@ -248,6 +328,14 @@ export function openDialog({ onChange } = {}) {
     </form>`;
   const $ = (id) => dlg.querySelector(`#${id}`);
   $('ld-tol').value = s.tol ?? 'normal';
+  const m = monitor();
+  $('ld-mon').checked = !!m.on;
+  $('ld-preset').value = m.preset ?? 'crunch';
+  $('ld-vol').value = String(m.vol ?? 0.8);
+  const monChange = () => { m.on = $('ld-mon').checked; m.preset = $('ld-preset').value; m.vol = Number($('ld-vol').value); store.save(); applyMonitor(); };
+  $('ld-mon').addEventListener('change', monChange);
+  $('ld-preset').addEventListener('change', () => { $('ld-mon').checked = true; monChange(); });
+  $('ld-vol').addEventListener('input', monChange);
   $('ld-tol').addEventListener('change', (e) => { s.tol = e.target.value; store.save(); });
   const fill = async () => {
     try {
@@ -281,12 +369,37 @@ export function openDialog({ onChange } = {}) {
     $('ld-cal').disabled = false;
     out.textContent = v == null ? 'No t\'he sentit prou: torna-ho a provar (toca fort i a temps).' : `Fet: ${Math.round(v * 1000)} ms`;
   });
+  // l'afinador: la corda més propera, l'agulla i quines cordes ja estan afinades
+  const inst = INSTRUMENTS[store.instrumentOf?.() ?? 'guitarra'];
+  const nS = inst.tuning.length;
+  const tuned = new Set();
+  const drawStrings = (cur) => {
+    $('ld-strings').innerHTML = inst.tuning.map((_, s) => `<span class="${tuned.has(s) ? 'ok' : ''}${s === cur ? ' cur' : ''}"><b>${nS - s}</b>${inst.stringNames[s]}</span>`).reverse().join('');
+  };
+  drawStrings(-1);
+  let hold = 0;
+  const tunerShow = (m) => {
+    if (m == null) return;
+    let best = 0;
+    inst.tuning.forEach((t, s2) => { if (Math.abs(t - m) < Math.abs(inst.tuning[best] - m)) best = s2; });
+    const cents = Math.round((m - inst.tuning[best]) * 100);
+    if (Math.abs(cents) > 300) { $('ld-tstr').textContent = noteName(m); $('ld-cents').textContent = 'Toca una corda a l\'aire'; return; }
+    $('ld-tstr').textContent = `Corda ${nS - best} · ${inst.stringNames[best]}`;
+    $('ld-needle').style.left = `${50 + Math.max(-50, Math.min(50, cents))}%`;
+    const ok = Math.abs(cents) <= 5;
+    $('ld-cents').textContent = ok ? 'Afinada ✓' : cents < 0 ? `Baixa: apreta la clavilla (${cents})` : `Alta: afluixa la clavilla (+${cents})`;
+    dlg.querySelector('.ld-tuner').classList.toggle('in-tune', ok);
+    hold = ok ? hold + 1 : 0;
+    if (hold > 12) tuned.add(best);
+    drawStrings(best);
+  };
   let raf = 0;
   const meter = () => {
     raf = requestAnimationFrame(meter);
     $('ld-bar').style.width = `${Math.round(level() * 100)}%`;
     const m = currentNote();
     if (m != null) $('ld-note').textContent = `Sento: ${noteName(m)}`;
+    tunerShow(m);
   };
   dlg.addEventListener('close', () => cancelAnimationFrame(raf), { once: true });
   dlg.showModal();

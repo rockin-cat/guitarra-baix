@@ -672,3 +672,27 @@ body.is-fs[data-view="session"] .lane { height: clamp(110px, calc(100dvh - 520px
 .tl-cents { min-width: 90px; font-weight: 700; }
 .listen-chip.on { background: #1f9d55; color: #fff; }
 @media (max-width: 760px) { .listen-chip { font-size: 0; padding: 7px 9px; } .listen-chip::first-letter { font-size: 15px; } }
+.ld-vol { display: inline-flex; align-items: center; gap: 6px; font-size: 14px; } .ld-vol input { width: 110px; }
+
+/* Llampec de l'escenari i de les fletxes quan el joc t'escolta */
+.stage.fl-ok { animation: fl-ok .35s ease-out; }
+.stage.fl-mid { animation: fl-mid .35s ease-out; }
+.stage.fl-bad { animation: fl-bad .35s ease-out; }
+@keyframes fl-ok { 0% { box-shadow: 0 0 0 4px #44d17a, 0 0 28px #44d17a; } 100% { box-shadow: none; } }
+@keyframes fl-mid { 0% { box-shadow: 0 0 0 4px #ffb347, 0 0 24px #ffb347; } 100% { box-shadow: none; } }
+@keyframes fl-bad { 0% { box-shadow: 0 0 0 4px #ff5a5a, 0 0 24px #ff5a5a; } 100% { box-shadow: none; } }
+.hcell.h-ok { animation: h-ok .5s ease-out; }
+.hcell.h-mid { animation: h-mid .5s ease-out; }
+.hcell.h-bad { animation: h-bad .5s ease-out; }
+@keyframes h-ok { 0% { background: #1f6b3c; } 100% { } }
+@keyframes h-mid { 0% { background: #7a5212; } 100% { } }
+@keyframes h-bad { 0% { background: #7f1d1d; } 100% { } }
+@media (prefers-reduced-motion: reduce) { .stage.fl-ok, .stage.fl-mid, .stage.fl-bad, .hcell.h-ok, .hcell.h-mid, .hcell.h-bad { animation-duration: .01s; } }
+.ld-tuner { margin: 8px 0 4px; }
+.ld-tuner.in-tune .tl-needle { background: #1f9d55; }
+.ld-strings { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 6px; }
+.ld-strings span { border: 1px solid var(--linia); border-radius: 8px; padding: 3px 8px; font-size: 13px; }
+.ld-strings span b { margin-right: 4px; }
+.ld-strings span.cur { border-color: var(--tinta); }
+.ld-strings span.ok { background: #e8f8ee; border-color: #1f9d55; color: #14532d; }
+.ld-tuner { flex-wrap: wrap; } .ld-tuner .tl-cents { min-width: 0; flex-basis: 100%; font-size: 14px; } .listen-dlg { max-height: 92vh; }
