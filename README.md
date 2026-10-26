@@ -107,3 +107,8 @@ Amb un cable jack → USB (o l'ampli connectat per USB), el joc escolta la guita
 - Botó **🎸 Connecta la guitarra** també a la barra de dalt (verd quan escolta).
 - Al diàleg: **afinador** (corda més propera, agulla, «apreta / afluixa la clavilla», i les cordes que ja estan afinades es marquen en verd) i **sentir la guitarra per l'ordinador** amb so d'ampli: Net, Net amb reverb, Una mica de distorsió, Distorsió, i volum (amb auriculars; si ja sona per l'ampli, apagat). Al baix, menys distorsió i reverb.
 - Quan toques endollat: a la pista, un anell verd/taronja/vermell al cop que tocava i un punt on has tocat tu; l'escenari fa un llampec del mateix color; al mode mà dreta, la fletxa s'encén del color.
+
+## Versió 23
+
+- Botó **Afinador** a la barra de dalt (obre el quadre de la guitarra directament a l'afinador). El quadre ara es diu «La teva guitarra»: connectar, afinador, so d'ampli i retard.
+- **Sense fitxers vells**: `index.html` porta un mapa d'importació amb la versió a cada mòdul (`?v=23`), així el navegador no barreja versions. Per pujar de versió: `python3 tools/versio.py 24 "dd-mm-aaaa"`.

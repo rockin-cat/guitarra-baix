@@ -502,6 +502,7 @@ document.addEventListener('click', (ev) => {
   if (b.id === 'settings-btn') { $('#set-thick').checked = store.settings().thickTop === true; $('#set-lead').value = String(store.settings().nextLead ?? 2); $('#settings').showModal(); return; }
   if (b.dataset.fs !== undefined) { toggleFullscreen(); return; }
   if (b.id === 'listen-chip') { openListen(); return; }
+  if (b.id === 'tuner-chip') { openListen('tuner'); return; }
   if (b.dataset.inst && b.closest('#inst-switch, .inst-tiles')) {
     if (!store.currentName()) return;
     store.setInstrument(b.dataset.inst);
@@ -549,9 +550,9 @@ $('#settings').addEventListener('close', () => {
 
 // ---- Connecta la guitarra (també des de la barra de dalt) ---------------------------------------------------------
 
-async function openListen() {
+async function openListen(focus = null) {
   const L = await import('./listen.js');
-  L.openDialog({ onChange: () => listenChip(L) });
+  L.openDialog({ onChange: () => listenChip(L), focus });
   listenChip(L);
 }
 function listenChip(L) {

@@ -294,7 +294,7 @@ const NOTE_NAMES = ['Do', 'Do♯', 'Re', 'Mi♭', 'Mi', 'Fa', 'Fa♯', 'Sol', 'L
 export const noteName = (m) => `${NOTE_NAMES[((Math.round(m) % 12) + 12) % 12]}`;
 
 /** Obre el diàleg. onChange(on) quan s'encén o s'apaga l'escolta. */
-export function openDialog({ onChange } = {}) {
+export function openDialog({ onChange, focus = null } = {}) {
   let dlg = document.getElementById('listen-dlg');
   if (!dlg) {
     dlg = document.createElement('dialog');
@@ -305,21 +305,21 @@ export function openDialog({ onChange } = {}) {
   const s = settings();
   dlg.innerHTML = `
     <form method="dialog">
-      <h2>Connecta la guitarra</h2>
+      <h2>La teva guitarra</h2>
       <p class="muted small">Amb un cable jack → USB (o l'ampli connectat a l'ordinador per USB), el joc escolta el que toques i et diu si va a temps i si la nota o l'acord són els bons, com al joc de bateria.</p>
       <ol class="ld-steps">
         <li>Connecta el cable a l'ordinador i tria'l aquí:
           <div class="row"><select id="ld-dev"><option value="">Entrada per defecte</option></select><button type="button" class="btn btn-ghost btn-small" id="ld-on">Escolta</button></div></li>
         <li>Toca una corda: la barra s'ha de moure. <div class="ld-meter"><i id="ld-bar"></i></div><span class="ld-note" id="ld-note">—</span></li>
-        <li>Afina: toca cada corda a l'aire i porta l'agulla al mig.
+        <li id="ld-s-tuner"><b>Afinador</b>: toca cada corda a l'aire i porta l'agulla al mig.
           <div class="tl-body ld-tuner"><span class="tl-note" id="ld-tstr">—</span><div class="tl-scale"><i class="tl-zero"></i><i class="tl-needle" id="ld-needle"></i></div><span class="tl-cents" id="ld-cents"></span></div>
           <div class="ld-strings" id="ld-strings"></div></li>
-        <li>Ajusta el retard: sonaran clics i toca una corda a cada clic. <div class="row"><button type="button" class="btn btn-ghost btn-small" id="ld-cal">Ajusta el retard</button><span class="muted small" id="ld-cal-out">${s.inLat != null ? `Ara: ${Math.round(s.inLat * 1000)} ms` : ''}</span></div></li>
-        <li>Vols sentir la guitarra per l'ordinador (amb so d'ampli)?
+        <li id="ld-s-amp"><b>So d'ampli</b>: vols sentir la guitarra per l'ordinador?
           <div class="row"><label class="toggle"><input type="checkbox" id="ld-mon"> Sí, fes-la sonar</label>
             <select id="ld-preset">${Object.entries(PRESETS).map(([k, p]) => `<option value="${k}">${p.nom}</option>`).join('')}</select>
             <label class="ld-vol">Volum <input type="range" id="ld-vol" min="0" max="1.5" step="0.05"></label></div>
           <p class="muted small">Fes servir auriculars a l'ordinador (amb altaveus i micròfon pot xiular). Si ja la sents per l'ampli, deixa-ho apagat.</p></li>
+        <li><b>Retard</b>: perquè el joc et corregeixi bé, sonaran clics i toca una corda a cada clic. <div class="row"><button type="button" class="btn btn-ghost btn-small" id="ld-cal">Ajusta el retard</button><span class="muted small" id="ld-cal-out">${s.inLat != null ? `Ara: ${Math.round(s.inLat * 1000)} ms` : ''}</span></div></li>
       </ol>
       <label class="set-row">Com d'exigent
         <select id="ld-tol"><option value="facil">Fàcil (per començar)</option><option value="normal">Normal</option><option value="exigent">Exigent</option></select></label>
@@ -403,6 +403,10 @@ export function openDialog({ onChange } = {}) {
   };
   dlg.addEventListener('close', () => cancelAnimationFrame(raf), { once: true });
   dlg.showModal();
+  if (focus) {
+    const el = dlg.querySelector(`#ld-s-${focus}`);
+    if (el) { el.scrollIntoView({ block: 'center' }); el.classList.add('ld-focus'); setTimeout(() => el.classList.remove('ld-focus'), 2200); }
+  }
   meter();
   if (isOn()) { $('ld-on').textContent = 'Escoltant ✓'; fill(); } else turnOn();
 }
