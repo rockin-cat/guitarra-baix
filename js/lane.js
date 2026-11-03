@@ -2,7 +2,7 @@
 // Fletxes per als rascats (grises si la mà passa sense tocar), bombolles per a les notes,
 // el nom de l'acord a cada canvi i la línia de veu quan s'ha de cantar.
 
-const MODE_TEXT = { count: 'COMPTE', demo: 'ESCOLTA', play: 'ARA TU', question: 'PREGUNTA', answer: 'RESPON TU' };
+const MODE_TEXT = { count: '⏱', demo: '👂', play: '🎸 TU', question: '👂 ?', answer: '🎸 TU' };
 
 export function createLane(canvas, { color = '#f97316' } = {}) {
   const ctx2 = canvas.getContext('2d');

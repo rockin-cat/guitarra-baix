@@ -59,8 +59,8 @@ export function renderGuide(host, instId, { onDone } = {}) {
         <div class="guide-tabs">${PAGES.map((x, i) => `<button type="button" class="gtab${i === page ? ' on' : ''}${i < page ? ' seen' : ''}" data-gp="${i}" title="${esc(x.t)}">${i + 1}</button>`).join('')}</div></div>
       <div class="guide-body"></div>
       <div class="row guide-nav">
-        ${page > 0 ? '<button type="button" class="btn btn-ghost" data-gnav="-1">← Enrere</button>' : ''}
-        ${page < PAGES.length - 1 ? '<button type="button" class="btn btn-primary" data-gnav="1">Següent →</button>' : '<button type="button" class="btn btn-primary btn-big" data-gdone="1">Ja ho sé llegir! Som-hi →</button>'}
+        ${page > 0 ? '<button type="button" class="btn btn-ghost" data-gnav="-1" aria-label="Enrere">←</button>' : ''}
+        ${page < PAGES.length - 1 ? '<button type="button" class="btn btn-primary" data-gnav="1" aria-label="Següent">→</button>' : '<button type="button" class="btn btn-primary btn-big" data-gdone="1">🤘 Som-hi</button>'}
       </div></div>`);
     host.append(root);
     p.build(root.querySelector('.guide-body'));
@@ -75,33 +75,41 @@ export function renderGuide(host, instId, { onDone } = {}) {
     });
   }
 
-  const box = (title, html) => `<div class="gbox"><h3>${esc(title)}</h3>${html}</div>`;
-  const tryIt = (html) => `<div class="gtry"><b>🎸 Prova-ho a l'instrument</b>${html}</div>`;
   const stage = (el) => { const s = h('<div class="stage gstage"><div class="neck-host"></div></div>'); el.append(s); return s.querySelector('.neck-host'); };
 
-  // 1 · intro
+  const loopFn = (fn) => { const t0 = performance.now(); let id = 0; const f = () => { fn((performance.now() - t0) / 1000); id = requestAnimationFrame(f); }; id = requestAnimationFrame(f); cleanup.push(() => cancelAnimationFrame(id)); };
+  const lead = (html) => `<p class="glead">${html}</p>`;
+  const tags = (list) => `<div class="gtags">${list.map(([sym, t]) => `<span class="gtag">${sym}<small>${t}</small></span>`).join('')}</div>`;
+
+  // 1 · intro: la guitarra estirada; la corda 1 dalt i la gruixuda baix (s'il·luminen soles)
   function pageIntro(el) {
-    el.innerHTML = `<div class="gcols"><div>
-      <p class="glead">El mànec de la pantalla es llegeix com una <b>tabulatura</b>: la línia de dalt és la <b>corda 1</b>, la més prima (la més aguda), i la de baix és la <b>corda ${n}</b>, la més gruixuda (la més greu). És com trobaràs les cançons escrites en tabulatura a tot arreu.</p>
-      ${box('Què hi ha', `<ul><li>A l'esquerra, el <b>clavillater</b> (on afines) i la <b>celleta</b> (la peça blanca).</li><li>Les línies verticals són els <b>trasts</b>: els fils de metall del mànec.</li><li>Els punts grisos són les <b>marques</b> que la teva ${g ? 'guitarra' : 'baix'} també té (trasts 3, 5, 7, 9 i 12).</li><li>A la dreta, el <b>cos</b>: on la mà dreta toca les cordes.</li></ul>`)}
-      ${tryIt(g ? '<p>Posa la guitarra estirada a la falda, de cara amunt, amb el mànec cap a l\'esquerra. La corda gruixuda queda a prop teu (a baix) i la prima, lluny (a dalt): així és com la veus a la pantalla. Busca les marques dels trasts 3, 5 i 7: són al mateix lloc.</p><p>Quan la tornis a posar per tocar, la corda gruixuda queda a dalt: la pantalla és com si la miressis estirada.</p>'
-        : '<p>Posa el baix estirat a la falda, de cara amunt, amb el mànec cap a l\'esquerra. La corda gruixuda queda a prop teu (a baix) i la prima, lluny (a dalt): així és com el veus a la pantalla. Busca les marques dels trasts 3, 5 i 7: són al mateix lloc.</p><p>Quan el tornis a posar per tocar, la corda gruixuda queda a dalt: la pantalla és com si el miressis estirat.</p>')}
-      </div><div class="gside"><p class="muted small">A ⚙︎ Configuració es pot canviar a la «vista de jugador» (la corda gruixuda a dalt, com Rocksmith).</p></div></div>`;
+    el.innerHTML = lead(`${g ? 'La guitarra' : 'El baix'} estirat a la falda: així es veu a la pantalla.`) + tags([['⬆', `corda 1 · prima`], ['⬇', `corda ${n} · gruixuda`], ['▮', 'trasts'], ['●', 'marques 3 · 5 · 7']]);
     const neck = createNeck(stage(el), inst, { thickTop: settings().thickTop === true });
-    neck.clear();
+    let last = -1;
+    loopFn((t) => {
+      const k = Math.floor(t / 1.6) % 2;
+      if (k !== last) {
+        last = k;
+        const s = k === 0 ? n - 1 : 0;
+        neck.highlightString(s, `Corda ${stringNumber(inst, s)} · ${inst.stringNames[s]}`);
+        neck.shake(s);
+      }
+      neck.animate({});
+    });
   }
 
-  // 2 · les cordes
+  // 2 · les cordes: clica i sona
   function pageStrings(el) {
-    el.innerHTML = `<p class="glead">${g ? 'La guitarra té sis cordes' : 'El baix té quatre cordes'}. Es numeren de la més prima (<b>1</b>, la de dalt de la pantalla) a la més gruixuda (<b>${n}</b>, la de baix), i cadascuna té el nom de la nota que fa a l'aire.</p>`;
-    const neckHost = stage(el);
-    const neck = createNeck(neckHost, inst, { thickTop: settings().thickTop === true });
-    const row = h(`<div class="string-btns">${[...inst.tuning.keys()].map((s) => `<button type="button" class="tune-btn" data-s="${s}"><b>${stringNumber(inst, s)}</b><span>${inst.stringNames[s]}</span></button>`).join('')}</div>`);
+    el.innerHTML = lead('Clica una corda: s\'il·lumina i sona. Toca-la tu, a l\'aire.');
+    const neck = createNeck(stage(el), inst, { thickTop: settings().thickTop === true });
+    const row = h(`<div class="string-btns">${[...inst.tuning.keys()].map((s) => `<button type="button" class="tune-btn" data-s="${s}"><b>${stringNumber(inst, s)}</b><span>${inst.stringNames[s]}</span></button>`).join('')}</div>`).cloneNode(true);
+    // de la 1 a la més gruixuda, com a la pantalla
+    row.replaceChildren(...[...row.children].reverse());
     el.append(row);
-    el.insertAdjacentHTML('beforeend', tryIt(`<p>Clica una corda: s'il·lumina i sona. Toca la mateixa corda al teu instrument, sense posar cap dit a l'esquerra (<b>a l'aire</b>). Ha de sonar igual (si no, potser cal afinar: és el nivell 7).</p><p class="gq" data-q></p>`));
-    const q = el.querySelector('[data-q]');
+    const q = h('<p class="gq" data-q></p>');
+    el.append(q);
     let target = null;
-    const ask = () => { target = Math.floor(Math.random() * n); q.innerHTML = `Repte: troba la <b>corda ${stringNumber(inst, target)}</b> a la pantalla i clica-la.`; };
+    const ask = () => { target = Math.floor(Math.random() * n); q.innerHTML = `🎯 Corda <b>${stringNumber(inst, target)}</b>?`; };
     ask();
     row.addEventListener('click', (e) => {
       const b = e.target.closest('[data-s]');
@@ -110,96 +118,92 @@ export function renderGuide(host, instId, { onDone } = {}) {
       neck.highlightString(s, `Corda ${stringNumber(inst, s)} · ${inst.stringNames[s]}`);
       neck.shake(s);
       play(inst, inst.tuning[s]);
-      if (s === target) { q.innerHTML = `✓ Molt bé! Ara toca-la al teu instrument. <button type="button" class="btn btn-ghost btn-small" data-again>Un altre repte</button>`; }
+      if (s === target) { q.innerHTML = '✓ 🎸 <button type="button" class="btn btn-ghost btn-small" data-again>🎯 Una altra</button>'; }
     });
     el.addEventListener('click', (e) => { if (e.target.closest('[data-again]')) ask(); });
-    const raf = () => { neck.animate({}); id = requestAnimationFrame(raf); };
-    let id = requestAnimationFrame(raf);
-    cleanup.push(() => cancelAnimationFrame(id));
+    loopFn(() => neck.animate({}));
   }
 
-  // 3 · els trasts
+  // 3 · els trasts: un punt que va pujant de trast (0 = a l'aire); clica per provar-ho
   function pageFrets(el) {
-    el.innerHTML = `<p class="glead">Els <b>trasts</b> són els espais entre els fils de metall. El número de sota diu quin trast és. El <b>0</b> vol dir <b>a l'aire</b>: no poses cap dit.</p>`;
-    const neckHost = stage(el);
-    const neck = createNeck(neckHost, inst, { thickTop: settings().thickTop === true });
-    const info = h('<p class="gq">Clica qualsevol lloc del mànec.</p>');
+    el.innerHTML = lead('0 = a l\'aire · 1, 2, 3… = el trast on poses el dit.');
+    const neck = createNeck(stage(el), inst, { thickTop: settings().thickTop === true });
+    const info = h('<p class="gq">👆 Clica el mànec.</p>');
     el.append(info);
-    el.insertAdjacentHTML('beforeend', `<div class="gcols">${box('Com es posa el dit', '<ul><li>El dit va <b>just darrere</b> del fil de metall, no a sobre.</li><li>Prem amb la punta del dit, com si fos un martell petit.</li><li>Cada trast més cap al cos, la nota puja una mica.</li></ul>')}${tryIt('<p>Clica un punt de la pantalla, posa el dit al mateix trast i la mateixa corda, i toca. Ha de sonar igual.</p>')}</div>`);
     const NOMS = ['Do', 'Do#', 'Re', 'Re#', 'Mi', 'Fa', 'Fa#', 'Sol', 'Sol#', 'La', 'La#', 'Si'];
+    let auto = true;
+    let lastF = -1;
+    const s0 = n - 1; // la corda 1
     neck.svg.addEventListener('click', (e) => {
       const p = neck.hit(e.clientX, e.clientY);
       if (!p) return;
+      auto = false;
       neck.dotsFor([{ s: p.s, f: p.f, label: p.f, cls: 'active' }]);
       neck.shake(p.s);
       const m = inst.tuning[p.s] + p.f;
       play(inst, m);
-      info.innerHTML = `<b>Corda ${stringNumber(inst, p.s)}</b> (${inst.stringNames[p.s]}) · <b>${p.f === 0 ? 'a l\'aire' : `trast ${p.f}`}</b> → nota <b>${NOMS[mod(m, 12)]}</b>`;
+      info.innerHTML = `Corda <b>${stringNumber(inst, p.s)}</b> · ${p.f === 0 ? '<b>a l\'aire</b>' : `trast <b>${p.f}</b>`} → <b>${NOMS[mod(m, 12)]}</b>`;
     });
     neck.svg.style.cursor = 'pointer';
-    const raf = () => { neck.animate({}); id = requestAnimationFrame(raf); };
-    let id = requestAnimationFrame(raf);
-    cleanup.push(() => cancelAnimationFrame(id));
+    loopFn((t) => {
+      if (auto) {
+        const f = Math.floor(t / 0.9) % 6;
+        if (f !== lastF) { lastF = f; neck.dotsFor([{ s: s0, f, label: f, cls: 'active' }]); neck.shake(s0); }
+      }
+      neck.animate({});
+    });
   }
 
-  // 4 · els dits / els números
+  // 4 · els dits (guitarra) o els números (baix): els exemples van passant sols
   function pageFingers(el) {
     if (g) {
-      el.innerHTML = `<div class="gcols"><div>
-        <p class="glead">Els <b>números dels punts</b> són els dits de la mà esquerra.</p>${handSvg(inst.color)}</div>
-        <div>${box('Els símbols', `<ul class="legend">
-          <li><span class="lg dot">2</span> Posa aquest dit en aquesta corda i aquest trast.</li>
-          <li><span class="lg open"></span> Corda <b>a l'aire</b>: sona sense dit.</li>
-          <li><span class="lg x">×</span> Aquesta corda <b>no</b> es toca.</li>
-          <li><span class="lg barre"></span> <b>Celleta</b>: el dit 1 aguanta diverses cordes alhora.</li>
-          <li><span class="lg ring"></span> Contorn discontinu: l'<b>acord que ve</b>. Ves preparant els dits.</li>
-          <li><span class="lg cover"></span> Franja grisa: <b>cordes tapades</b>. No es toquen encara.</li></ul>`)}</div></div>`;
-      const opts = h(`<div class="row gopts">${[['G', 'obert', 'Acord obert: Sol'], ['F', 'celleta', 'Amb celleta: Fa'], ['G', 'p3', 'Power chord: Sol5'], ['G', 'o3', 'Cordes tapades: Sol amb 3 cordes'], ['next', 'next', 'Acord que ve: Do → Sol']].map(([c, m, t], i) => `<button type="button" class="tab${i === 0 ? ' on' : ''}" data-c="${c}" data-m="${m}">${esc(t)}</button>`).join('')}</div>`);
+      el.innerHTML = `<div class="gcols"><div>${lead('El número del punt = el dit.')}${handSvg(inst.color)}</div><div>${tags([['<span class="lg dot">2</span>', 'dit 2'], ['<span class="lg open"></span>', 'a l\'aire'], ['<span class="lg x">×</span>', 'no es toca'], ['<span class="lg barre"></span>', 'celleta'], ['<span class="lg ring"></span>', 'el que ve'], ['<span class="lg cover"></span>', 'tapada']])}</div></div>`;
+      const EX = [['G', 'obert', 'Sol'], ['F', 'celleta', 'Fa · celleta'], ['G', 'p3', 'Sol5 · power chord'], ['G', 'o3', 'Sol · 3 cordes'], ['next', 'next', 'Do → Sol']];
+      const opts = h(`<div class="row gopts">${EX.map(([c, m, t], i) => `<button type="button" class="chip${i ? '' : ' on'}" data-c="${c}" data-m="${m}">${esc(t)}</button>`).join('')}</div>`);
       el.append(opts);
       const neck = createNeck(stage(el), inst, { thickTop: settings().thickTop === true });
       const show = (c, m) => {
         if (m === 'next') {
-          const a = guitarVoicing(parseChord('C'));
-          const b = guitarVoicing(parseChord('G'));
-          neck.show({ mode: 'chord', cur: { id: 'n1', chord: 'C', voicing: a }, next: { id: 'n2', chord: 'G', voicing: b }, showNext: true, label: 'C' });
+          neck.show({ mode: 'chord', cur: { id: 'n1', chord: 'C', voicing: guitarVoicing(parseChord('C')) }, next: { id: 'n2', chord: 'G', voicing: guitarVoicing(parseChord('G')) }, showNext: true, label: 'C' });
           return;
         }
         const ch = parseChord(c);
         const v = m === 'p3' ? powerRoot6(ch, 3) : m === 'o3' ? coverStrings(guitarVoicing(ch), 3) : guitarVoicing(ch, m);
         neck.show({ mode: 'chord', cur: { id: `${c}${m}`, chord: v.name, voicing: v }, label: v.name });
       };
-      show('G', 'obert');
-      opts.addEventListener('click', (e) => {
-        const b = e.target.closest('[data-m]');
-        if (!b) return;
-        for (const x of opts.children) x.classList.toggle('on', x === b);
-        show(b.dataset.c, b.dataset.m);
-      });
-      el.insertAdjacentHTML('beforeend', tryIt('<p>Tria un exemple, posa els dits on diu la pantalla i toca només les cordes que no tenen ×.</p>'));
+      let k = 0;
+      let auto = true;
+      const pick = (i) => { k = i; for (const [j, x] of [...opts.children].entries()) x.classList.toggle('on', j === i); show(EX[i][0], EX[i][1]); };
+      pick(0);
+      opts.addEventListener('click', (e) => { const b = e.target.closest('[data-m]'); if (!b) return; auto = false; pick([...opts.children].indexOf(b)); });
+      let last = 0;
+      loopFn((t) => { const i = Math.floor(t / 3) % EX.length; if (auto && i !== last) { last = i; pick(i); } neck.animate({}); });
+      void k;
     } else {
-      el.innerHTML = `<div class="gcols"><div>
-        <p class="glead">Al baix, el número de dins del punt diu <b>quina nota de l'acord</b> toques:</p>
-        <ul class="legend big"><li><span class="lg dot">1</span> la <b>fonamental</b>: la nota que dona nom a l'acord</li><li><span class="lg dot">3</span> la <b>tercera</b></li><li><span class="lg dot">5</span> la <b>quinta</b></li><li><span class="lg dot">8</span> l'<b>octava</b>: la mateixa fonamental, més aguda</li></ul>
-        <p>Quan toques una línia del Generador, el número és el <b>trast</b>, com a una tabulatura.</p></div><div>${handSvg(inst.color)}<p class="muted small">Per tocar, cada dit s'ocupa d'un trast: dit 1 al primer, dit 2 al següent…</p></div></div>`;
+      el.innerHTML = `<div class="gcols"><div>${lead('El número = quina nota de l\'acord.')}${tags([['<span class="lg dot">1</span>', 'fonamental'], ['<span class="lg dot">3</span>', 'tercera'], ['<span class="lg dot">5</span>', 'quinta'], ['<span class="lg dot">8</span>', 'octava']])}</div><div>${handSvg(inst.color)}</div></div>`;
       const neck = createNeck(stage(el), inst, { thickTop: settings().thickTop === true });
       const ch = parseChord('C');
-      neck.dotsFor(['1', '3', '5', '8'].map((r) => { const p = bassRole(ch, r); return { s: p.s, f: p.f, label: r, cls: r === '1' ? 'active' : 'tone' }; }));
-      el.insertAdjacentHTML('beforeend', tryIt('<p>Són les notes de l\'acord de <b>Do</b>. Toca-les en ordre (1, 3, 5, 8) i escolta com pugen.</p>'));
+      const roles = ['1', '3', '5', '8'];
+      let last = -1;
+      loopFn((t) => {
+        const i = Math.floor(t / 0.8) % (roles.length + 1);
+        if (i !== last) {
+          last = i;
+          neck.dotsFor(roles.slice(0, i).map((r) => { const p = bassRole(ch, r); return { s: p.s, f: p.f, label: r, cls: r === '1' ? 'active' : 'tone' }; }));
+        }
+        neck.animate({});
+      });
     }
   }
 
-  // 5 · la púa
+  // 5 · la púa (ja era una animació)
   function pagePick(el) {
-    el.innerHTML = `<div class="gcols"><div><p class="glead">${g ? 'La <b>púa</b> groga és la teva mà dreta. La fletxa diu cap on va:' : 'La forma groga és el dit (o la púa) que pulsa: salta a la corda que toca.'}</p>
-      ${g ? `<ul class="legend big"><li><span class="lg arrow">↓</span> <b>Avall</b>: la mà baixa, de la corda gruixuda a la prima. Com que a la tabulatura la gruixuda és a baix, <b>a la pantalla la púa puja</b>.</li><li><span class="lg arrow">↑</span> <b>Amunt</b>: la mà puja, de la prima a la gruixuda (normalment només les primes). A la pantalla, la púa baixa.</li><li><span class="lg arrow ghost">↕</span> <b>Gris</b>: la mà es mou però <b>no toca</b> (com a les cartes de rascat).</li></ul>` : ''}</div>
-      <div>${tryIt(g ? '<p>Segueix la <b>fletxa</b>: ↓ vol dir que la teva mà baixa, encara que la púa de la pantalla pugi. Primer mou la mà sense tocar i després toca només quan la púa és groga.</p>' : '<p>Pulsa la corda que s\'il·lumina, alternant els dits índex i mig.</p>')}</div></div>`;
+    el.innerHTML = lead(g ? 'La púa groga és la teva mà dreta.' : 'El groc és el dit que pulsa.') + (g ? tags([['<span class="lg arrow">↓</span>', 'avall'], ['<span class="lg arrow">↑</span>', 'amunt'], ['<span class="lg arrow ghost">↓</span>', 'a l\'aire']]) : '');
     const neck = createNeck(stage(el), inst, { thickTop: settings().thickTop === true });
     const v = g ? guitarVoicing(parseChord('Em')) : null;
-    if (g) neck.show({ mode: 'chord', cur: { id: 'em', chord: 'Em', voicing: v }, label: 'Em · avall, (amunt), avall, amunt…' });
+    if (g) neck.show({ mode: 'chord', cur: { id: 'em', chord: 'Em', voicing: v }, label: 'Em' });
     const moves = g ? 'DuDUdUDU' : '';
-    const t0 = performance.now();
-    const loop = () => {
-      const t = (performance.now() - t0) / 1000;
+    loopFn((t) => {
       if (g) {
         const k = Math.floor(t / 0.45) % moves.length;
         const p = (t % 0.45) / 0.16;
@@ -212,72 +216,61 @@ export function renderGuide(host, instId, { onDone } = {}) {
         neck.dotsFor([{ s, f: 0, label: '', cls: 'active' }]);
         neck.animate({ pick: { id: `b${k}`, p: (t % 0.6) / 0.2, s, strings: [s] } });
       }
-      id = requestAnimationFrame(loop);
-    };
-    let id = requestAnimationFrame(loop);
-    cleanup.push(() => cancelAnimationFrame(id));
+    });
   }
 
   // 6 · la pista
   function pageLane(el) {
-    el.innerHTML = `<p class="glead">La <b>pista</b> és com un tren: el que has de tocar ve de la dreta i <b>es toca quan arriba a la línia groga</b>.</p>`;
+    el.innerHTML = lead('Toca quan arriba a la línia groga.');
     const st = h('<div class="stage gstage"><canvas class="lane"></canvas></div>');
     el.append(st);
-    el.insertAdjacentHTML('beforeend', `<div class="gcols">${box('Què hi ha', `<ul class="legend">
-      <li><span class="lg line"></span> <b>Línia groga</b>: ara.</li>
-      <li><span class="lg num">1 2 3 4</span> Els <b>temps</b> de cada compàs. La línia gruixuda és el començament del compàs.</li>
-      <li><span class="lg chord">G</span> El nom de l'<b>acord</b> que comença.</li>
-      <li><span class="lg tag">A</span> La <b>part</b> de la cançó (intro, A, tornada…).</li>
-      ${g ? '<li><span class="lg arrow">↓</span> Un cop de púa; la barra de darrere diu quant dura.</li>' : ''}
-      <li><span class="lg dot">5</span> Una nota sola: el número és el de l'acord (1, 3, 5, 8) o el trast.</li>
-      <li><span class="lg dot sm">h2</span> Recursos: <b>h</b> hammer-on, <b>p</b> pull-off, <b>/</b> glissando, <b>↗</b> bending.</li></ul>`)}
-      ${tryIt('<p>Diu en veu alta «u, dos, tres, quatre» seguint els números de la pista. Quan una fletxa toca la línia groga, fes el cop.</p>')}</div>`);
+    el.insertAdjacentHTML('beforeend', tags([['<span class="lg line"></span>', 'ara'], ['<span class="lg num">1 2 3 4</span>', 'temps'], ['<span class="lg chord">G</span>', 'acord'], ['<span class="lg tag">A</span>', 'part'], ...(g ? [['<span class="lg arrow">↓</span>', 'cop'], ['<span class="lg arrow ghost">↓</span>', 'a l\'aire']] : []), ['<span class="lg dot">5</span>', g ? 'nota' : 'nota de l\'acord'], ['<span class="lg dot sm">h2</span>', 'h · p · / · ↗']]));
     const lane = createLane(st.querySelector('canvas'), { color: inst.color });
     const M = metre('4/4');
     const { bars } = parseProgression('[A] G | D | Em | C');
     const song = { M };
-    const spec = g ? { type: 'strum', rhythm: 'E', voicing: 'obert' } : { type: 'bass', rhythm: 'Q', roles: ['1', '5'] };
+    const spec = g ? { type: 'rascat', card: 'rg2', voicing: 'obert' } : { type: 'bass', rhythm: 'Q', roles: ['1', '5'] };
     const content = bars.map((bar, k) => ({ bar, part: partBar(spec, instId, bar, M, k), voice: [] }));
-    const t0 = performance.now();
-    const loop = () => {
-      const abs = (((performance.now() - t0) / 1000) * 1.5) % 16;
+    loopFn((sec) => {
+      const abs = (sec * 1.5) % 16;
       const i = Math.floor(abs / 4);
       const bs = [];
       for (let j = 0; j < 7; j++) bs[j] = { seg: { mode: 'demo', k: j % 4 }, content: content[j % 4] };
       lane.draw({ i, abs, beat: abs % 4, bars: bs, song });
-      id = requestAnimationFrame(loop);
-    };
-    let id = requestAnimationFrame(loop);
-    cleanup.push(() => { cancelAnimationFrame(id); lane.destroy(); });
+    });
+    cleanup.push(() => lane.destroy());
   }
 
-  // 7 · cartes i diagrama
+  // 7 · cartes i diagrama: la línia de color recorre la carta
   function pageCards(el) {
-    const cards = g ? [['mb2', 'Carta rítmica: cada rodona és un cop. On no n\'hi ha, silenci.'], ['rg2', 'Carta de rascat: fletxes negres = toques; grises = la mà es mou sense tocar. El punt de sota marca el temps.'], ['pm14', 'Carta melòdica: les notes pugen o baixen per les notes de l\'acord.']]
-      : [['mb2', 'Carta rítmica: cada rodona és una nota. On no n\'hi ha, silenci.'], ['pm14', 'Carta melòdica: les notes pugen o baixen per les notes de l\'acord (1, 3, 5, 8).']];
-    el.innerHTML = `<p class="glead">Les <b>cartes ROCKIN</b> del joc són les mateixes que teniu a classe. Una <b>línia de color</b> hi passa per sobre i diu per on vas.</p>
-      <div class="gcards">${cards.map(([id, t]) => `<div class="gcard"><div class="rcard"><img src="${cardById(id)?.img}" alt=""><i class="sweep" style="left:40%"></i></div><p>${esc(t)}</p></div>`).join('')}</div>`;
+    const cards = g ? [['mb2', '● = cop'], ['rg2', '↓↑ negre = toca · gris = aire'], ['pm14', '1 3 5 8']] : [['mb2', '● = nota'], ['pm14', '1 3 5 8']];
+    el.innerHTML = lead('Les cartes de classe. La línia diu per on vas.') + `<div class="gcards">${cards.map(([id, t]) => `<div class="gcard"><div class="rcard"><img src="${cardById(id)?.img}" alt=""><i class="sweep"></i></div><p>${esc(t)}</p></div>`).join('')}</div>`;
+    const sweeps = [...el.querySelectorAll('.sweep')];
+    loopFn((t) => { const x = 7 + 86 * ((t / 2.4) % 1); for (const sw of sweeps) sw.style.left = `${x}%`; });
     if (g) {
       const v = guitarVoicing(parseChord('C'));
-      const wrap = h(`<div class="gcols"><div>${box('El diagrama d\'acord', '<p>És el mateix acord que el mànec, però <b>dret</b>, com les cartes de diagrames: les línies verticals són les cordes (la gruixuda a l\'<b>esquerra</b>) i les horitzontals, els trasts. A dalt: ○ a l\'aire, × no es toca.</p>')}${tryIt('<p>Posa la guitarra dreta davant teu, mirant-la de cara: el diagrama és igual que el que veus.</p>')}</div><div class="gbox-diagram"></div></div>`);
-      wrap.querySelector('.gbox-diagram').append(chordBox(v, { title: 'C (Do)', color: inst.color }));
+      const wrap = h(`<div class="gcols"><div class="gbox-diagram"></div><div>${lead('El diagrama és el mateix acord, dret.')}</div></div>`);
+      wrap.querySelector('.gbox-diagram').append(chordBox(v, { title: 'C', color: inst.color }));
       el.append(wrap);
-      const neck = createNeck(stage(el), inst, { thickTop: settings().thickTop === true });
-      neck.show({ mode: 'chord', cur: { id: 'c', chord: 'C', voicing: v }, label: 'C (Do): el mateix acord, al mànec' });
     }
   }
 
-  // 8 · el marcador
+  // 8 · el marcador: va passant sol (compte → escolta → tu)
   function pageBadge(el) {
-    el.innerHTML = `<p class="glead">A dalt de l'escenari, el <b>marcador</b> diu què passa:</p>
-      <div class="gbadges">
-        <div class="stage-top"><div class="mode-badge" data-mode="count">COMPTE</div><div class="pulses"><span class="on">1</span><span>2</span><span>3</span><span>4</span></div></div><p>El metrònom compta un compàs abans de començar.</p>
-        <div class="stage-top"><div class="mode-badge" data-mode="demo">ESCOLTA</div><div class="pulses"><span>1</span><span class="on">2</span><span>3</span><span>4</span></div></div><p>Sona la teva part: escolta i mira. L'últim compàs compta enrere: «3, 2, 1».</p>
-        <div class="stage-top"><div class="mode-badge" data-mode="play">ARA TU</div><div class="pulses"><span>1</span><span>2</span><span class="on">3</span><span>4</span></div></div><p>La banda continua <b>sense el teu instrument</b>: ara toques tu.</p>
-      </div>
-      ${tryIt('<p>Les rodones del marcador són els temps. La primera, la groga, és l\'inici del compàs: és on solen canviar els acords.</p>')}
-      ${box('I al final…', '<p>El joc no t\'escolta: <b>tu dius com ha anat</b> («En procés», «A prop», «Ja ho tens!») i què t\'ha faltat. Després tries tu què necessites: baixar el tempo, treure o posar la guia, tornar a un pas anterior, repetir o passar al següent. A «Què sé fer» veuràs quines tries t\'han funcionat.</p>')}`;
-    for (const s of el.querySelectorAll('.stage-top')) s.style.cssText = 'background:#111827;border-radius:10px;padding:8px 12px;color:#fff;margin-top:10px';
+    el.innerHTML = lead('A dalt, el marcador diu què toca ara.') + `<div class="stage-top gbadge-demo"><div class="mode-badge" data-mode="count">⏱</div><div class="pulses"><span>1</span><span>2</span><span>3</span><span>4</span></div><b class="gbadge-txt"></b></div>`
+      + tags([['⏱', 'compte'], ['👂', 'escolta'], ['🎸 TU', 'toques tu'], ['👀', 'mira']]);
+    const bar = el.querySelector('.gbadge-demo');
+    bar.style.cssText = 'background:#111827;border-radius:10px;padding:10px 14px;color:#fff;margin-top:10px';
+    const badge = bar.querySelector('.mode-badge');
+    const txt = bar.querySelector('.gbadge-txt');
+    const pul = [...bar.querySelectorAll('.pulses span')];
+    const SEQ = [['count', '⏱', 'compte'], ['demo', '👂', 'escolta'], ['play', '🎸 TU', 'ara tu']];
+    loopFn((t) => {
+      const beat = Math.floor(t / 0.55);
+      const [mode, sym, w] = SEQ[Math.floor(beat / 4) % SEQ.length];
+      if (badge.dataset.mode !== mode) { badge.dataset.mode = mode; badge.textContent = sym; txt.textContent = w; }
+      pul.forEach((p, i) => p.classList.toggle('on', i === beat % 4));
+    });
   }
 
   render();

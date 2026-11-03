@@ -107,9 +107,11 @@ export function openSession(host, baseStep, ctx) {
     <div class="session" data-kind="${kind}">
       <div class="view-head">
         <button type="button" class="btn-back" data-act="back">← ${esc(ctx.backLabel ?? 'Torna')}</button>
+        ${ctx.levelSteps ? `<span class="pick-badge head-badge" style="--c:${ctx.levelColor}" title="Nivell ${ctx.levelN}">${ctx.levelN}</span>` : ''}
         <div class="vh-text sess-title">
-          <small>${esc([levelText, ctx.crumb].filter(Boolean).join(' · '))}</small>
+          ${ctx.levelSteps ? '' : `<small>${esc([levelText, ctx.crumb].filter(Boolean).join(' · '))}</small>`}
           <h2>${esc(step.titol)}</h2>
+          ${ctx.levelSteps ? `<div class="step-strip">${ctx.levelSteps.map((x, j) => `<button type="button" class="ss-dot${x.id === baseStep.id ? ' cur' : ''}${x.best ? ` b-${x.best}` : ''}" data-act="goto" data-to="${esc(x.id)}" title="${esc(x.titol)}">${x.kind === 'cards' ? '🃏' : j + 1}</button>`).join('')}</div>` : ''}
         </div>
         <div class="vh-actions"><button type="button" class="btn btn-ghost btn-small help-btn" data-go="guide" title="Què vol dir cada cosa de la pantalla">Com es llegeix?</button><button type="button" class="btn btn-ghost btn-small fs-btn" data-fs title="Pantalla completa" aria-label="Pantalla completa">⛶</button></div>
       </div>
@@ -134,9 +136,9 @@ export function openSession(host, baseStep, ctx) {
               <button type="button" class="assess-x" data-act="close-assess" aria-label="Tanca">×</button>
               <h3>Com t'ha anat?</h3>
               <div class="rate-row">
-                <button type="button" class="btn btn-ghost" data-rate="no">En procés</button>
-                <button type="button" class="btn btn-ghost" data-rate="gairebe">A prop</button>
-                <button type="button" class="btn btn-primary" data-rate="ok">Ja ho tens!</button>
+                <button type="button" class="btn btn-ghost rate-sym" data-rate="no" title="En procés"><span>🌱</span>En procés</button>
+                <button type="button" class="btn btn-ghost rate-sym" data-rate="gairebe" title="A prop"><span>🙂</span>A prop</button>
+                <button type="button" class="btn btn-primary rate-sym" data-rate="ok" title="Ja ho tens!"><span>🤘</span>Ja ho tens!</button>
               </div>
               <p class="feedback" data-el="feedback"></p>
               <div class="result" data-el="result"></div>
@@ -147,9 +149,9 @@ export function openSession(host, baseStep, ctx) {
           <div class="tuner" data-el="tuner" hidden></div>
           <div class="controls" data-el="controls">
             <div class="ctrl-main">
-              <button type="button" class="btn btn-ghost btn-big" data-act="listen">👂 Escolta</button>
-              <button type="button" class="btn btn-primary btn-big" data-act="play">▶ Toca</button>
-              <button type="button" class="btn btn-big btn-stop" data-act="stop" hidden>■ Atura</button>
+              <button type="button" class="btn btn-ghost btn-big btn-sym" data-act="listen" title="Escolta: t'ho ensenyo" aria-label="Escolta">👂</button>
+              <button type="button" class="btn btn-primary btn-big btn-sym" data-act="play" title="Toca (barra d'espai)" aria-label="Toca">▶</button>
+              <button type="button" class="btn btn-big btn-stop btn-sym" data-act="stop" title="Atura" aria-label="Atura" hidden>■</button>
               <span class="help-ind" data-el="helpind" title="El joc va retirant l'ajuda a mesura que et surt"></span>
               <button type="button" class="btn btn-ghost btn-small opts-btn" data-act="opts" aria-expanded="false">⚙ Opcions</button>
             </div>
@@ -173,7 +175,7 @@ export function openSession(host, baseStep, ctx) {
           <div class="card-host" data-el="card"></div>
           <div class="explain">
             <p>${esc(step.text ?? '')}</p>
-            ${step.com?.length ? `<ul>${step.com.map((c) => `<li>${esc(c)}</li>`).join('')}</ul>` : ''}
+            ${step.com?.length ? `<details class="tips"><summary title="Consells">💡</summary><ul>${step.com.map((c) => `<li>${esc(c)}</li>`).join('')}</ul></details>` : ''}
           </div>
         </aside>
       </div>
@@ -199,7 +201,7 @@ export function openSession(host, baseStep, ctx) {
     st.el('rounds').disabled = true;
     $('[data-act="listen"]', root).hidden = true;
     $('[data-act="full"]', root).hidden = true;
-    $('[data-act="play"]', root).textContent = '▶ Comença';
+    $('[data-act="play"]', root).title = 'Comença';
   }
   if (inst.id === 'guitarra' && (st.step.part?.type === 'strum' || st.step.part?.type === 'rascat')) $('[data-act="strings"]', root).hidden = false;
   if (inst.id === 'guitarra' && st.step.part?.type === 'rascat') {
@@ -370,7 +372,7 @@ async function go(st, what) {
   if (st.rec && !st.rec.choice && st.recAt) auto.choose(st.rec, st.tempo < st.recAt.tempo ? 'slower' : st.tempo > st.recAt.tempo ? 'faster' : !!st.guide !== st.recAt.guide ? (st.guide ? 'guide-on' : 'guide-off') : 'repeat');
   hideAssess(st);
   setButtons(st, true);
-  st.el('badge').textContent = 'Carregant sons…';
+  st.el('badge').textContent = '⏳';
   try {
     await player.prepare(st.inst.id);
   } catch { /* sense so, l'animació funciona igual */ }
@@ -497,7 +499,7 @@ function applyListen(st, sum) {
     if (st.step.id) store.setGaps(st.step.id, gaps);
     if (st.rec) auto.updateRecord(st.rec, { gaps: [...gaps], heard: Math.round(sum.score * 100) });
   } else if (st.rec) auto.updateRecord(st.rec, { heard: Math.round(sum.score * 100) });
-  st.el('feedback').textContent = 'El joc t\'ha escoltat i ha marcat el nivell. Si creus que no és així, tria\'n un altre.';
+  st.el('feedback').textContent = '';
   renderResult(st);
 }
 
@@ -542,6 +544,7 @@ function onClick(st, ev) {
   if (act === 'stop') return stopRun(st);
   if (act === 'opts') { const d = st.el('drawer'); d.hidden = !d.hidden; b.setAttribute('aria-expanded', String(!d.hidden)); b.classList.toggle('on', !d.hidden); return; }
   if (act === 'close-assess') { hideAssess(st); return; }
+  if (act === 'goto') { if (b.dataset.to !== st.baseStep.id) { closeSession(); st.ctx.nav?.goStep(b.dataset.to); } return; }
   if (act === 'listen-dlg') return listen.openDialog({ onChange: () => updateListenUi(st) });
   if (act === 'slower' || act === 'faster') return setTempo(st, st.tempo + (act === 'faster' ? 5 : -5));
   if (act === 'strings') return stringByString(st);
@@ -608,16 +611,16 @@ function renderResult(st) {
   // 2 · què t'ha faltat
   const options = gapsFor(st.step, st.inst.id);
   if (r !== 'ok') {
-    html += `<div class="res-block"><h4>Què t'ha faltat?</h4><p class="muted small">Marca el que no ha anat bé (pots triar-ne més d'un).</p>
+    html += `<div class="res-block"><h4>Què t'ha faltat?</h4>
       <div class="gap-chips">${options.map((g) => `<button type="button" class="gap-chip${res.gaps.includes(g) ? ' on' : ''}" data-gap="${g}" aria-pressed="${res.gaps.includes(g)}">${esc(gapText(g))}</button>`).join('')}</div>
-      ${res.lastGaps.length ? `<p class="muted small last-gaps">La darrera vegada: ${esc(res.lastGaps.map(gapText).join(', '))}.</p>` : ''}</div>`;
+</div>`;
   }
   // els consells del que ha faltat són informació (no decisió)
   const tips = tipsFor(res.gaps);
-  if (tips.length) html += `<div class="res-block"><h4>Consells</h4><ul class="res-tips">${tips.map((t) => `<li>${esc(t)}</li>`).join('')}</ul></div>`;
+  if (tips.length) html += `<details class="res-block tips"><summary title="Consells">💡 Consells</summary><ul class="res-tips">${tips.map((t) => `<li>${esc(t)}</li>`).join('')}</ul></details>`;
   // 3 · què creus que necessites ara? (l'eina no recomana: tu tries)
   const opts = optionsFor(st);
-  html += `<div class="res-block"><h4>Què creus que necessites ara?</h4><div class="opt-list">${opts.map((o) => `<button type="button" class="opt-btn" data-opt="${o.id}"${o.to ? ` data-id="${esc(o.to)}"` : ''}>${esc(o.text)}</button>`).join('')}</div></div>`;
+  html += `<div class="res-block"><h4>I ara?</h4><div class="opt-list">${opts.map((o) => `<button type="button" class="opt-btn" data-opt="${o.id}"${o.to ? ` data-id="${esc(o.to)}"` : ''}>${esc(o.text)}</button>`).join('')}</div></div>`;
   // informació del camí
   if (r !== 'no' && nav?.pathDone()) html += '<p class="path-end-inline"><b>Has acabat el camí.</b> Ja pots portar-ho al teu grup: a partir d\'ara, aquesta eina només la necessites per repassar alguna cosa concreta.</p>';
   else if (r === 'ok' && !res.levelWasDone && nav?.levelDone() && nav.nextLevel) html += `<p class="muted small">Has acabat el nivell ${st.step.nivell}. El següent és el <b>nivell ${nav.nextLevel.n} · ${esc(nav.nextLevel.titol)}</b>.</p>`;
@@ -695,20 +698,20 @@ function optionsFor(st) {
   const { r } = res;
   const o = [];
   if (!st.auto) {
-    if (r === 'ok') o.push({ id: 'faster', text: `Pujar el tempo (a ${Math.min(200, st.tempo + 10)}) i tornar-hi` });
-    else o.push({ id: 'slower', text: `Baixar el tempo (a ${Math.max(40, st.tempo - 10)}) i tornar-hi` });
-    if (st.kind !== 'improv') o.push(st.guide ? { id: 'guide-off', text: 'Treure la guia sonora i tornar-hi' } : { id: 'guide-on', text: 'Posar la guia sonora (sentiràs fluixa la teva part) i tornar-hi' });
+    if (r === 'ok') o.push({ id: 'faster', text: `⏩ ${Math.min(200, st.tempo + 10)}` });
+    else o.push({ id: 'slower', text: `🐢 ${Math.max(40, st.tempo - 10)}` });
+    if (st.kind !== 'improv') o.push(st.guide ? { id: 'guide-off', text: '🔇 Sense guia' } : { id: 'guide-on', text: '🔈 Amb guia' });
   }
   // practicar només el que falla: només quan l'eina ho pot aïllar
-  if (res.gaps.includes('forma') && !$('[data-act="strings"]', st.root).hidden) o.push({ id: 'strings', text: 'Comprovar l\'acord corda a corda' });
-  if (res.gaps.includes('dreta') && !st.el('handwrap').hidden && !st.handOnly) o.push({ id: 'hand', text: 'Practicar només la mà dreta' });
+  if (res.gaps.includes('forma') && !$('[data-act="strings"]', st.root).hidden) o.push({ id: 'strings', text: '🔍 Corda a corda' });
+  if (res.gaps.includes('dreta') && !st.el('handwrap').hidden && !st.handOnly) o.push({ id: 'hand', text: '✋ Només mà dreta' });
   for (const t of backTargets(st)) {
     const info = st.ctx.nav.info(t.id);
-    o.push({ id: 'back', to: t.id, text: `Tornar a «${info.titol}» (nivell ${info.nivell})${t.g ? `, que treballa ${gapText(t.g).toLowerCase()}` : ''}` });
+    o.push({ id: 'back', to: t.id, g: t.g, text: `↩ ${info.titol}` });
   }
   o.push({ id: 'repeat', text: st.auto ? '▶ Torna-hi' : 'Repetir igual' });
-  if (st.ctx.onNext) o.push({ id: 'next', to: st.ctx.nav?.next?.id, text: 'Passar al pas següent' });
-  if (r === 'ok' && res.wasOk) o.push({ id: 'done', text: 'Ja no cal: ho porto al grup' });
+  if (st.ctx.onNext) o.push({ id: 'next', to: st.ctx.nav?.next?.id, text: '⏭ Pas següent' });
+  if (r === 'ok' && res.wasOk) o.push({ id: 'done', text: '🎤 Ho porto al grup' });
   return o;
 }
 
@@ -719,7 +722,7 @@ function suggestion(st, opts) {
   if (res.r === 'no') {
     if (res.noRun >= 2) {
       const backs = opts.filter((x) => x.id === 'back');
-      const byGap = backs.find((x) => /, que treballa /.test(x.text));
+      const byGap = backs.find((x) => x.g);
       if (byGap || backs[0]) return byGap ?? backs[0];
     }
     if (res.gaps.length && (has('strings') || has('hand'))) return has('strings') ?? has('hand');
@@ -760,8 +763,7 @@ function showAssess(st) {
   st.autoBase = { l: st.autoLevel ?? 0, tempo: st.tempo };
   const prev = st.step.id ? store.stepState(st.step.id) : null;
   st.lastGaps = prev?.status !== 'ok' ? (prev?.gaps ?? []).filter((g) => GAPS[g]) : [];
-  st.el('feedback').textContent = (st.step.id ? 'Tu saps millor que ningú com ha sonat. Marca-ho i tria què vols fer ara.' : 'Marca com ha anat i tria què vols fer ara.')
-    + (st.lastGaps.length ? ` La darrera vegada et va faltar: ${st.lastGaps.map(gapText).join(', ').toLowerCase()}.` : '');
+  st.el('feedback').textContent = '';
   st.el('result').innerHTML = '';
   st.el('after').innerHTML = '';
   st.result = null;
@@ -882,7 +884,9 @@ function frame(st) {
   if (current !== st) return;
   st.raf = requestAnimationFrame(() => frame(st));
   if (st.kind === 'tune') return;
-  const pos = player.position();
+  const live = player.position();
+  // quan no sona res, l'animació fa una passada muda pels primers compassos: es veu què cal fer sense llegir
+  const pos = live ?? previewPos(st);
   if (!pos || pos.i < 0) { if (pos) drawIdleLane(st, pos); return; }
   const seg = pos.bar?.seg ?? st.plan?.(pos.i);
   const mode = seg?.mode ?? 'count';
@@ -902,11 +906,10 @@ function frame(st) {
   const badge = st.el('badge');
   const big = st.el('big');
   const nextSeg = st.plan?.(pos.i + 1);
-  let label = { count: 'COMPTE', demo: 'ESCOLTA', play: 'ARA TU', question: 'ESCOLTA LA PREGUNTA', answer: 'RESPON TU' }[mode] ?? '';
+  let label = { count: '⏱', demo: '👂', play: '🎸 TU', question: '👂 ?', answer: '🎸 TU', preview: '👀' }[mode] ?? '';
   let bigText = '';
   if (mode === 'count') bigText = String(pulse + 1);
-  if (mode === 'demo' && nextSeg?.mode === 'play') { label = 'ARA TU…'; bigText = String(M.pulses - pulse); }
-  if (mode === 'demo' && !nextSeg) label = 'ESCOLTA (últim compàs)';
+  if (mode === 'demo' && nextSeg?.mode === 'play') { label = '👂 → 🎸'; bigText = String(M.pulses - pulse); }
   if (st.kind === 'improv' && st.step.mode === 'free' && seg?.k != null) {
     big.classList.add('repte');
     bigText = st.reptes[Math.floor(seg.k / 4) % st.reptes.length];
@@ -1032,8 +1035,23 @@ function updateSide(st, content, pos, ev) {
   for (const s of host.querySelectorAll('.sweep')) s.style.left = `${x}%`;
 }
 
+function previewPos(st) {
+  if (!st.preview || st.kind === 'improv' || st.kind === 'compose' || !st.song || !st.el('assess').hidden) return null;
+  const M = st.M;
+  const spq = 60 / st.tempo / M.pulseLen;
+  const barDur = M.beats * spq;
+  const L = Math.max(1, Math.min(2, st.bars.length));
+  const x = ((performance.now() - st.preview) / 1000 / barDur) % (L + 0.5); // dos compassos i un respir
+  if (x >= L) return null;
+  const i = Math.floor(x);
+  const bars = [];
+  for (let j = 0; j <= L + 2; j++) bars[j] = { seg: { mode: 'preview', k: j }, content: st.song.content(j) };
+  return { i, beat: (x - i) * M.beats, abs: x * M.beats, bar: bars[i], bars, time: 0, spq, song: st.song, barDur, t0: 0, preview: true };
+}
+
 function showIdle(st) {
-  st.el('badge').textContent = 'PREPARA\'T';
+  st.preview = performance.now();
+  st.el('badge').textContent = '👀';
   st.el('badge').dataset.mode = 'idle';
   st.el('big').textContent = '';
   st.el('big').classList.remove('repte');

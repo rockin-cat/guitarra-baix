@@ -119,3 +119,9 @@ Amb un cable jack → USB (o l'ampli connectat per USB), el joc escolta la guita
 - **L'ajuda es retira sola**, pas a pas: amb guia sonora → sense guia → l'ajuda de la pantalla s'esvaeix → més ràpid fins al tempo de la cançó. Puja quan et surt i baixa quan no («La propera vegada, …»). Els punts al costat de Toca diuen on ets. Es desa per a cada pas i alumne.
 - Tota la resta (tempo, voltes, metrònom, guia sonora, retirar l'ajuda a mà, només mà dreta, corda a corda, escolta i toca seguit, acords, cançó sencera, connectar la guitarra) és a **⚙ Opcions**, tancat. Si l'alumne hi toca la guia o l'ajuda, l'ajuda automàtica s'atura en aquell pas.
 - **«Com t'ha anat?»** surt al mig de l'escenari en acabar (ja no al lateral), amb el que canviarà la propera vegada i les opcions (▶ Torna-hi, pas següent…).
+
+## Versió 25 · menys lletra
+- Botons només amb símbol: 👂 Escolta, ▶ Toca, ■ Para; marcador amb ⏱ 👂 🎸 TU 👀.
+- Triar un nivell al full de ruta porta directament a tocar el primer pas pendent; els subnivells són punts a la capçalera de la mateixa pantalla (sense menú intermedi).
+- Abans de tocar, el pas es veu animat en silenci (👀) com a exemple.
+- «Aprèn a llegir la pantalla»: animacions i etiquetes curtes en lloc de paràgrafs.

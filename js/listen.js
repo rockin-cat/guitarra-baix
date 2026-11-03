@@ -306,7 +306,7 @@ export function openDialog({ onChange, focus = null } = {}) {
   dlg.innerHTML = `
     <form method="dialog">
       <h2>La teva guitarra</h2>
-      <p class="muted small">Amb un cable jack → USB (o l'ampli connectat a l'ordinador per USB), el joc escolta el que toques i et diu si va a temps i si la nota o l'acord són els bons, com al joc de bateria.</p>
+      <p class="muted small">🔌 Cable jack → USB (o l'ampli per USB).</p>
       <ol class="ld-steps">
         <li>Connecta el cable a l'ordinador i tria'l aquí:
           <div class="row"><select id="ld-dev"><option value="">Entrada per defecte</option></select><button type="button" class="btn btn-ghost btn-small" id="ld-on">Escolta</button></div></li>
@@ -323,7 +323,6 @@ export function openDialog({ onChange, focus = null } = {}) {
       </ol>
       <label class="set-row">Com d'exigent
         <select id="ld-tol"><option value="facil">Fàcil (per començar)</option><option value="normal">Normal</option><option value="exigent">Exigent</option></select></label>
-      <p class="muted small">Amb auriculars: connecta'ls a l'ordinador (o a l'ampli, si l'ordinador hi envia el so per USB) per sentir la banda i la guitarra alhora. Sense cable, el micròfon de l'ordinador també funciona, però s'equivoca més.</p>
       <div class="row"><button type="button" class="btn btn-ghost" id="ld-off">Deixa d'escoltar</button><button class="btn btn-primary" value="ok">Fet</button></div>
     </form>`;
   const $ = (id) => dlg.querySelector(`#${id}`);
