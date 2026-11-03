@@ -4,6 +4,7 @@
 import * as player from './player.js';
 import { createNeck, chordBox } from './neck.js';
 import { createLane, wheelWindow } from './lane.js';
+import { CARD_LAYOUT } from './data/layouts.js';
 import { INSTRUMENTS, guitarVoicing, scaleBox, bassRole } from './fretboard.js';
 import { parseProgression, guessKey, pentatonic, mod, pcName, metre as metreOf, midiName, practicePart } from './theory.js';
 import { stylesFor, defaultStyle, STYLES } from './band.js';
@@ -472,6 +473,7 @@ function showVerdict(st, v) {
   stage.classList.remove('fl-ok', 'fl-mid', 'fl-bad');
   void stage.offsetWidth;
   if (cls) stage.classList.add(`fl-${cls}`);
+  if (st.wheelView && cls) st.ballFlash = { t: performance.now(), col: { ok: '#44d17a', mid: '#ffb347', bad: '#ff5a5a' }[cls] };
   if ((st.handOnly || st.wheelView) && st.handCells?.[st.handIdx] && v.kind !== 'missed') {
     const cell = st.handCells[st.handIdx];
     cell.classList.remove('h-ok', 'h-mid', 'h-bad');
@@ -821,11 +823,11 @@ function setWheelView(st, on) {
 }
 
 
-// ---- Vista de roda (v28): com els jocs de teclat i bateria ------------------------------------------------
-//  · a dalt, xips petits amb la roda (on ets de la cançó);
-//  · «què toques»: el trast (power chords) o el diagrama (oberts, celletes), i el que ve;
-//  · la carta del patró amb la pilota que bota a cada cop.
-// L'element nou del pas mana: si el pas porta carta (patró rítmic, rascat), la carta és gran; si no, l'acord.
+// ---- Vista de roda (v29): una sola fila i la carta amb la pilota --------------------------------------------
+//  · la fila de la roda és l'única que diu què toques: el trast (power chords) o el diagrama (oberts, celletes);
+//    la fitxa d'ara s'il·lumina, les altres queden apagades;
+//  · la carta del patró amb la pilota que bota a cada pols, com al joc de teclat (mateixa geometria de cartes).
+// L'element nou del pas mana: si el pas porta carta (patró rítmic, rascat), la carta és gran; si no, la roda.
 
 const RHYTHM_CARD = { W: 'mb5', Q: 'mb1', E: 'mb13' };
 
@@ -846,26 +848,34 @@ function drawnCard(moves) {
     else if (m === '=') g += `<rect x="${cx - step / 2}" y="${H / 2 - 3}" width="${step}" height="6" fill="#3db8f5" opacity=".45"/>`;
     else if (m === '_') g += `<circle cx="${cx}" cy="${H / 2}" r="${Math.min(13, step * 0.42)}" fill="#fff" stroke="#cfc8bf"/>`;
   });
-  return `<svg class="wv-svgcard" viewBox="0 0 ${W} ${H}"><rect x="1" y="1" width="${W - 2}" height="${H - 2}" rx="12" fill="#f4f1ec"/>${g}</svg>`;
+  return { html: `<svg class="wv-svgcard" viewBox="0 0 ${W} ${H}"><rect x="1" y="1" width="${W - 2}" height="${H - 2}" rx="12" fill="#f4f1ec"/>${g}</svg>`, r: Math.min(13, step * 0.42) / W };
+}
+
+/** On cau la pilota a cada pols de la carta (fraccions de l'amplada i l'alçada). */
+function cardGeometry(card, M, drawnR) {
+  const P = M.pulses;
+  const L = card ? CARD_LAYOUT[card.id] : null;
+  if (L && L.c.length === P) return { y: L.y, r: L.r, cells: L.c };
+  const span = card?.strum ? [0.09, 0.91] : [0.04, 0.96];
+  const w = (span[1] - span[0]) / P;
+  return { y: card?.strum ? 0.52 : 0.5, r: card?.strum ? 0.05 : drawnR ?? 0.07, cells: Array.from({ length: P }, (_, p) => [span[0] + p * w, span[0] + (p + 1) * w]) };
 }
 
 function buildWheel(st) {
   const host = st.el('wheel');
   const card = wheelCard(st);
   const moves = handMoves(st);
-  st.wvSlots = card?.strum ? card.strum.length : card ? st.M.beats / st.M.pulseLen : moves.length;
+  const drawn = card ? null : drawnCard(moves);
+  st.wvGeo = cardGeometry(card, st.M, drawn?.r);
   const focus = st.step.carta || st.step.part?.card ? 'card' : 'chord';
   host.innerHTML = `
-    <div class="wv-chips" data-wv="chips"></div>
-    <div class="wv-main focus-${focus}">
-      <div class="wv-now">
-        <div class="wv-cur"><b data-wv="name"></b><div class="wv-body" data-wv="body"></div></div>
-        <div class="wv-next" data-wv="next"><span>→</span><b data-wv="nname"></b><div class="wv-nbody" data-wv="nbody"></div></div>
-      </div>
-      <div class="wv-card"><div class="wv-cardbox">${card ? `<img src="${card.img}" alt="Carta ${esc(card.id)}">` : drawnCard(moves)}<i class="wv-ball" data-wv="ball"></i><i class="wv-shadow" data-wv="shadow"></i></div></div>
+    <div class="wv focus-${focus}">
+      <div class="wv-row" data-wv="row"></div>
+      <div class="wv-cardwrap"><div class="wv-cardbox">${card ? `<img src="${card.img}" alt="Carta ${esc(card.id)}">` : drawn.html}<canvas class="wv-ph" data-wv="ph"></canvas></div></div>
     </div>`;
   st.wv = Object.fromEntries([...host.querySelectorAll('[data-wv]')].map((e) => [e.dataset.wv, e]));
-  st.wvChord = null; st.wvNext = null; st.tilesKey = null;
+  st.wv.ctx = st.wv.ph.getContext('2d');
+  st.tilesKey = null;
   st.wvBodies = new Map();
 }
 
@@ -877,11 +887,10 @@ function chordBodyHtml(st, chord) {
   let html = '';
   if (v?.power) {
     const sI = v.frets.findIndex((f) => f >= 0);
-    html = `<span class="t-fret">${v.frets[sI]}</span><small class="t-str">corda ${6 - sI}</small>`;
+    html = `<span class="t-fret">${v.frets[sI]}</span>${sI > 0 ? `<small class="t-str">corda ${6 - sI}</small>` : ''}`;
   } else if (v) html = chordBox(v, { title: ' ', color: st.inst.color }).outerHTML;
-  const out = { html, power: !!v?.power, fret: v?.power ? v.frets[v.frets.findIndex((f) => f >= 0)] : null };
-  st.wvBodies.set(chord, out);
-  return out;
+  st.wvBodies.set(chord, html);
+  return html;
 }
 
 function drawTiles(st, pos, mode) {
@@ -894,69 +903,88 @@ function drawTiles(st, pos, mode) {
   const countIn = !content;
   if (countIn) for (let j = pos.i + 1; j <= pos.i + 2; j++) { const nb = pos.bars[j] ?? { seg: st.plan?.(j) }; if (nb?.seg && nb.seg.mode !== 'count') { k = nb.seg.k; content = nb.content ?? st.song.content(k); break; } }
   if (k == null) { k = 0; content = st.song.content(0); }
-  // xips de la roda
+  // la roda: una fitxa per compàs, amb el que es toca
   const { a, b, j } = wheelWindow(st.bars, k);
   const key = `${a}:${b}`;
   if (st.tilesKey !== key) {
     st.tilesKey = key;
-    st.wv.chips.style.setProperty('--n', b - a);
-    st.wv.chips.innerHTML = Array.from({ length: b - a }, (_, t) => {
+    st.wv.row.style.setProperty('--n', b - a);
+    st.wv.row.innerHTML = Array.from({ length: b - a }, (_, t) => {
       const idx = a + t;
-      const names = st.bars[idx].map((sg) => { const bd = chordBodyHtml(st, sg.chord.symbol); return `${esc(sg.chord.symbol)}${bd.power ? `<small>${bd.fret}</small>` : ''}`; }).join(' ');
-      return `<div class="wv-chip" data-j="${idx}">${st.bars[idx].part && t === 0 ? `<i>${esc(st.bars[idx].part)}</i>` : ''}<span>${names}</span><u></u></div>`;
+      const cells = st.bars[idx].map((sg) => `<div class="t-chord" data-chord="${esc(sg.chord.symbol)}"><b>${esc(sg.chord.symbol)}</b><div class="t-body">${chordBodyHtml(st, sg.chord.symbol)}</div></div>`).join('');
+      return `<div class="tile" data-j="${idx}">${st.bars[idx].part && t === 0 ? `<span class="t-part">${esc(st.bars[idx].part)}</span>` : ''}${cells}<i class="t-fill"></i></div>`;
     }).join('');
-    st.tileEls = [...st.wv.chips.children];
+    st.tileEls = [...st.wv.row.children];
   }
   const frac = countIn ? 0 : Math.max(0, Math.min(1, pos.beat / B));
+  const now = countIn ? null : chordAtBeat(content.bar, pos.beat, M).symbol;
   for (const t of st.tileEls) {
     const idx = Number(t.dataset.j);
-    t.classList.toggle('cur', idx === j);
-    t.classList.toggle('past', idx < j && !countIn);
-    const u = t.lastElementChild;
-    const w = idx === j ? `${Math.round(frac * 100)}%` : '0%';
-    if (u.style.width !== w) u.style.width = w;
+    const cur = idx === j;
+    t.classList.toggle('cur', cur && !countIn);
+    t.classList.toggle('wait', cur && countIn);
+    t.classList.toggle('next', !!st.nextChord && !cur && idx === (j + 1 < b ? j + 1 : a));
+    if (cur && t.children.length > 2) for (const c of t.querySelectorAll('.t-chord')) c.classList.toggle('on', c.dataset.chord === now);
+    const fill = t.lastElementChild;
+    const w = cur ? `${Math.round(frac * 100)}%` : '0%';
+    if (fill.style.width !== w) fill.style.width = w;
   }
-  // què toques ara i què ve
-  const now = countIn ? content.bar[0].chord.symbol : chordAtBeat(content.bar, pos.beat, M).symbol;
-  if (st.wvChord !== now) {
-    st.wvChord = now;
-    st.wv.name.textContent = now;
-    st.wv.body.innerHTML = chordBodyHtml(st, now).html;
-    st.wv.body.parentElement.classList.remove('pop'); void st.wv.body.offsetWidth; st.wv.body.parentElement.classList.add('pop');
+  drawBall(st, pos, content, countIn);
+  // el rascat s'ensenya amb les fletxes mentre escoltes; quan toques tu, només la carta i la pilota
+  const intro = st.step.part?.type === 'rascat' && (mode === 'demo' || mode === 'preview' || (mode === 'count' && st.what !== 'play'));
+  st.el('hand').hidden = !intro;
+}
+
+/** La pilota (com al joc de teclat): cau al centre de cada rodona, un cop per pols; els cops més llargs, més amunt. */
+function drawBall(st, pos, content, countIn) {
+  const cv = st.wv.ph;
+  const c = st.wv.ctx;
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  const W = cv.clientWidth; const H = cv.clientHeight;
+  if (!W) return;
+  if (cv.width !== Math.round(W * dpr) || cv.height !== Math.round(H * dpr)) { cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr); }
+  c.setTransform(dpr, 0, 0, dpr, 0, 0);
+  c.clearRect(0, 0, W, H);
+  if (st.helpLevel >= 3) return;
+  const g = st.wvGeo;
+  const M = st.M;
+  const R = Math.max(7, W * 0.055);
+  const cy = g.y * H; const r = g.r * W;
+  const ground = cy - r - R - 4;
+  const land = g.cells.map(([x0, x1], p) => ({ f: p / g.cells.length, x: ((x0 + x1) / 2) * W }));
+  land.push({ f: 1, x: g.cells.at(-1)[1] * W });
+  const hop = (f) => W * Math.min(0.14, 0.04 + 0.3 * f);
+  // les marques del que ha sentit el joc, sota cada rodona (verd bé, taronja a prop, vermell)
+  if (st.judge && content && !countIn) {
+    const a0 = pos.i * M.beats;
+    const COL = { ok: '#1f9d55', mid: '#f08a00', bad: '#d64545' };
+    for (const e of content.part) {
+      if (e.kind !== 'strum' || e.ghost) continue;
+      const p = Math.min(g.cells.length - 1, Math.floor(e.beat / M.pulseLen));
+      const [x0, x1] = g.cells[p];
+      const x = (x0 + ((e.beat / M.pulseLen - p) + 0.5 / (M.sub)) * (x1 - x0)) * W;
+      const m = st.marks?.find((mm) => mm.ring && Math.abs(mm.abs - (a0 + e.beat)) < 0.02);
+      c.beginPath(); c.arc(x, cy + r + 14, 6, 0, Math.PI * 2);
+      if (m) { c.fillStyle = COL[m.cls] ?? '#888'; c.fill(); } else { c.lineWidth = 2; c.strokeStyle = 'rgba(29,29,31,.3)'; c.stroke(); }
+    }
   }
-  const nx = st.nextChord && st.nextChord !== now ? st.nextChord : null;
-  if (st.wvNext !== nx) {
-    st.wvNext = nx;
-    st.wv.next.classList.toggle('on', !!nx);
-    if (nx) { st.wv.nname.textContent = nx; st.wv.nbody.innerHTML = chordBodyHtml(st, nx).html; }
-  }
-  // la pilota: bota a cada cop (no als moviments sense tocar) i hi cau just a temps
-  const hits = content.part.filter((e) => e.kind === 'strum' && !e.ghost).map((e) => e.beat);
-  if (!hits.length) hits.push(0);
-  const xOf = (beat) => 4 + 92 * ((beat / B) * st.wvSlots + 0.5) / st.wvSlots;
   let x; let y;
   if (countIn) {
-    // en el compte, bota al lloc del primer cop a cada pols
     const ph = (pos.beat % M.pulseLen) / M.pulseLen;
-    x = xOf(hits[0]); y = 4 * ph * (1 - ph);
+    x = land[0].x; y = ground - hop(0.25) * Math.sin(Math.PI * ph);
   } else {
-    const b0 = pos.beat;
-    let h0 = hits.filter((hh) => hh <= b0 + 1e-6).at(-1);
-    let h1 = hits.find((hh) => hh > b0 + 1e-6);
-    if (h0 == null) { h0 = hits.at(-1) - B; }
-    if (h1 == null) h1 = hits[0] + B;
-    const ph = (b0 - h0) / (h1 - h0);
-    const x0 = xOf(Math.max(0, h0)); const x1 = h1 >= B ? xOf(hits[0]) : xOf(h1);
-    x = h0 < 0 ? x1 : x0 + (x1 - x0) * ph;
-    y = Math.min(1, (h1 - h0) / M.pulseLen) * 4 * ph * (1 - ph);
+    const f = Math.max(0, Math.min(1, pos.beat / M.beats));
+    let i = 0;
+    while (i < land.length - 2 && land[i + 1].f <= f) i++;
+    const A = land[i]; const Bq = land[i + 1];
+    const sP = Math.min(1, Math.max(0, (f - A.f) / (Bq.f - A.f)));
+    x = A.x + (Bq.x - A.x) * sP; y = ground - hop(Bq.f - A.f) * Math.sin(Math.PI * sP);
   }
-  st.wv.ball.style.left = `${x}%`;
-  st.wv.ball.style.top = `${50 - 38 * y}%`;
-  st.wv.shadow.style.left = `${x}%`;
-  st.wv.shadow.style.opacity = String(0.5 - 0.35 * y);
-  // el rascat s'ensenya amb les fletxes mentre escoltes; quan toques tu, només la carta i la pilota
-  const intro = st.step.part?.type === 'rascat' && (mode === 'demo' || mode === 'preview' || mode === 'count' && st.what !== 'play');
-  st.el('hand').hidden = !intro;
+  c.fillStyle = 'rgba(0,0,0,.14)';
+  c.beginPath(); c.ellipse(x, ground + R, R, R * 0.35, 0, 0, Math.PI * 2); c.fill();
+  c.beginPath(); c.arc(x, y, R, 0, Math.PI * 2);
+  c.fillStyle = st.ballFlash && performance.now() - st.ballFlash.t < 250 ? st.ballFlash.col : '#ffb400';
+  c.fill(); c.lineWidth = 2; c.strokeStyle = '#1d1d1f'; c.stroke();
 }
 
 function setHandOnly(st, on) {

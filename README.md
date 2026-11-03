@@ -142,3 +142,7 @@ Amb un cable jack → USB (o l'ampli connectat per USB), el joc escolta la guita
 - Mana l'element nou: si el pas porta carta (patró rítmic, rascat), la carta és gran; si no, l'acord.
 - Rascat: les fletxes animades només surten mentre escoltes (👂); quan toques tu, només la carta i la pilota.
 - Al diàleg de la guitarra, **🔊 Sortida**: amb el cable USB connectat, l'ordinador pot enviar-hi el so i no se sent la banda. Aquí es tria per on ha de sortir, amb un botó de prova.
+
+## Versió 29 · mínims elements
+- Una sola fila: la roda és l'única que diu què toques (el trast als power chords, el diagrama als oberts). La fitxa d'ara s'il·lumina; les altres queden apagades. Fora el bloc «què toques» duplicat i els números de pols.
+- La carta i la pilota es mouen com al joc de teclat: la pilota cau al centre de cada rodona, un cop per pols, amb la mateixa geometria de cartes (`js/data/layouts.js`, copiada de `data/cards.json` del joc de teclat). Si el joc t'escolta, sota cada rodona surt un punt verd, taronja o vermell.

@@ -819,44 +819,31 @@ details.tips[open] summary { opacity: .6; }
 .stage.wheel-view .hand-card { width: auto; height: clamp(90px, 17vh, 150px); }
 .stage.wheel-view .hand-row { gap: 14px; }
 
-/* v28 · carta + pilota que bota + què toques (com els jocs de teclat i bateria) */
-.wv-chips { display: grid; grid-template-columns: repeat(var(--n), minmax(0, 1fr)); gap: 6px; margin-bottom: 10px; }
-.wv-chip { position: relative; overflow: hidden; background: var(--nit2); border-radius: 8px; padding: 5px 6px; text-align: center; font: 700 16px Ubuntu, sans-serif; color: #cbd5e1; opacity: .6; border: 2px solid transparent; }
-.wv-chip small { font-size: 12px; color: var(--accent); margin-left: 3px; }
-.wv-chip i { position: absolute; left: 5px; top: 2px; font: 700 9px Ubuntu, sans-serif; color: var(--groc); font-style: normal; text-transform: uppercase; }
-.wv-chip u { position: absolute; left: 0; bottom: 0; height: 4px; width: 0; background: var(--accent); }
-.wv-chip.cur { opacity: 1; color: #fff; border-color: var(--accent); }
-.wv-chip.past { opacity: .35; }
-.wv-main { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; align-items: center; }
-.wv-main.focus-card { grid-template-columns: 1fr 1.5fr; }
-.wv-main.focus-chord { grid-template-columns: 1.5fr 1fr; }
-.wv-now { display: flex; align-items: center; justify-content: center; gap: 14px; min-width: 0; }
-.wv-cur { display: flex; flex-direction: column; align-items: center; background: var(--nit2); border: 3px solid var(--accent); border-radius: 16px; padding: 8px 14px 12px; min-width: 0; }
-.wv-cur > b { font: 800 clamp(24px, 3vw, 36px) Ubuntu, sans-serif; color: #fff; }
-.wv-cur.pop { animation: wv-pop .35s ease-out; }
-@keyframes wv-pop { from { transform: scale(.92); } to { transform: none; } }
-.wv-body, .wv-nbody { display: flex; flex-direction: column; align-items: center; }
-.wv-body svg.chordbox { width: clamp(110px, 13vw, 170px); height: auto; background: #fff; border-radius: 10px; }
-.wv-body .t-fret { font: 800 clamp(70px, 11vw, 140px)/1 Ubuntu, sans-serif; color: var(--accent); }
-.focus-card .wv-body .t-fret { font-size: clamp(56px, 8vw, 104px); }
-.focus-card .wv-body svg.chordbox { width: clamp(90px, 10vw, 130px); }
-.wv-next { display: flex; flex-direction: column; align-items: center; opacity: 0; transition: opacity .2s; color: #9aa4b2; }
-.wv-next.on { opacity: .85; }
-.wv-next > span { font-size: 22px; }
-.wv-next > b { font: 700 18px Ubuntu, sans-serif; color: #fff; }
-.wv-nbody svg.chordbox { width: 74px; height: auto; background: #fff; border-radius: 6px; }
-.wv-nbody .t-fret { font: 800 40px/1 Ubuntu, sans-serif; color: var(--accent); }
-.wv-nbody .t-str { display: none; }
-.wv-card { display: flex; justify-content: center; }
-.wv-cardbox { position: relative; height: clamp(170px, 36vh, 320px); aspect-ratio: 170 / 240; }
-.focus-chord .wv-cardbox { height: clamp(140px, 28vh, 240px); }
-.wv-cardbox img, .wv-cardbox .wv-svgcard { width: 100%; height: 100%; object-fit: contain; border-radius: 12px; box-shadow: 0 2px 12px rgba(0,0,0,.45); display: block; }
-.wv-ball { position: absolute; width: 9%; aspect-ratio: 1; border-radius: 50%; background: radial-gradient(circle at 35% 30%, #fff6c8, var(--groc) 55%, #c98a00); transform: translate(-50%, -115%); box-shadow: 0 2px 6px rgba(0,0,0,.35); z-index: 2; }
-.wv-shadow { position: absolute; top: 50%; width: 8%; height: 2.2%; border-radius: 50%; background: rgba(0,0,0,.35); transform: translate(-50%, 40%); }
-.stage.wheel-view .hand-host { margin-top: 10px; }
-.stage[data-help="2"] .wv-body, .stage[data-help="2"] .wv-nbody { opacity: .25; }
-.stage[data-help="3"] .wv-body, .stage[data-help="3"] .wv-nbody, .stage[data-help="3"] .wv-ball, .stage[data-help="3"] .wv-shadow { opacity: 0; }
-.wv-body, .wv-nbody, .wv-ball { transition: opacity 1.6s ease; }
-@media (prefers-reduced-motion: reduce) { .wv-cur.pop { animation: none; } }
 .stage.wheel-view .hand-card { display: none; }
 .stage.hand-only .wv-main { grid-template-columns: 1fr; }
+
+/* v29 · una sola fila (la roda, amb el que toques) + la carta amb la pilota */
+.stage.wheel-view .pulses { visibility: hidden; }
+.wv { display: flex; flex-direction: column; gap: 14px; }
+.wv-row { display: grid; grid-template-columns: repeat(var(--n), minmax(0, 1fr)); gap: 10px; }
+.wv .tile { opacity: .32; padding: 6px 6px 12px; }
+.wv .tile.cur { opacity: 1; border-color: var(--accent); background: color-mix(in srgb, var(--accent) 22%, var(--nit2)); transform: translateY(-4px) scale(1.03); box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 30%, transparent), 0 8px 24px rgba(0,0,0,.4); }
+.wv .tile.wait { opacity: .9; }
+.wv .tile.next { opacity: .55; }
+.wv .tile.cur .t-chord:not(.on) { opacity: .45; }
+.wv .t-chord > b { font-size: clamp(16px, 2vw, 24px); }
+.wv .t-body { min-height: 0; }
+.wv .t-fret { font-size: clamp(44px, 7vw, 96px); }
+.wv.focus-card .t-fret { font-size: clamp(32px, 4.5vw, 60px); }
+.wv .t-body svg.chordbox { max-width: 120px; max-height: clamp(90px, 20vh, 170px); }
+.wv.focus-card .t-body svg.chordbox { max-height: clamp(70px, 13vh, 120px); }
+.wv-cardwrap { display: flex; justify-content: center; }
+.wv-cardbox { position: relative; height: clamp(150px, 30vh, 290px); aspect-ratio: 170 / 240; }
+.wv.focus-card .wv-cardbox { height: clamp(180px, 38vh, 340px); }
+.wv.focus-chord .wv-cardbox { height: clamp(130px, 24vh, 220px); }
+.wv-cardbox img, .wv-cardbox .wv-svgcard { width: 100%; height: 100%; object-fit: contain; border-radius: 12px; box-shadow: 0 2px 12px rgba(0,0,0,.45); display: block; }
+.wv-ph { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+.stage.hand-only .wv-row { display: none; }
+.stage[data-help="2"] .wv .t-body { opacity: .2; }
+.stage[data-help="3"] .wv .t-body { opacity: 0; }
+.wv { padding-top: 10px; }
