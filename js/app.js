@@ -46,7 +46,8 @@ function applyAccent() {
   const ws = store.currentName() ? store.workSong() : null;
   const pill = $('#song-chip');
   pill.hidden = !ws;
-  if (ws) pill.innerHTML = `<svg viewBox="0 0 24 24" width="15" height="15"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg><b>${esc(ws.titol)}</b><small>${esc(ws.metre)} · ${ws.tempo} bpm</small>`;
+  if (ws) pill.innerHTML = `<svg viewBox="0 0 24 24" width="15" height="15"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg><b>${esc(ws.titol)}</b><small>${esc(ws.metre)} · ${ws.tempo} bpm</small><span class="pill-edit" aria-hidden="true">✎</span>`;
+  pill.title = 'Vols canviar la cançó o la progressió?';
 }
 
 // ---- Progrés (només els passos que quadren amb el compàs de la cançó) ---------------------------------------------
@@ -102,6 +103,7 @@ function renderHome() {
       store.setCurrent(n);
       renderHome();
       applyAccent();
+      goPoster();
     });
     return;
   }
@@ -170,6 +172,7 @@ function renderMap() {
         <div class="poster-icon">${i.id === 'guitarra' ? guitarSvg(i.color) : bassSvg(i.color)}</div>
         <div class="poster-title"><span class="poster-w1">${w1}</span> <span class="poster-w2">${w2}</span></div>
         <div class="poster-sub">Full de ruta · 10 nivells</div>
+        <button type="button" class="poster-song" data-go="song" title="Vols canviar la cançó o la progressió?">${store.workSong() ? `🎵 <b>${esc(store.workSong().titol)}</b> <span>✎</span>` : '🎵 <b>Tria la cançó</b>'}</button>
       </div>
       <div class="poster-grid">
         ${levels.map((l, k) => { const p = levelProgress(l); return `
@@ -464,6 +467,7 @@ async function loadFromLibrary(id) {
     const entry = libEntries.find((x) => x.id === id);
     const s = songFromLibrary(await loadLibrarySong(savedCode(), id), entry);
     loadSong({ ...s, estil: s.estil ?? defaultStyle(s.metre), ref: id }, 'biblio');
+    if (pendingLevel || returnTo) songClick({ dataset: { c: 'worksong' } });
   } catch (e) {
     box?.insertAdjacentHTML('afterbegin', `<p class="err">${esc(errorText(e))}</p>`);
   }
@@ -475,6 +479,9 @@ function songClick(b) {
     const song = { ...draft, titol: draft.titol || 'La meva cançó' };
     if (draft.font === 'manual') store.saveSong({ ...song, id: undefined });
     store.setWorkSong(song);
+    applyAccent();
+    if (pendingLevel) { const n = pendingLevel; pendingLevel = null; openLevel(n); return; }
+    if (returnTo) { const r = returnTo; returnTo = null; r(); return; }
     renderSong(`Fet! Tot el full de ruta es treballa ara sobre «${song.titol}».`);
   } else if (c === 'edit') { editing = true; renderSong(); }
   else if (c === 'new') { editing = true; Object.assign(draft, { titol: '', artista: '', prog: '', baix: null, font: 'manual', metre: '4/4', tempo: 90, estil: 'pop' }); renderSong(); }
@@ -482,7 +489,7 @@ function songClick(b) {
   else if (c === 'cancel') { editing = false; renderSong(); }
   else if (b.dataset.slevel) { songLevel = b.dataset.slevel === 'x' ? null : Number(b.dataset.slevel); songPage = 0; renderSongTab(); }
   else if (b.dataset.tab) { songTab = b.dataset.tab; songPage = 0; for (const t of document.querySelectorAll('.songs-panel .tab')) t.classList.toggle('on', t.dataset.tab === songTab); renderSongTab(); }
-  else if (b.dataset.ksong) { const s = songIndex.get(b.dataset.ksong); if (s) loadSong(s, s.font); }
+  else if (b.dataset.ksong) { const s = songIndex.get(b.dataset.ksong); if (s) { loadSong(s, s.font); if (pendingLevel || returnTo) songClick({ dataset: { c: 'worksong' } }); } }
   else if (b.dataset.del) { store.deleteSong(b.dataset.del); renderSongTab(); }
   else if (b.dataset.lib) loadFromLibrary(b.dataset.lib);
 }
@@ -542,6 +549,11 @@ function pathHtml(instId) {
 
 // ---- Navegació -------------------------------------------------------------------------------------------------
 
+let pendingLevel = null;
+let returnTo = null;
+/** En entrar, directament al pòster del full de ruta. */
+function goPoster() { if (!store.currentName()) return; renderMap(); show('map'); }
+
 function needSong() {
   if (store.workSong()) return false;
   renderSong();
@@ -572,13 +584,17 @@ document.addEventListener('click', (ev) => {
     else { renderMap(); show('map'); }
     return;
   }
-  if (b.dataset.player) { store.setCurrent(b.dataset.player); Object.assign(draft, { prog: '' }); updatedNote = ''; renderHome(); applyAccent(); refreshWorkSong(); return; }
+  if (b.dataset.player) { store.setCurrent(b.dataset.player); Object.assign(draft, { prog: '' }); updatedNote = ''; renderHome(); applyAccent(); refreshWorkSong(); goPoster(); return; }
   if (b.dataset.c === 'print') { window.print(); return; }
   const go = b.dataset.go;
   if (go === 'who') { store.setCurrent(null); renderHome(); applyAccent(); return; }
   if (go === 'home') { renderHome(); show('home'); return; }
-  if (go === 'song') { editing = false; Object.assign(draft, { prog: '' }); renderSong(); show('song'); return; }
-  if (go === 'map') { if (needSong()) return; renderMap(); show('map'); return; }
+  if (go === 'song') {
+    const view = document.body.dataset.view;
+    const sid = window.__rkSession?.baseStep?.id;
+    returnTo = view === 'session' && sid ? () => openStep(sid) : view === 'map' ? goPoster : null;
+    editing = false; Object.assign(draft, { prog: '' }); renderSong(); show('song'); return; }
+  if (go === 'map') { renderMap(); show('map'); return; }
   if (go === 'skills') { renderSkills(); show('skills'); return; }
   if (go === 'guide') {
     show('guide');
@@ -591,7 +607,11 @@ document.addEventListener('click', (ev) => {
     if (nx) openStep(nx.step.id); else { renderMap(); show('map'); }
     return;
   }
-  if (b.dataset.level && !b.closest('.session')) { if (needSong()) return; openLevel(Number(b.dataset.level)); return; }
+  if (b.dataset.level && !b.closest('.session')) {
+    // sense cançó, primer es tria amb què es treballa (cançó o progressió d'acords) i després s'entra al nivell
+    if (!store.workSong()) { pendingLevel = Number(b.dataset.level); renderSong('🎵 Amb quina cançó o progressió d\'acords hi treballes?'); show('song'); return; }
+    openLevel(Number(b.dataset.level)); return;
+  }
   if (b.dataset.step) { openStep(b.dataset.step); return; }
   if (b.dataset.card && b.closest('#v-cards')) { openCard(b.dataset.card); return; }
   if (b.closest('#v-song') && (b.dataset.c || b.dataset.del || b.dataset.lib || b.dataset.tab || b.dataset.ksong)) songClick(b);
@@ -673,6 +693,7 @@ let updatedNote = '';
 
 renderHome();
 show('home');
+goPoster();
 refreshWorkSong();
 window.__rockinReady = true;
 window.rockinGB = { store, openStep, LEVELS };

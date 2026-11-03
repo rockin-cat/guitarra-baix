@@ -926,9 +926,12 @@ function drawTiles(st, pos, mode) {
     if (cur && t.children.length > 2) for (const c of t.querySelectorAll('.t-chord')) c.classList.toggle('on', c.dataset.chord === now);
   }
   drawBall(st, pos, content, countIn);
-  // el rascat s'ensenya amb les fletxes mentre escoltes; quan toques tu, només la carta i la pilota
-  const intro = st.step.part?.type === 'rascat' && (mode === 'demo' || mode === 'preview' || (mode === 'count' && st.what !== 'play'));
-  st.el('hand').hidden = !intro;
+  // escoltar = veure com es fa a la guitarra (el mànec, la púa, i al rascat les fletxes);
+  // tocar = la roda i la carta amb la pilota
+  const demo = mode === 'demo' || mode === 'preview' || (mode === 'count' && st.what !== 'play');
+  const stage = st.root.querySelector('.stage');
+  if (stage.classList.contains('wv-demo') !== demo) stage.classList.toggle('wv-demo', demo);
+  st.el('hand').hidden = !(demo && st.step.part?.type === 'rascat');
 }
 
 /** La pilota (com al joc de teclat): cau al centre de cada rodona, un cop per pols; els cops més llargs, més amunt. */

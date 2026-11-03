@@ -150,3 +150,9 @@ Amb un cable jack → USB (o l'ampli connectat per USB), el joc escolta la guita
 ## Versió 30
 - Fora la barra de progrés sota els números: el temps ja el marca la pilota.
 - L'últim temps de la carta: la pilota vola de tornada a la primera rodona i hi cau just al primer temps del compàs següent (com al joc de teclat, on vola a la carta següent).
+
+## Versió 31 · directe al pòster
+- En entrar (o triar qui toca), el joc va directament al **pòster del full de ruta**.
+- Si encara no hi ha cançó, en tocar un nivell es tria **la cançó o la progressió d'acords** i s'entra de seguida al nivell (un sol clic a la llista).
+- Per canviar-la: el botó «🎵 cançó ✎» del pòster o la píndola de la barra de dalt; després es torna on eres.
+- **Escoltar és veure com es fa a la guitarra**: a 👂 (i a l'animació muda abans de començar) surt el mànec amb la púa, i al rascat les fletxes. Quan toques tu (▶), la roda i la carta amb la pilota.

@@ -847,3 +847,12 @@ details.tips[open] summary { opacity: .6; }
 .stage[data-help="2"] .wv .t-body { opacity: .2; }
 .stage[data-help="3"] .wv .t-body { opacity: 0; }
 .wv { padding-top: 10px; }
+
+/* v31 · escoltar = el mànec i la púa (com un vídeo); tocar = la roda i la carta amb la pilota */
+.stage.wheel-view.wv-demo .neck-host { display: block; }
+.stage.wheel-view.wv-demo .wheel-host { display: none; }
+.stage.wheel-view.wv-demo .pulses { visibility: visible; }
+.poster-song { border: 2px solid var(--c); background: #fff; border-radius: 999px; padding: 6px 14px; font: 500 15px Ubuntu, sans-serif; cursor: pointer; color: var(--tinta); }
+.poster-song span { color: var(--c); margin-left: 4px; }
+.poster-song:hover { background: color-mix(in srgb, var(--c) 12%, #fff); }
+.pill-edit { opacity: .6; margin-left: 2px; }
