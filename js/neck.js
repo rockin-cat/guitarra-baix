@@ -120,6 +120,18 @@ export function createNeck(host, inst, { thickTop = false } = {}) {
   }
 
   let shownKey = '';
+  let lastVoicing = null;
+  /** Els punts (i la celleta) apareixen desplaçats dx i llisquen fins al lloc. */
+  function slideFrom(dx, nFrets = 1) {
+    const dur = Math.min(0.45, 0.16 + 0.035 * Math.abs(nFrets));
+    for (const l of [layerNow, layerBarre]) {
+      l.style.transition = 'none';
+      l.style.transform = `translateX(${dx.toFixed(1)}px)`;
+      void l.getBoundingClientRect();
+      l.style.transition = `transform ${dur.toFixed(2)}s cubic-bezier(.3,.9,.4,1)`;
+      l.style.transform = 'translateX(0)';
+    }
+  }
   const vib = new Map();
   let lastTrig = null;
 
@@ -153,8 +165,14 @@ export function createNeck(host, inst, { thickTop = false } = {}) {
       nextLabel.textContent = '';
       if (view.ctx) for (const p of view.ctx) dot(layerCtx, p.s, p.f, p.label ?? '', p.cls ?? '');
       const cur = view.cur;
+      // power chords i celletes: la forma llisca pel mànec fins al trast nou (en lloc de desaparèixer i tornar a sortir)
+      const anchor = (v) => (v?.power || v?.barre ? (v.barre ? v.barre.fret : v.frets.find((f) => f >= 0)) : null);
+      const from = anchor(lastVoicing);
+      const to = anchor(view.mode === 'chord' ? cur?.voicing : null);
+      lastVoicing = view.mode === 'chord' ? cur?.voicing ?? null : null;
       if (view.mode === 'chord' && cur?.voicing) {
         drawVoicing(layerNow, cur.voicing);
+        if (from != null && to != null && from !== to) slideFrom(fretX(from, frets) - fretX(to, frets), to - from);
         if (view.showNext && view.next?.voicing && view.next.chord !== cur.chord) {
           drawVoicing(layerNext, view.next.voicing, { ring: true });
           nextLabel.textContent = `Ara ve: ${view.next.chord}`;

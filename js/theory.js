@@ -110,9 +110,28 @@ export const metre = (id) => METRES[id] ?? METRES['4/4'];
 
 /** Tonalitat probable d'una progressió: el primer acord mana. */
 export function guessKey(bars) {
-  const c = bars[0]?.[0]?.chord;
-  if (!c) return { root: 9, minor: true };
-  return { root: c.root, minor: !!c.minor };
+  const chords = bars.flatMap((b) => b.map((sg) => sg.chord)).filter(Boolean);
+  if (!chords.length) return { root: 9, minor: true };
+  // cada acord és candidat a tònica; guanya el que té més acords de la tonalitat (i el primer i l'últim compten més)
+  // grau → és menor? (al mode menor, la dominant pot ser major: E7 en La menor)
+  const MAJ = { 0: false, 2: true, 4: true, 5: false, 7: false, 9: true, 11: true };
+  const MIN = { 0: true, 2: true, 3: false, 5: true, 7: null, 8: false, 10: false };
+  let best = null;
+  for (const c of chords) {
+    const minor = !!c.minor;
+    const scale = minor ? MIN : MAJ;
+    let score = 0;
+    for (const x of chords) {
+      const q = scale[mod(x.root - c.root, 12)];
+      if (q === undefined) continue;
+      if (q === null || q === !!x.minor) score += 1.5;
+    }
+    if (chords[0] === c || chords[0].root === c.root) score += 1;
+    if (chords.at(-1).root === c.root) score += 1;
+    if (chords.some((x) => mod(x.root - c.root, 12) === 7)) score += 1; // hi ha la dominant
+    if (!best || score > best.score) best = { root: c.root, minor, score };
+  }
+  return { root: best.root, minor: best.minor };
 }
 
 /** Pentatònica (menor o major) d'una tonalitat. */

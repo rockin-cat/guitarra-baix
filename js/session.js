@@ -362,7 +362,7 @@ function buildSong(st) {
   const extra = st.kind === 'improv' && step.mode === 'qa' ? (k, bar, M) => (k % 4 < 2 ? { part: questionBar(st, bar, M, k) } : { part: [] }) : null;
   const estil = step.estil ?? defaultStyle(step.metre);
   if (st.el('stylename')) st.el('stylename').textContent = estil === 'metronom' ? '' : `♪ ${STYLES[estil]?.nom ?? ''}`;
-  st.song = player.makeSong({ inst: inst.id, bars: st.bars, metre: step.metre ?? '4/4', tempo: st.tempo, estil, dynamic: store.settings().dynamicBand !== false, part: st.kind === 'improv' ? null : part, voice: step.voice, extra });
+  st.song = player.makeSong({ inst: inst.id, bars: st.bars, key: st.key, metre: step.metre ?? '4/4', tempo: st.tempo, estil, dynamic: store.settings().dynamicBand !== false, part: st.kind === 'improv' ? null : part, voice: step.voice, extra });
   st.M = st.song.M;
 }
 

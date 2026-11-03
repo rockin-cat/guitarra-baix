@@ -5,7 +5,7 @@ import { audioContext, resumeAudio, loadSet, setsReady, drum, click, tone, stopA
 import { bandBar, stylesFor, clicksBar, BAND_SETS, finalHit, FILLS } from './band.js';
 import { partBar, voiceBar } from './parts.js';
 import { INSTRUMENTS } from './fretboard.js';
-import { metre } from './theory.js';
+import { metre, guessKey, parseChord, pcName, mod } from './theory.js';
 
 /**
  * Una cançó per tocar.
@@ -125,15 +125,20 @@ function scheduleEnd(r, i) {
   let last = null;
   for (let j = i - 1; j >= 0 && !last; j--) if (r.bars[j]?.content) last = r.bars[j];
   if (!last || song.estil === 'metronom') return;
-  const seg = last.content.bar.at(-1);
-  const chord = seg.chord;
+  // s'acaba a la tònica (I, o i si és menor), no a l'últim acord del tros
+  const key = song.key ?? guessKey(song.bars);
+  const tonicSym = `${pcName(key.root)}${key.minor ? 'm' : ''}`;
+  const chord = song.bars.flatMap((b) => b.map((sg) => sg.chord)).find((c) => mod(c.root, 12) === key.root && !!c.minor === key.minor) ?? parseChord(tonicSym);
   const t = r.t0 + i * r.barDur;
   const at = (beat) => t + beat * spq;
   r.bars[i] = { i, t, seg: { mode: 'end', k: last.seg.k }, content: { bar: [{ chord, start: 0, len: 1 }], band: [], part: [], voice: [] } };
   for (const e of finalHit(chord, song.M, song.family)) playBand(e, at, spq);
   // la teva part també hi és (a l'exemple, forta; quan toques tu, com la guia)
   const partGain = last.seg.mode === 'demo' ? 1 : (r.opts.guide ?? 0);
-  const ev = last.content.part.find((e) => e.kind === 'strum' && !e.ghost && e.chord === chord.symbol) ?? last.content.part.find((e) => e.notes?.length);
+  // la teva part: un cop de la tònica (es busca a tota la roda; si no hi és, una nota de la fonamental)
+  let ev = null;
+  for (let k = 0; k < song.bars.length && !ev; k++) ev = song.content(k).part.find((e) => e.chord === chord.symbol && (e.kind === 'strum' ? !e.ghost : e.notes?.length));
+  if (ev?.kind === 'note' && ev.pos?.[0]?.role && ev.pos[0].role !== '1') { const root = song.content(0).part.find((e) => e.chord === chord.symbol && e.pos?.[0]?.role === '1'); if (root) ev = root; }
   if (partGain > 0 && ev) playPart(song, { ...ev, beat: 0, dur: Math.max(2, song.M.beats), legato: false, legatoNext: false, tech: null }, at, spq, partGain, last.seg.mode === 'play' ? -0.75 : 0);
   r.opts.onBar?.(r.bars[i]);
 }

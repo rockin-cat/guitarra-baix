@@ -173,3 +173,7 @@ Amb un cable jack → USB (o l'ampli connectat per USB), el joc escolta la guita
 
 ## Versió 34
 - **L'estil de la banda canvia d'un exercici a l'altre**: cada pas té el seu (pop, rock, balada, funk, reggaeton, reggae, rumba, shuffle…), rotant a partir de l'estil de la cançó; es veu a dalt de l'escenari («♪ Funk»). Es desactiva amb «Base que canvia».
+
+## Versió 35
+- **S'acaba a la tònica**: el cop final és l'acord I de la tonalitat (o i, si és menor), no l'últim acord del tros. La tonalitat s'endevina mirant quins acords són de cada tonalitat candidata (`guessKey`).
+- **Power chords i celletes llisquen pel mànec** fins al trast nou en comptes de desaparèixer i tornar a sortir (més lent com més lluny).
