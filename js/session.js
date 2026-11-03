@@ -11,7 +11,7 @@ import { parseProgression, guessKey, pentatonic, mod, pcName, metre as metreOf, 
 import { stylesFor, defaultStyle, STYLES } from './band.js';
 import { BINARI, TERNARI, MELODIC, cardById, cardMetre } from './data/cartes.js';
 import { tone, audioContext } from './audio.js';
-import { REPTES } from './levels.js';
+import { REPTES, allSteps } from './levels.js';
 import * as store from './store.js';
 import { pill, gapsFor, tipsFor, gapText, GAPS } from './assoliment.js';
 import * as auto from './autoregulacio.js';
@@ -77,6 +77,8 @@ function effectiveStep(base, instId, opts = {}) {
     s.prog = opts.whole ? song.prog : practicePart(song.prog);
     s.metre = song.metre;
     s.estil = STYLES[song.estil]?.metres.includes(song.metre) ? song.estil : STYLES[base.estil]?.metres.includes(song.metre) ? base.estil : defaultStyle(song.metre);
+    // la banda canvia d'estil d'un exercici a l'altre (cada pas té el seu, començant pel de la cançó)
+    if (store.settings().dynamicBand !== false && s.kind !== 'improv' && s.kind !== 'compose') s.estil = styleForStep(base, instId, s.estil, song.metre);
     s.tempo = Math.min(base.tempo ?? 90, song.tempo ?? 90);
     s.usesSong = song.titol;
   }
@@ -124,6 +126,7 @@ export function openSession(host, baseStep, ctx) {
               <div class="mode-badge" data-el="badge">PREPARA'T</div>
               <div class="pulses" data-el="pulses"></div>
               <div class="bigcount" data-el="big"></div>
+              <span class="style-tag" data-el="stylename"></span>
             </div>
             <div class="neck-host" data-el="neck"></div>
             <div class="wheel-host" data-el="wheel" hidden></div>
@@ -333,6 +336,15 @@ function arpChosen(st) {
 }
 const isOpenArp = (st) => st.inst.id === 'guitarra' && st.step.part?.type === 'arp' && !(typeof store.chordMode() === 'object' && store.chordMode()?.type === 'power') && st.step.chordMode?.type !== 'power';
 
+/** L'estil de la banda per a aquest pas: els estils del compàs van rotant pas a pas a partir del de la cançó. */
+function styleForStep(base, instId, songStyle, metreId) {
+  const pool = stylesFor(metreId).map((x) => x.id).filter((id) => id !== 'metronom');
+  if (pool.length < 2) return songStyle;
+  const ord = Math.max(0, allSteps(instId).findIndex((p) => p.id === base.id));
+  const start = Math.max(0, pool.indexOf(songStyle));
+  return pool[(start + ord) % pool.length];
+}
+
 // ---- La cançó del pas --------------------------------------------------------------------------------------
 
 function buildSong(st) {
@@ -348,7 +360,9 @@ function buildSong(st) {
     part = { type: 'compose', bars: st.compose, voicing: step.voicing };
   }
   const extra = st.kind === 'improv' && step.mode === 'qa' ? (k, bar, M) => (k % 4 < 2 ? { part: questionBar(st, bar, M, k) } : { part: [] }) : null;
-  st.song = player.makeSong({ inst: inst.id, bars: st.bars, metre: step.metre ?? '4/4', tempo: st.tempo, estil: step.estil ?? defaultStyle(step.metre), dynamic: store.settings().dynamicBand !== false, part: st.kind === 'improv' ? null : part, voice: step.voice, extra });
+  const estil = step.estil ?? defaultStyle(step.metre);
+  if (st.el('stylename')) st.el('stylename').textContent = estil === 'metronom' ? '' : `♪ ${STYLES[estil]?.nom ?? ''}`;
+  st.song = player.makeSong({ inst: inst.id, bars: st.bars, metre: step.metre ?? '4/4', tempo: st.tempo, estil, dynamic: store.settings().dynamicBand !== false, part: st.kind === 'improv' ? null : part, voice: step.voice, extra });
   st.M = st.song.M;
 }
 

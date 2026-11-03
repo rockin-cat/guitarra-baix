@@ -869,3 +869,5 @@ details.tips[open] summary { opacity: .6; }
 .neck .string.lit line { filter: drop-shadow(0 0 4px var(--accent)); stroke-width: 3.5; }
 .ctrl-main .strpick { margin-left: 8px; }
 @media (max-height: 720px) { .wv-arp.wheel-view .wv.focus-card .wv-cardbox { height: clamp(120px, 24vh, 220px); } .wv-arp .wv .t-body svg.chordbox { max-height: 90px; } }
+.style-tag { margin-left: auto; align-self: center; font: 600 13px Ubuntu, sans-serif; color: #9aa4b2; padding-right: 6px; }
+.stage-top .bigcount:not(:empty) ~ .style-tag { display: none; }

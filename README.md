@@ -170,3 +170,6 @@ Amb un cable jack → USB (o l'ampli connectat per USB), el joc escolta la guita
 - **L'animació d'abans de començar sona** (la teva part, fluixa, sense banda), i la guia sonora mentre toques tu va **a l'esquerra** i una mica més forta, perquè es distingeixi de la banda.
 - Patrons melòdics amb power chords: sempre amb la forma sencera (1 · 5 · 8), encara que al nivell només se'n toqui una part.
 - Diagrames amb celleta més amunt del 5è trast: el número de trast es veu (més gran i amb lloc propi).
+
+## Versió 34
+- **L'estil de la banda canvia d'un exercici a l'altre**: cada pas té el seu (pop, rock, balada, funk, reggaeton, reggae, rumba, shuffle…), rotant a partir de l'estil de la cançó; es veu a dalt de l'escenari («♪ Funk»). Es desactiva amb «Base que canvia».
