@@ -912,11 +912,10 @@ function drawTiles(st, pos, mode) {
     st.wv.row.innerHTML = Array.from({ length: b - a }, (_, t) => {
       const idx = a + t;
       const cells = st.bars[idx].map((sg) => `<div class="t-chord" data-chord="${esc(sg.chord.symbol)}"><b>${esc(sg.chord.symbol)}</b><div class="t-body">${chordBodyHtml(st, sg.chord.symbol)}</div></div>`).join('');
-      return `<div class="tile" data-j="${idx}">${st.bars[idx].part && t === 0 ? `<span class="t-part">${esc(st.bars[idx].part)}</span>` : ''}${cells}<i class="t-fill"></i></div>`;
+      return `<div class="tile" data-j="${idx}">${st.bars[idx].part && t === 0 ? `<span class="t-part">${esc(st.bars[idx].part)}</span>` : ''}${cells}</div>`;
     }).join('');
     st.tileEls = [...st.wv.row.children];
   }
-  const frac = countIn ? 0 : Math.max(0, Math.min(1, pos.beat / B));
   const now = countIn ? null : chordAtBeat(content.bar, pos.beat, M).symbol;
   for (const t of st.tileEls) {
     const idx = Number(t.dataset.j);
@@ -925,9 +924,6 @@ function drawTiles(st, pos, mode) {
     t.classList.toggle('wait', cur && countIn);
     t.classList.toggle('next', !!st.nextChord && !cur && idx === (j + 1 < b ? j + 1 : a));
     if (cur && t.children.length > 2) for (const c of t.querySelectorAll('.t-chord')) c.classList.toggle('on', c.dataset.chord === now);
-    const fill = t.lastElementChild;
-    const w = cur ? `${Math.round(frac * 100)}%` : '0%';
-    if (fill.style.width !== w) fill.style.width = w;
   }
   drawBall(st, pos, content, countIn);
   // el rascat s'ensenya amb les fletxes mentre escoltes; quan toques tu, només la carta i la pilota
@@ -952,8 +948,9 @@ function drawBall(st, pos, content, countIn) {
   const cy = g.y * H; const r = g.r * W;
   const ground = cy - r - R - 4;
   const land = g.cells.map(([x0, x1], p) => ({ f: p / g.cells.length, x: ((x0 + x1) / 2) * W }));
-  land.push({ f: 1, x: g.cells.at(-1)[1] * W });
-  const hop = (f) => W * Math.min(0.14, 0.04 + 0.3 * f);
+  const P = g.cells.length;
+  const maxHop = Math.max(4, Math.min(W * 0.1, ground - R - 1));
+  const hop = (df) => maxHop * Math.min(1, 0.35 + df * P * 0.45);
   // les marques del que ha sentit el joc, sota cada rodona (verd bé, taronja a prop, vermell)
   if (st.judge && content && !countIn) {
     const a0 = pos.i * M.beats;
@@ -971,14 +968,23 @@ function drawBall(st, pos, content, countIn) {
   let x; let y;
   if (countIn) {
     const ph = (pos.beat % M.pulseLen) / M.pulseLen;
-    x = land[0].x; y = ground - hop(0.25) * Math.sin(Math.PI * ph);
+    x = land[0].x; y = ground - maxHop * 0.6 * Math.sin(Math.PI * ph);
   } else {
     const f = Math.max(0, Math.min(1, pos.beat / M.beats));
-    let i = 0;
-    while (i < land.length - 2 && land[i + 1].f <= f) i++;
-    const A = land[i]; const Bq = land[i + 1];
-    const sP = Math.min(1, Math.max(0, (f - A.f) / (Bq.f - A.f)));
-    x = A.x + (Bq.x - A.x) * sP; y = ground - hop(Bq.f - A.f) * Math.sin(Math.PI * sP);
+    const last = land[P - 1];
+    if (f >= last.f) {
+      // l'últim temps vola de tornada a la primera rodona (la carta es repeteix), com al joc de teclat
+      const sP = Math.min(1, (f - last.f) / Math.max(1e-6, 1 - last.f));
+      const dist = Math.abs(land[0].x - last.x);
+      const lift = Math.min(H * 0.35, Math.max(maxHop * 1.3, dist * 0.3));
+      x = last.x + (land[0].x - last.x) * sP; y = ground - lift * Math.sin(Math.PI * sP);
+    } else {
+      let i = 0;
+      while (i < P - 1 && land[i + 1].f <= f) i++;
+      const A = land[i]; const Bq = land[i + 1];
+      const sP = Math.min(1, Math.max(0, (f - A.f) / (Bq.f - A.f)));
+      x = A.x + (Bq.x - A.x) * sP; y = ground - hop(Bq.f - A.f) * Math.sin(Math.PI * sP);
+    }
   }
   c.fillStyle = 'rgba(0,0,0,.14)';
   c.beginPath(); c.ellipse(x, ground + R, R, R * 0.35, 0, 0, Math.PI * 2); c.fill();
