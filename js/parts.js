@@ -13,7 +13,7 @@
 
 import { chordAt, mod } from './theory.js';
 import { cardById, cardOnsets } from './data/cartes.js';
-import { INSTRUMENTS, guitarVoicing, bassRole, guitarLadder, soundingLadder, positionsOf } from './fretboard.js';
+import { INSTRUMENTS, guitarVoicing, bassRole, guitarLadder, soundingLadder, positionsOf, roleOf } from './fretboard.js';
 
 /** La mateixa nota (o l'octava) en un lloc amb `minFret` trasts com a mínim i una corda més aguda per a la quinta. */
 function movedRoot(inst, root, minFret) {
@@ -89,6 +89,24 @@ export const roleLabel = (r) => ({ 1: '1', 3: '3', 5: '5', 8: '8', b7: '7', 7: '
 
 const segChord = (bar, beat, M) => chordAt(bar, beat / M.beats);
 
+/** Cordes per defecte dels patrons melòdics amb acords oberts: 4·3 (dues alçades), 4·3·2 (tres)… sonen a gairebé tots els acords. */
+export const DEFAULT_ARP_STRINGS = (nH) => [2, 3, 4, 5, 1, 0].slice(0, Math.max(1, nH)).sort((a, b) => a - b);
+
+/** Les cordes del patró per a aquest acord: les triades, o la que soni més a prop si en aquest acord la corda no sona. */
+export function arpStrings(v, chosen, nH) {
+  const sounding = v.frets.map((f, s) => (f >= 0 ? s : -1)).filter((s) => s >= 0);
+  const want = (chosen?.length ? chosen : DEFAULT_ARP_STRINGS(nH)).slice(0, nH);
+  const out = [];
+  for (const s of want) {
+    let best = s;
+    if (!sounding.includes(s)) best = sounding.reduce((p, c) => (Math.abs(c - s) < Math.abs(p - s) ? c : p), sounding[0] ?? s);
+    if (!out.includes(best)) out.push(best);
+  }
+  // si dues cordes triades han caigut a la mateixa, afegeix la veïna lliure
+  for (const s of sounding) { if (out.length >= want.length) break; if (!out.includes(s)) out.push(s); }
+  return out.sort((a, b) => a - b);
+}
+
 /** La part d'un compàs. `k` és el número de compàs (per repartir papers que continuen). */
 export function partBar(spec, instId, bar, M, k = 0) {
   const inst = INSTRUMENTS[instId];
@@ -141,20 +159,25 @@ export function partBar(spec, instId, bar, M, k = 0) {
       const contour = (cardById(b.melodic)?.contour ?? [[0, 1, 2, 1]]).flat();
       ranks = onsets.map((_, i) => contour[i % contour.length]);
     }
+    // les alçades del dibuix (2 o 3, normalment)
+    const heights = [...new Set(ranks)].sort((x, y) => x - y);
+    const nH = heights.length;
     onsets.forEach(([a, d], i) => {
       const chord = segChord(bar, a, M);
+      const hi = heights.indexOf(ranks[i]);
       if (instId === 'guitarra') {
         const v = voicingOf(chord);
         if (v.power || v.covered) {
-          // amb power chords o cordes tapades, el contorn va per les notes que sonen
+          // power chords: el dibuix es fa amb la forma (fonamental, quinta, octava)
           const ladder = soundingLadder(chord, v);
-          const p = ladder[ranks[i] % ladder.length];
-          out.push(noteEvent(inst, p, a, d, chord, { voicing: v }));
+          const idx = nH > 1 ? Math.round((hi * (ladder.length - 1)) / (nH - 1)) : 0;
+          out.push(noteEvent(inst, ladder[Math.min(idx, ladder.length - 1)], a, d, chord, { voicing: v }));
         } else {
-          const ladder = guitarLadder(chord, v, 5);
-          const p = ladder[Math.min(ranks[i], ladder.length - 1)];
-          const role = ['1', '3', '5', '8', '10', '12'][ranks[i]] ?? '1';
-          out.push(noteEvent(inst, p && { ...p, role }, a, d, chord, { voicing: v }));
+          // acords oberts: es trien tantes cordes com alçades té el dibuix (les que es vulgui) i el dibuix va per aquestes cordes
+          const chosen = arpStrings(v, spec.strings, nH);
+          const sIdx = chosen[Math.min(hi, chosen.length - 1)];
+          const p = { s: sIdx, f: v.frets[sIdx], role: roleOf(chord, v.midi[sIdx]) };
+          out.push(noteEvent(inst, p, a, d, chord, { voicing: v, strings: chosen }));
         }
       } else {
         const role = ['1', '3', '5', '8', '10', '12'][ranks[i]] ?? '1';

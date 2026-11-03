@@ -144,11 +144,12 @@ export function createNeck(host, inst, { thickTop = false } = {}) {
      * view = { mode: 'chord' | 'notes' | 'scale', cur, next, ctx: [{s,f,label,cls}], chord }
      */
     show(view) {
-      const key = JSON.stringify([view.mode, view.cur?.id, view.next?.id, view.showNext, view.ctxKey, view.label]);
+      const key = JSON.stringify([view.mode, view.cur?.id, view.next?.id, view.showNext, view.ctxKey, view.label, view.lit]);
       if (key === shownKey) return;
       shownKey = key;
       clear(layerBarre, layerNext, layerCtx, layerNow, layerTech);
       chordLabel.textContent = view.label ?? '';
+      strings.forEach((x, i) => x.g.classList.toggle('lit', !!view.lit?.includes(i)));
       nextLabel.textContent = '';
       if (view.ctx) for (const p of view.ctx) dot(layerCtx, p.s, p.f, p.label ?? '', p.cls ?? '');
       const cur = view.cur;

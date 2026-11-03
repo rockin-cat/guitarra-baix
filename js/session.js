@@ -4,7 +4,8 @@
 import * as player from './player.js';
 import { createNeck, chordBox } from './neck.js';
 import { createLane, wheelWindow } from './lane.js';
-import { CARD_LAYOUT } from './data/layouts.js';
+import { CARD_LAYOUT, MELODIC_LAYOUT } from './data/layouts.js';
+import { DEFAULT_ARP_STRINGS, arpStrings } from './parts.js';
 import { INSTRUMENTS, guitarVoicing, scaleBox, bassRole } from './fretboard.js';
 import { parseProgression, guessKey, pentatonic, mod, pcName, metre as metreOf, midiName, practicePart } from './theory.js';
 import { stylesFor, defaultStyle, STYLES } from './band.js';
@@ -162,9 +163,11 @@ export function openSession(host, baseStep, ctx) {
               <span class="tempo">Tempo <button type="button" class="icon-btn" data-act="slower" title="Més lent">−</button> <b data-el="tempo"></b> <button type="button" class="icon-btn" data-act="faster" title="Més ràpid">+</button></span>
               <label>Voltes <select data-el="rounds"><option value="0">auto</option><option value="1">1</option><option value="2">2</option><option value="4">4</option><option value="-1">sense parar</option></select></label>
               <label class="toggle"><input type="checkbox" data-el="metro"> Metrònom</label>
+              <label class="toggle" title="A cada volta la banda canvia: primer bateria i baix, després s'hi afegeixen el teclat i la guitarra, amb redobles i, més endavant, altres estils"><input type="checkbox" data-el="dyn"> Base que canvia</label>
               <label class="toggle" title="Mentre toques tu, sona fluixa la part que has de fer"><input type="checkbox" data-el="guide"> Guia sonora</label>
               <label class="toggle" title="Mentre toques tu, l'ajuda visual es va esvaint fins que ho fas sol"><input type="checkbox" data-el="fade"> Retira l'ajuda a poc a poc</label>
               <label class="toggle" data-el="neckwrap" hidden title="En lloc de les fitxes dels acords, el mànec sencer i el compàs"><input type="checkbox" data-el="neckview"> 🎸 Mànec</label>
+              <div class="strpick" data-el="strpick" hidden title="Les cordes amb què fas el dibuix de la carta (tantes com alçades té)"><span>🎼 Cordes</span>${[5, 4, 3, 2, 1, 0].map((s) => `<button type="button" class="str-btn" data-str="${s}">${6 - s}</button>`).join('')}</div>
               <label class="toggle" data-el="handwrap" hidden title="Amaga el mànec i la pista: només la carta i les fletxes del rascat"><input type="checkbox" data-el="handonly"> Només mà dreta</label>
               <button type="button" class="btn btn-ghost btn-small" data-act="strings" hidden>Corda a corda</button>
               <button type="button" class="btn btn-ghost btn-small" data-act="full">Escolta i toca seguit</button>
@@ -209,17 +212,35 @@ export function openSession(host, baseStep, ctx) {
   if (inst.id === 'guitarra' && (st.step.part?.type === 'strum' || st.step.part?.type === 'rascat')) $('[data-act="strings"]', root).hidden = false;
   if (inst.id === 'guitarra' && st.step.part?.type === 'rascat') {
     st.el('handwrap').hidden = false;
-    st.el('handonly').checked = S.handOnly !== false;
-    setHandOnly(st, S.handOnly !== false);
+    st.el('handonly').checked = S.handOnly === true;
+    setHandOnly(st, S.handOnly === true);
   }
   // acords (power chords, oberts, celletes): fitxes de la roda + la carta i el patró, com al joc de teclat
-  st.wheelOk = inst.id === 'guitarra' && (st.step.part?.type === 'strum' || st.step.part?.type === 'rascat') && !['improv', 'compose', 'tune'].includes(kind);
+  st.wheelOk = inst.id === 'guitarra' && ['strum', 'rascat', 'arp'].includes(st.step.part?.type) && !['improv', 'compose', 'tune'].includes(kind);
   if (st.wheelOk) {
     st.el('neckwrap').hidden = false;
     st.el('neckview').checked = S.neckView === true;
     setWheelView(st, S.neckView !== true);
   }
 
+  if (isOpenArp(st)) {
+    st.el('strpick').hidden = false;
+    st.el('helpind').after(st.el('strpick')); // a la vista, no dins d'Opcions
+    renderStrPick(st);
+    st.el('strpick').addEventListener('click', (e) => {
+      const b = e.target.closest('[data-str]');
+      if (!b) return;
+      const nH = arpHeights(st);
+      let cur = arpChosen(st).slice();
+      const sI = Number(b.dataset.str);
+      if (cur.includes(sI)) { if (cur.length > 1) cur = cur.filter((x) => x !== sI); } else { cur.push(sI); while (cur.length > nH) cur.shift(); }
+      cur.sort((a, b2) => a - b2);
+      (S.arpStrings ??= {})[nH] = cur;
+      store.save();
+      renderStrPick(st);
+      rebuildStep(st);
+    });
+  }
   renderSongBar(st);
   updateListenUi(st);
   st.auto = st.kind !== 'improv' && st.kind !== 'compose';
@@ -240,6 +261,8 @@ export function openSession(host, baseStep, ctx) {
     }
   });
   st.el('rounds').addEventListener('change', (e) => { st.rounds = Number(e.target.value); });
+  st.el('dyn').checked = S.dynamicBand !== false;
+  st.el('dyn').addEventListener('change', (e) => { S.dynamicBand = e.target.checked; store.save(); rebuildStep(st); });
   st.el('metro').addEventListener('change', (e) => { st.metronome = e.target.checked; S.metronome = st.metronome; store.save(); player.setMetronome(st.metronome); });
   st.el('guide').addEventListener('change', (e) => { st.auto = false; st.guide = e.target.checked ? 0.3 : 0; S.guide = st.guide; store.save(); player.setGuide(st.guide); showHelpInd(st); });
   st.el('fade').addEventListener('change', (e) => { st.auto = false; st.fade = e.target.checked; S.fadeHelp = st.fade; store.save(); if (!st.fade) setHelp(st, 0); showHelpInd(st); });
@@ -249,7 +272,16 @@ export function openSession(host, baseStep, ctx) {
   renderPulses(st);
   showIdle(st);
   st.raf = requestAnimationFrame(() => frame(st));
+  // la primera vegada que entres en un pas, l'exemple sona sol: veus com es fa i el sents
+  if (!['improv', 'compose', 'tune'].includes(kind) && !store.stepState(baseStep.id) && store.settings().autoDemo !== false) {
+    setTimeout(() => { if (current === st && !player.isPlaying()) go(st, 'listen'); }, 700);
+  }
   return st;
+}
+
+function renderStrPick(st) {
+  const cur = arpChosen(st);
+  for (const b of st.el('strpick').querySelectorAll('[data-str]')) b.classList.toggle('on', cur.includes(Number(b.dataset.str)));
 }
 
 function renderSongBar(st) {
@@ -287,6 +319,19 @@ function rebuildStep(st) {
   showIdle(st);
 }
 
+/** Quantes alçades té el dibuix de la carta melòdica del pas. */
+function arpHeights(st) {
+  const c = cardById(st.step.part?.card ?? st.step.carta);
+  return c?.contour ? new Set(c.contour.flat()).size : 2;
+}
+/** Les cordes triades per al patró melòdic (desades per nombre d'alçades). */
+function arpChosen(st) {
+  const nH = arpHeights(st);
+  const saved = store.settings().arpStrings?.[nH];
+  return Array.isArray(saved) && saved.length === nH ? saved : DEFAULT_ARP_STRINGS(nH);
+}
+const isOpenArp = (st) => st.inst.id === 'guitarra' && st.step.part?.type === 'arp' && !(typeof store.chordMode() === 'object' && store.chordMode()?.type === 'power') && st.step.chordMode?.type !== 'power';
+
 // ---- La cançó del pas --------------------------------------------------------------------------------------
 
 function buildSong(st) {
@@ -296,12 +341,13 @@ function buildSong(st) {
   st.key = guessKey(st.bars);
   let part = step.part ? { ...step.part } : null;
   if (part && step.voicing) part.voicing = step.voicing;
+  if (part?.type === 'arp' && inst.id === 'guitarra') part.strings = arpChosen(st);
   if (st.kind === 'compose') {
     st.compose ??= randomCompose(st, st.bars.length);
     part = { type: 'compose', bars: st.compose, voicing: step.voicing };
   }
   const extra = st.kind === 'improv' && step.mode === 'qa' ? (k, bar, M) => (k % 4 < 2 ? { part: questionBar(st, bar, M, k) } : { part: [] }) : null;
-  st.song = player.makeSong({ inst: inst.id, bars: st.bars, metre: step.metre ?? '4/4', tempo: st.tempo, estil: step.estil ?? defaultStyle(step.metre), part: st.kind === 'improv' ? null : part, voice: step.voice, extra });
+  st.song = player.makeSong({ inst: inst.id, bars: st.bars, metre: step.metre ?? '4/4', tempo: st.tempo, estil: step.estil ?? defaultStyle(step.metre), dynamic: store.settings().dynamicBand !== false, part: st.kind === 'improv' ? null : part, voice: step.voice, extra });
   st.M = st.song.M;
 }
 
@@ -854,11 +900,20 @@ function drawnCard(moves) {
 /** On cau la pilota a cada pols de la carta (fraccions de l'amplada i l'alçada). */
 function cardGeometry(card, M, drawnR) {
   const P = M.pulses;
+  // cartes de rascat: 8 o 16 fletxes entre el 11 % i el 89 % de l'amplada (mesurat a les imatges); la pilota cau a cada fletxa que toca
+  if (card?.strum) {
+    const n = card.strum.length;
+    const xs = [...card.strum].map((_, i) => 0.111 + (0.783 * i) / (n - 1));
+    return { strumCard: true, top: 0.43, landings: [...card.strum].map((m, i) => ({ m, i })).filter(({ m }) => m !== m.toLowerCase()).map(({ i }) => ({ f: i / n, x: xs[i] })) };
+  }
+  if (card?.contour && MELODIC_LAYOUT[card.id]) {
+    const pts = MELODIC_LAYOUT[card.id];
+    return { melodic: true, landings: pts.map(([x, y], i) => ({ f: i / pts.length, x, y })) };
+  }
   const L = card ? CARD_LAYOUT[card.id] : null;
-  if (L && L.c.length === P) return { y: L.y, r: L.r, cells: L.c };
-  const span = card?.strum ? [0.09, 0.91] : [0.04, 0.96];
-  const w = (span[1] - span[0]) / P;
-  return { y: card?.strum ? 0.52 : 0.5, r: card?.strum ? 0.05 : drawnR ?? 0.07, cells: Array.from({ length: P }, (_, p) => [span[0] + p * w, span[0] + (p + 1) * w]) };
+  const g = L && L.c.length === P ? { y: L.y, r: L.r, cells: L.c } : { y: 0.5, r: drawnR ?? 0.07, cells: Array.from({ length: P }, (_, p) => [0.04 + (p * 0.92) / P, 0.04 + ((p + 1) * 0.92) / P]) };
+  g.landings = g.cells.map(([x0, x1], p) => ({ f: p / P, x: (x0 + x1) / 2 }));
+  return g;
 }
 
 function buildWheel(st) {
@@ -867,6 +922,7 @@ function buildWheel(st) {
   const moves = handMoves(st);
   const drawn = card ? null : drawnCard(moves);
   st.wvGeo = cardGeometry(card, st.M, drawn?.r);
+  st.wvCard = card;
   const focus = st.step.carta || st.step.part?.card ? 'card' : 'chord';
   host.innerHTML = `
     <div class="wv focus-${focus}">
@@ -888,7 +944,10 @@ function chordBodyHtml(st, chord) {
   if (v?.power) {
     const sI = v.frets.findIndex((f) => f >= 0);
     html = `<span class="t-fret">${v.frets[sI]}</span>${sI > 0 ? `<small class="t-str">corda ${6 - sI}</small>` : ''}`;
-  } else if (v) html = chordBox(v, { title: ' ', color: st.inst.color }).outerHTML;
+  } else if (v) {
+    html = chordBox(v, { title: ' ', color: st.inst.color }).outerHTML;
+    if (isOpenArp(st)) html += `<small class="t-str">cordes ${arpStrings(v, arpChosen(st), arpHeights(st)).map((x) => 6 - x).join(' · ')}</small>`;
+  }
   st.wvBodies.set(chord, html);
   return html;
 }
@@ -931,6 +990,7 @@ function drawTiles(st, pos, mode) {
   const demo = mode === 'demo' || mode === 'preview' || (mode === 'count' && st.what !== 'play');
   const stage = st.root.querySelector('.stage');
   if (stage.classList.contains('wv-demo') !== demo) stage.classList.toggle('wv-demo', demo);
+  if (!stage.classList.contains('wv-arp') && st.step.part?.type === 'arp') stage.classList.add('wv-arp');
   st.el('hand').hidden = !(demo && st.step.part?.type === 'rascat');
 }
 
@@ -948,14 +1008,16 @@ function drawBall(st, pos, content, countIn) {
   const g = st.wvGeo;
   const M = st.M;
   const R = Math.max(7, W * 0.055);
-  const cy = g.y * H; const r = g.r * W;
-  const ground = cy - r - R - 4;
-  const land = g.cells.map(([x0, x1], p) => ({ f: p / g.cells.length, x: ((x0 + x1) / 2) * W }));
-  const P = g.cells.length;
-  const maxHop = Math.max(4, Math.min(W * 0.1, ground - R - 1));
+  const cy = g.strumCard ? g.top * H : g.melodic ? 0 : g.y * H; const r = g.strumCard || g.melodic ? 0 : g.r * W;
+  const ring = g.melodic ? W * 0.022 : 0;
+  const ground0 = g.melodic ? 0 : cy - r - R - 4;
+  const land = g.landings.map((l) => ({ f: l.f, x: l.x * W, y: g.melodic ? l.y * H - ring - R - 2 : ground0 }));
+  let ground = ground0;
+  const P = M.pulses;
+  const maxHop = Math.max(4, Math.min(W * 0.1, (g.melodic ? Math.min(...land.map((l) => l.y)) : ground0) - R - 1));
   const hop = (df) => maxHop * Math.min(1, 0.35 + df * P * 0.45);
   // les marques del que ha sentit el joc, sota cada rodona (verd bé, taronja a prop, vermell)
-  if (st.judge && content && !countIn) {
+  if (st.judge && content && !countIn && g.cells) {
     const a0 = pos.i * M.beats;
     const COL = { ok: '#1f9d55', mid: '#f08a00', bad: '#d64545' };
     for (const e of content.part) {
@@ -968,24 +1030,41 @@ function drawBall(st, pos, content, countIn) {
       if (m) { c.fillStyle = COL[m.cls] ?? '#888'; c.fill(); } else { c.lineWidth = 2; c.strokeStyle = 'rgba(29,29,31,.3)'; c.stroke(); }
     }
   }
+  if (st.judge && content && !countIn && g.strumCard) {
+    // al rascat, sota cada fletxa que toca
+    const a0 = pos.i * M.beats;
+    const COL = { ok: '#1f9d55', mid: '#f08a00', bad: '#d64545' };
+    const n = st.wvCard.strum.length;
+    for (const e of content.part) {
+      if (e.kind !== 'strum' || e.ghost) continue;
+      const i = Math.round(e.beat / (M.beats / n));
+      const x = (0.111 + (0.783 * i) / (n - 1)) * W;
+      const m = st.marks?.find((mm) => mm.ring && Math.abs(mm.abs - (a0 + e.beat)) < 0.02);
+      c.beginPath(); c.arc(x, 0.68 * H, 5, 0, Math.PI * 2);
+      if (m) { c.fillStyle = COL[m.cls] ?? '#888'; c.fill(); } else { c.lineWidth = 2; c.strokeStyle = 'rgba(29,29,31,.3)'; c.stroke(); }
+    }
+  }
   let x; let y;
   if (countIn) {
     const ph = (pos.beat % M.pulseLen) / M.pulseLen;
-    x = land[0].x; y = ground - maxHop * 0.6 * Math.sin(Math.PI * ph);
+    ground = land[0].y; x = land[0].x; y = ground - maxHop * 0.6 * Math.sin(Math.PI * ph);
   } else {
     const f = Math.max(0, Math.min(1, pos.beat / M.beats));
-    const last = land[P - 1];
-    if (f >= last.f) {
-      // l'últim temps vola de tornada a la primera rodona (la carta es repeteix), com al joc de teclat
-      const sP = Math.min(1, (f - last.f) / Math.max(1e-6, 1 - last.f));
-      const dist = Math.abs(land[0].x - last.x);
+    const first = land[0]; const last = land.at(-1);
+    if (land.length === 1 || f >= last.f || f < first.f) {
+      // de l'últim cop torna volant al primer (la carta es repeteix), com al joc de teclat
+      const span = (1 - last.f) + first.f || 1;
+      const sP = Math.min(1, (((f - last.f) % 1) + 1) % 1 / span);
+      const dist = Math.abs(first.x - last.x);
       const lift = Math.min(H * 0.35, Math.max(maxHop * 1.3, dist * 0.3));
-      x = last.x + (land[0].x - last.x) * sP; y = ground - lift * Math.sin(Math.PI * sP);
+      ground = last.y + (first.y - last.y) * sP;
+      x = last.x + (first.x - last.x) * sP; y = ground - (land.length === 1 ? hop(1) : lift) * Math.sin(Math.PI * sP);
     } else {
       let i = 0;
-      while (i < P - 1 && land[i + 1].f <= f) i++;
+      while (i < land.length - 2 && land[i + 1].f <= f) i++;
       const A = land[i]; const Bq = land[i + 1];
       const sP = Math.min(1, Math.max(0, (f - A.f) / (Bq.f - A.f)));
+      ground = A.y + (Bq.y - A.y) * sP;
       x = A.x + (Bq.x - A.x) * sP; y = ground - hop(Bq.f - A.f) * Math.sin(Math.PI * sP);
     }
   }
@@ -1151,7 +1230,7 @@ function frame(st) {
       st.neck.show({ mode: 'chord', cur: e, next: nxt?.e ?? next, showNext: !!nxt && nxt.dist <= lead + 1e-6, label: e.chord });
       st.nextChord = nxt && nxt.dist <= lead + 1e-6 ? nxt.e.chord : null;
     } else {
-      st.neck.show({ mode: 'notes', cur: e, next, showNext: true, label: e.chord ?? '' });
+      st.neck.show({ mode: 'notes', cur: e, next, showNext: true, label: e.chord ?? '', lit: e.strings ?? null });
       st.nextChord = null;
       if (cur?.tech) st.neck.techPhase(cur, (pos.abs - cur.abs) / cur.dur);
     }
@@ -1308,7 +1387,7 @@ function showIdle(st) {
   const e = c0.part[0];
   if (st.kind === 'improv') st.neck.show(improvView(st, firstChord(st)));
   else if (e?.kind === 'strum') st.neck.show({ mode: 'chord', cur: { ...e, id: 'idle' }, label: `Comença amb: ${e.chord}` });
-  else if (e) st.neck.show({ mode: 'notes', cur: { ...e, id: 'idle' }, label: `Primera nota: ${e.chord ?? ''}` });
+  else if (e) st.neck.show({ mode: 'notes', cur: { ...e, id: 'idle' }, label: `Primera nota: ${e.chord ?? ''}`, lit: e.strings ?? null });
   updateSide(st, null, { beat: 0 }, e);
   if (st.handOnly || st.wheelView) drawHand(st, -1, e?.chord ?? '');
   drawIdleLane(st);

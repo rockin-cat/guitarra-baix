@@ -839,7 +839,7 @@ details.tips[open] summary { opacity: .6; }
 .wv.focus-card .t-body svg.chordbox { max-height: clamp(70px, 13vh, 120px); }
 .wv-cardwrap { display: flex; justify-content: center; }
 .wv-cardbox { position: relative; height: clamp(150px, 30vh, 290px); aspect-ratio: 170 / 240; }
-.wv.focus-card .wv-cardbox { height: clamp(180px, 38vh, 340px); }
+.wv.focus-card .wv-cardbox { height: clamp(160px, 31vh, 300px); }
 .wv.focus-chord .wv-cardbox { height: clamp(130px, 24vh, 220px); }
 .wv-cardbox img, .wv-cardbox .wv-svgcard { width: 100%; height: 100%; object-fit: contain; border-radius: 12px; box-shadow: 0 2px 12px rgba(0,0,0,.45); display: block; }
 .wv-ph { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
@@ -856,3 +856,16 @@ details.tips[open] summary { opacity: .6; }
 .poster-song span { color: var(--c); margin-left: 4px; }
 .poster-song:hover { background: color-mix(in srgb, var(--c) 12%, #fff); }
 .pill-edit { opacity: .6; margin-left: 2px; }
+
+/* v32 · patrons melòdics: cordes triades, carta melòdica amb pilota, i a l'escolta el mànec + la carta */
+.strpick { display: inline-flex; align-items: center; gap: 4px; }
+.strpick span { margin-right: 4px; color: var(--gris); }
+.str-btn { width: 30px; height: 30px; border-radius: 50%; border: 2px solid var(--linia); background: #fff; font: 700 13px Ubuntu, sans-serif; cursor: pointer; color: var(--tinta); }
+.str-btn.on { background: var(--accent); border-color: var(--accent); color: #111; }
+.stage.wheel-view.wv-demo.wv-arp .wheel-host { display: block; }
+.stage.wheel-view.wv-demo.wv-arp .wv-row { display: none; }
+.stage.wheel-view.wv-demo.wv-arp .wv-cardbox { height: clamp(110px, 20vh, 170px); }
+.stage.wheel-view.wv-demo.wv-arp .wv { padding-top: 0; }
+.neck .string.lit line { filter: drop-shadow(0 0 4px var(--accent)); stroke-width: 3.5; }
+.ctrl-main .strpick { margin-left: 8px; }
+@media (max-height: 720px) { .wv-arp.wheel-view .wv.focus-card .wv-cardbox { height: clamp(120px, 24vh, 220px); } .wv-arp .wv .t-body svg.chordbox { max-height: 90px; } }

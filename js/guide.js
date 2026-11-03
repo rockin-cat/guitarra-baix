@@ -6,7 +6,7 @@ import { createLane } from './lane.js';
 import { INSTRUMENTS, guitarVoicing, powerRoot6, coverStrings, bassRole, stringNumber } from './fretboard.js';
 import { parseChord, parseProgression, metre, solfa, mod } from './theory.js';
 import { partBar } from './parts.js';
-import { tone, resumeAudio, loadSet } from './audio.js';
+import { tone, resumeAudio, loadSet, audioContext, click } from './audio.js';
 import { cardById } from './data/cartes.js';
 import { settings } from './store.js';
 
@@ -17,7 +17,16 @@ let cleanup = [];
 export function closeGuide() { for (const f of cleanup) f(); cleanup = []; }
 
 async function sound(inst) { await resumeAudio(); await loadSet(inst.sound); }
-function play(inst, midi, dur = 1.4) { sound(inst).then(() => tone(inst.sound, midi, 0, dur, { gain: 0.6, dest: 'me' })); }
+let muted = false;
+function play(inst, midi, dur = 1.4) { if (muted) return; sound(inst).then(() => tone(inst.sound, midi, 0, dur, { gain: 0.6, dest: 'me' })); }
+/** Un cop de púa: les notes una darrere l'altra, molt juntes (avall de la greu a l'aguda; amunt, al revés). */
+function strum(inst, midis, { dir = 'D', dur = 1.2, gain = 0.45 } = {}) {
+  if (muted) return;
+  const list = midis.filter((m) => m != null);
+  if (dir === 'U') list.reverse();
+  sound(inst).then(() => { const t = audioContext().currentTime + 0.01; list.forEach((m, i) => tone(inst.sound, m, t + i * 0.012, dur, { gain, dest: 'me' })); });
+}
+function tick(accent = false) { if (muted) return; resumeAudio().then(() => click(audioContext().currentTime + 0.01, accent)); }
 
 /** La mà esquerra amb els dits numerats (1 índex, 2 mig, 3 anular, 4 petit). */
 const handSvg = (color) => `
@@ -56,6 +65,7 @@ export function renderGuide(host, instId, { onDone } = {}) {
     const root = h(`<div class="guide">
       <div class="view-head">
         <div class="vh-text"><small class="muted">Aprèn a llegir la pantalla · ${page + 1} de ${PAGES.length}</small><h2>${esc(p.t)}</h2></div>
+        <button type="button" class="btn btn-ghost btn-small gsound" data-gmute title="So de les animacions">${muted ? '🔇' : '🔊'}</button>
         <div class="guide-tabs">${PAGES.map((x, i) => `<button type="button" class="gtab${i === page ? ' on' : ''}${i < page ? ' seen' : ''}" data-gp="${i}" title="${esc(x.t)}">${i + 1}</button>`).join('')}</div></div>
       <div class="guide-body"></div>
       <div class="row guide-nav">
@@ -65,6 +75,7 @@ export function renderGuide(host, instId, { onDone } = {}) {
     host.append(root);
     p.build(root.querySelector('.guide-body'));
     root.addEventListener('click', (e) => {
+      if (e.target.closest('[data-gmute]')) { muted = !muted; e.target.closest('[data-gmute]').textContent = muted ? '🔇' : '🔊'; return; }
       const b = e.target.closest('[data-gp],[data-gnav],[data-gdone]');
       if (!b) return;
       if (b.dataset.gp) page = Number(b.dataset.gp);
@@ -93,6 +104,7 @@ export function renderGuide(host, instId, { onDone } = {}) {
         const s = k === 0 ? n - 1 : 0;
         neck.highlightString(s, `Corda ${stringNumber(inst, s)} · ${inst.stringNames[s]}`);
         neck.shake(s);
+        play(inst, inst.tuning[s]);
       }
       neck.animate({});
     });
@@ -148,7 +160,7 @@ export function renderGuide(host, instId, { onDone } = {}) {
     loopFn((t) => {
       if (auto) {
         const f = Math.floor(t / 0.9) % 6;
-        if (f !== lastF) { lastF = f; neck.dotsFor([{ s: s0, f, label: f, cls: 'active' }]); neck.shake(s0); }
+        if (f !== lastF) { lastF = f; neck.dotsFor([{ s: s0, f, label: f, cls: 'active' }]); neck.shake(s0); play(inst, inst.tuning[s0] + f, 0.8); }
       }
       neck.animate({});
     });
@@ -164,12 +176,15 @@ export function renderGuide(host, instId, { onDone } = {}) {
       const neck = createNeck(stage(el), inst, { thickTop: settings().thickTop === true });
       const show = (c, m) => {
         if (m === 'next') {
-          neck.show({ mode: 'chord', cur: { id: 'n1', chord: 'C', voicing: guitarVoicing(parseChord('C')) }, next: { id: 'n2', chord: 'G', voicing: guitarVoicing(parseChord('G')) }, showNext: true, label: 'C' });
+          const vc = guitarVoicing(parseChord('C'));
+          neck.show({ mode: 'chord', cur: { id: 'n1', chord: 'C', voicing: vc }, next: { id: 'n2', chord: 'G', voicing: guitarVoicing(parseChord('G')) }, showNext: true, label: 'C' });
+          strum(inst, vc.midi);
           return;
         }
         const ch = parseChord(c);
         const v = m === 'p3' ? powerRoot6(ch, 3) : m === 'o3' ? coverStrings(guitarVoicing(ch), 3) : guitarVoicing(ch, m);
         neck.show({ mode: 'chord', cur: { id: `${c}${m}`, chord: v.name, voicing: v }, label: v.name });
+        strum(inst, v.midi);
       };
       let k = 0;
       let auto = true;
@@ -190,6 +205,7 @@ export function renderGuide(host, instId, { onDone } = {}) {
         if (i !== last) {
           last = i;
           neck.dotsFor(roles.slice(0, i).map((r) => { const p = bassRole(ch, r); return { s: p.s, f: p.f, label: r, cls: r === '1' ? 'active' : 'tone' }; }));
+          if (i > 0) { const p = bassRole(ch, roles[i - 1]); play(inst, inst.tuning[p.s] + p.f, 0.7); }
         }
         neck.animate({});
       });
@@ -203,7 +219,14 @@ export function renderGuide(host, instId, { onDone } = {}) {
     const v = g ? guitarVoicing(parseChord('Em')) : null;
     if (g) neck.show({ mode: 'chord', cur: { id: 'em', chord: 'Em', voicing: v }, label: 'Em' });
     const moves = g ? 'DuDUdUDU' : '';
+    let lastK = -1;
     loopFn((t) => {
+      const kk = Math.floor(t / (g ? 0.45 : 0.6));
+      if (kk !== lastK) {
+        lastK = kk;
+        if (g) { const m = moves[kk % moves.length]; if (m !== m.toLowerCase()) strum(inst, m === 'U' ? v.midi.slice(2) : v.midi, { dir: m, dur: 0.5, gain: 0.35 }); }
+        else play(inst, inst.tuning[[0, 1, 2, 1][kk % 4]], 0.6);
+      }
       if (g) {
         const k = Math.floor(t / 0.45) % moves.length;
         const p = (t % 0.45) / 0.16;
@@ -231,8 +254,13 @@ export function renderGuide(host, instId, { onDone } = {}) {
     const song = { M };
     const spec = g ? { type: 'rascat', card: 'rg2', voicing: 'obert' } : { type: 'bass', rhythm: 'Q', roles: ['1', '5'] };
     const content = bars.map((bar, k) => ({ bar, part: partBar(spec, instId, bar, M, k), voice: [] }));
+    let lastHit = '';
     loopFn((sec) => {
       const abs = (sec * 1.5) % 16;
+      const ci = Math.floor(abs / 4) % 4;
+      const e = content[ci].part.filter((x) => x.beat <= abs % 4 + 1e-6).at(-1);
+      const id = e ? `${Math.floor(sec * 1.5 / 16)}:${ci}:${e.beat}` : '';
+      if (id && id !== lastHit) { lastHit = id; if (!e.ghost) { if (e.voicing) strum(inst, e.voicing.midi, { dir: e.dir, dur: 0.5, gain: 0.35 }); else if (e.notes) play(inst, e.notes[0], 0.6); } }
       const i = Math.floor(abs / 4);
       const bs = [];
       for (let j = 0; j < 7; j++) bs[j] = { seg: { mode: 'demo', k: j % 4 }, content: content[j % 4] };
@@ -243,10 +271,16 @@ export function renderGuide(host, instId, { onDone } = {}) {
 
   // 7 · cartes i diagrama: la línia de color recorre la carta
   function pageCards(el) {
-    const cards = g ? [['mb2', '● = cop'], ['rg2', '↓↑ negre = toca · gris = aire'], ['pm14', '1 3 5 8']] : [['mb2', '● = nota'], ['pm14', '1 3 5 8']];
+    const cards = g ? [['mb2', '● = cop'], ['rg2', '↓↑ negre = toca · gris = aire'], ['pm14', 'power: 1 · 5 · 8 — obert: les cordes que triïs']] : [['mb2', '● = nota'], ['pm14', '1 3 5 8']];
     el.innerHTML = lead('Les cartes de classe. La línia diu per on vas.') + `<div class="gcards">${cards.map(([id, t]) => `<div class="gcard"><div class="rcard"><img src="${cardById(id)?.img}" alt=""><i class="sweep"></i></div><p>${esc(t)}</p></div>`).join('')}</div>`;
     const sweeps = [...el.querySelectorAll('.sweep')];
-    loopFn((t) => { const x = 7 + 86 * ((t / 2.4) % 1); for (const sw of sweeps) sw.style.left = `${x}%`; });
+    let lastB = -1;
+    const vC = g ? guitarVoicing(parseChord('C')).midi : null;
+    loopFn((t) => {
+      const x = 7 + 86 * ((t / 2.4) % 1); for (const sw of sweeps) sw.style.left = `${x}%`;
+      const bt = Math.floor(t / 0.6);
+      if (bt !== lastB) { lastB = bt; if (bt % 4 !== 2) { if (g) strum(inst, vC, { dur: 0.5, gain: 0.35 }); else play(inst, inst.tuning[1] + 3, 0.5); } }
+    });
     if (g) {
       const v = guitarVoicing(parseChord('C'));
       const wrap = h(`<div class="gcols"><div class="gbox-diagram"></div><div>${lead('El diagrama és el mateix acord, dret.')}</div></div>`);
@@ -268,6 +302,7 @@ export function renderGuide(host, instId, { onDone } = {}) {
     loopFn((t) => {
       const beat = Math.floor(t / 0.55);
       const [mode, sym, w] = SEQ[Math.floor(beat / 4) % SEQ.length];
+      if (beat !== pageBadge.last) { pageBadge.last = beat; if (mode === 'count') tick(beat % 4 === 0); else if (mode === 'demo') { if (g) strum(inst, guitarVoicing(parseChord('G')).midi, { dur: 0.5, gain: 0.35 }); else play(inst, inst.tuning[0] + 3, 0.5); } else tick(false); }
       if (badge.dataset.mode !== mode) { badge.dataset.mode = mode; badge.textContent = sym; txt.textContent = w; }
       pul.forEach((p, i) => p.classList.toggle('on', i === beat % 4));
     });

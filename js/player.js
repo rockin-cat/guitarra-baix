@@ -2,7 +2,7 @@
 // i el metrònom, i diu a l'animació on som.
 
 import { audioContext, resumeAudio, loadSet, drum, click, tone, stopAll, busGain } from './audio.js';
-import { bandBar, clicksBar, BAND_SETS } from './band.js';
+import { bandBar, stylesFor, clicksBar, BAND_SETS } from './band.js';
 import { partBar, voiceBar } from './parts.js';
 import { INSTRUMENTS } from './fretboard.js';
 import { metre } from './theory.js';
@@ -12,6 +12,35 @@ import { metre } from './theory.js';
  *  { inst, bars (de parseProgression), metre, tempo, estil, part (spec), voice, extra(k) }
  * `content(k)` torna el compàs k de la progressió (amb repetició) ja calculat.
  */
+/**
+ * La base que va canviant (perquè la pràctica no sigui sempre igual):
+ *  volta 1 només bateria i baix, volta 2 s'hi afegeix el teclat, volta 3 tota la banda;
+ *  al final de cada volta la bateria fa un redoble; a partir de la volta 5 l'estil canvia cada dues voltes.
+ * Amb `o.dynamic === false` la base és sempre la mateixa.
+ */
+function dynamicBand(o, k, bar, M, without) {
+  const L = Math.max(1, o.bars.length);
+  const round = Math.floor(Math.max(0, k) / L);
+  const inBar = ((k % L) + L) % L;
+  let style = o.estil;
+  if (o.dynamic !== false && round >= 4 && style !== 'metronom') {
+    const pool = stylesFor(M.id).map((s) => s.id).filter((id) => id !== 'metronom' && id !== 'balada68' && id !== 'rock68' || M.id.endsWith('/8'));
+    if (pool.length > 1) { const i = pool.indexOf(style); style = pool[(Math.max(0, i) + Math.floor((round - 2) / 2)) % pool.length]; }
+  }
+  let out = bandBar(style, bar, M, without);
+  if (o.dynamic === false || style === 'metronom') return out;
+  if (round === 0) out = out.filter((e) => e.fam !== 'keys' && e.fam !== 'gtr');
+  else if (round === 1) out = out.filter((e) => e.fam !== 'gtr');
+  if (inBar === L - 1 && L > 1) {
+    // redoble al final de la volta
+    const B = M.beats;
+    out = out.filter((e) => !(e.inst === 'drum' && e.beat >= B - 1));
+    out.push(...[B - 1, B - 0.75, B - 0.5, B - 0.25].map((b, i) => ({ inst: 'drum', piece: i % 2 ? 'stick' : 'sn', beat: b, vel: 0.7 + i * 0.1 })));
+  }
+  if (inBar === 0 && round > 0) out.push({ inst: 'drum', piece: 'crash', beat: 0, vel: 0.8 });
+  return out;
+}
+
 export function makeSong(o) {
   const M = metre(o.metre);
   const cache = new Map();
@@ -23,7 +52,7 @@ export function makeSong(o) {
       const bar = o.bars[((k % o.bars.length) + o.bars.length) % o.bars.length];
       const c = {
         bar,
-        band: bandBar(o.estil, bar, M, song.family),
+        band: dynamicBand(o, k, bar, M, song.family),
         part: o.part ? partBar(o.part, o.inst, bar, M, k) : [],
         voice: voiceBar({ voice: o.voice }, bar, M, k),
       };

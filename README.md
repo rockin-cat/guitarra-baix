@@ -156,3 +156,10 @@ Amb un cable jack → USB (o l'ampli connectat per USB), el joc escolta la guita
 - Si encara no hi ha cançó, en tocar un nivell es tria **la cançó o la progressió d'acords** i s'entra de seguida al nivell (un sol clic a la llista).
 - Per canviar-la: el botó «🎵 cançó ✎» del pòster o la píndola de la barra de dalt; després es torna on eres.
 - **Escoltar és veure com es fa a la guitarra**: a 👂 (i a l'animació muda abans de començar) surt el mànec amb la púa, i al rascat les fletxes. Quan toques tu (▶), la roda i la carta amb la pilota.
+
+## Versió 32 · so, base que canvia i patrons melòdics
+- **Les animacions sonen**: a «Aprèn a llegir la pantalla» cada corda, trast, acord, cop de púa i rodona de carta sona (🔊/🔇 a la capçalera). La primera vegada que entres en un pas, l'exemple sona i es veu sol.
+- **Base que canvia** (⚙ Opcions): a cada volta la banda canvia: bateria i baix → amb teclat → tota la banda; redoble al final de cada volta i plat al començar-ne una; a partir de la 5a volta l'estil va rotant.
+- **Patrons melòdics (guitarra)**: amb power chords el dibuix es fa amb la forma (fonamental, quinta, octava). Amb acords oberts es trien tantes **cordes** com alçades té el dibuix (botons 6…1 al costat de ▶; per defecte 4·3 o 4·3·2) i el dibuix va per aquestes cordes; si en un acord una corda no sona, s'agafa la veïna. A l'escolta es veu el mànec amb les cordes triades il·luminades i la carta amb la pilota. La pilota segueix els punts de la carta melòdica (geometria del joc de teclat, `MELODIC_LAYOUT`).
+- Cartes de rascat: la pilota cau a cada fletxa que toca (posicions mesurades a les imatges). «Només mà dreta» ja no és el mode per defecte.
+- Diàleg de la guitarra: 🔊 tria de la sortida de so.
