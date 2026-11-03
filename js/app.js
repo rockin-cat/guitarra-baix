@@ -381,6 +381,31 @@ function renderSong(msg = '') {
 
 const songRow = (attr, id, title, sub, extra = '') => `<li><button type="button" class="link" ${attr}="${esc(id)}"><b>${esc(title)}</b><small>${esc(sub)}</small></button>${extra}</li>`;
 const songIndex = new Map();
+let songLevel = 0;
+let songPage = 0;
+
+/** Una llista sense barra de desplaçament: hi caben les que hi caben i la resta va en pàgines (‹ 1/3 ›). */
+function pagedList(box, head, items, empty = '') {
+  box.innerHTML = `${head}<ul class="songs paged"></ul><div class="pager" hidden><button type="button" class="icon-btn" data-pg="-1" aria-label="Anterior">‹</button><span></span><button type="button" class="icon-btn" data-pg="1" aria-label="Següent">›</button></div>`;
+  const ul = box.querySelector('ul');
+  const pager = box.querySelector('.pager');
+  if (!items.length) { ul.outerHTML = empty; return; }
+  ul.innerHTML = items[0];
+  const rowH = ul.firstElementChild.getBoundingClientRect().height || 40;
+  const free = box.clientHeight - (ul.getBoundingClientRect().top - box.getBoundingClientRect().top);
+  let per = Math.max(3, Math.floor(free / rowH));
+  if (items.length > per) { pager.hidden = false; per = Math.max(3, Math.floor((free - 40) / rowH)); }
+  const pages = Math.max(1, Math.ceil(items.length / per));
+  songPage = Math.min(songPage, pages - 1);
+  const draw = () => {
+    ul.innerHTML = items.slice(songPage * per, songPage * per + per).join('');
+    pager.querySelector('span').textContent = `${songPage + 1} / ${pages}`;
+    pager.querySelector('[data-pg="-1"]').disabled = songPage === 0;
+    pager.querySelector('[data-pg="1"]').disabled = songPage >= pages - 1;
+  };
+  pager.onclick = (e) => { const b = e.target.closest('[data-pg]'); if (!b) return; songPage = Math.max(0, Math.min(pages - 1, songPage + Number(b.dataset.pg))); draw(); };
+  draw();
+}
 
 async function renderSongTab() {
   const box = $('#song-list');
@@ -388,22 +413,22 @@ async function renderSongTab() {
   if (songTab === 'meves') {
     const mine = store.songs();
     for (const s of mine) songIndex.set(s.id, { ...s, font: 'meves' });
-    box.innerHTML = mine.length ? `<ul class="songs">${mine.map((s) => songRow('data-ksong', s.id, s.titol || 'Sense títol', `${s.metre} · ${s.prog.replace(/\[[^\]]*\]\s*/g, '').split('|').slice(0, 4).join('|')}`, `<button type="button" class="icon-btn" data-del="${s.id}" title="Esborra">🗑</button>`)).join('')}</ul>` : '<p class="muted small">Les cançons que escriguis surten aquí.</p>';
+    pagedList(box, '', mine.map((s) => songRow('data-ksong', s.id, s.titol || 'Sense títol', `${s.metre} · ${s.prog.replace(/\[[^\]]*\]\s*/g, '').split('|').slice(0, 4).join('|')}`, `<button type="button" class="icon-btn" data-del="${s.id}" title="Esborra">🗑</button>`)), '<p class="muted small">✎ —</p>');
   } else if (songTab === 'llibre') {
-    box.innerHTML = '<p class="muted small">Carregant…</p>';
+    box.innerHTML = '<p class="muted small">⏳</p>';
     const list = await songbook();
     if (songTab !== 'llibre') return;
     for (const s of list) songIndex.set(s.id, s);
-    const groups = [[0, 'Nivell 0'], [1, 'Nivell 1'], [2, 'Nivell 2'], [3, 'Nivell 3'], [null, 'Altres temes del Llibre']]
-      .map(([n, t]) => [t, list.filter((s) => (s.nivell ?? null) === n)]).filter(([, l]) => l.length);
-    box.innerHTML = `
-      ${groups.map(([t, l]) => `<h4>${esc(t)}</h4><ul class="songs">${l.map((s) => songRow('data-ksong', s.id, s.titol, `${s.artista} · ${s.metre} · ${s.tempo} bpm${s.baix?.length ? ' · 🎸 baix' : ''}`)).join('')}</ul>`).join('')}`;
+    const groups = [[0, '0'], [1, '1'], [2, '2'], [3, '3'], [null, '+']]
+      .map(([n, t]) => [n, t, list.filter((s) => (s.nivell ?? null) === n)]).filter(([, , l]) => l.length);
+    if (!groups.some(([n]) => n === songLevel)) songLevel = groups[0]?.[0] ?? 0;
+    const head = `<div class="lvl-chips" title="Nivell del Llibre">${groups.map(([n, t]) => `<button type="button" class="lvl-chip${n === songLevel ? ' on' : ''}" data-slevel="${n ?? 'x'}" title="${n == null ? 'Altres temes del Llibre' : `Nivell ${n}`}">${t}</button>`).join('')}</div>`;
+    const l = groups.find(([n]) => n === songLevel)?.[2] ?? [];
+    pagedList(box, head, l.map((s) => songRow('data-ksong', s.id, s.titol, `${s.artista} · ${s.tempo} bpm${s.baix?.length ? ' · 🎸' : ''}`)));
   } else if (songTab === 'teclat') {
     const own = keyboardSongs();
     for (const s of [...WHEELS, ...own]) songIndex.set(s.id, s);
-    box.innerHTML = `${own.length ? `<h4>Fetes o obertes al joc de teclat</h4><ul class="songs">${own.map((s) => songRow('data-ksong', s.id, s.titol, `${s.font === 'teclat-biblio' ? 'de la biblioteca · ' : ''}${s.metre}`)).join('')}</ul>`
-      : '<p class="muted small">🎹 —</p>'}
-      <h4>Rodes de cançons del joc de teclat</h4><ul class="songs">${WHEELS.map((s) => songRow('data-ksong', s.id, s.titol, s.artista)).join('')}</ul>`;
+    pagedList(box, '', [...own.map((s) => songRow('data-ksong', s.id, `🎹 ${s.titol}`, s.metre)), ...WHEELS.map((s) => songRow('data-ksong', s.id, s.titol, s.artista))]);
   } else {
     box.innerHTML = `<p class="muted small">🔑 Codi del professorat</p>
       <form class="row" id="lib-form"><input type="text" id="lib-code" placeholder="Codi del professorat" value="${esc(savedCode())}"><button class="btn btn-ghost">Obre</button></form><div id="lib-list"></div>`;
@@ -428,7 +453,7 @@ async function openLibrary(code, quiet = false) {
   try {
     libEntries = await listLibrary(code);
     saveCode(code);
-    box.innerHTML = libEntries.length ? `<ul class="songs">${libEntries.slice(0, 80).map((s) => `<li><button type="button" class="link" data-lib="${esc(s.id)}"><b>${esc(s.titol || s.nom)}</b><small>${esc(s.artista || '')}${(s.instruments ?? []).includes('baix') ? ' · 🎸 baix' : ''}</small></button></li>`).join('')}</ul>` : '<p class="muted small">La biblioteca és buida.</p>';
+    pagedList(box, '', libEntries.map((s) => `<li><button type="button" class="link" data-lib="${esc(s.id)}"><b>${esc(s.titol || s.nom)}</b><small>${esc(s.artista || '')}${(s.instruments ?? []).includes('baix') ? ' · 🎸' : ''}</small></button></li>`), '<p class="muted small">—</p>');
   } catch (e) {
     box.innerHTML = quiet ? '' : `<p class="err">${esc(errorText(e))}</p>`;
   }
@@ -455,7 +480,8 @@ function songClick(b) {
   else if (c === 'new') { editing = true; Object.assign(draft, { titol: '', artista: '', prog: '', baix: null, font: 'manual', metre: '4/4', tempo: 90, estil: 'pop' }); renderSong(); }
   else if (c === 'done') { editing = false; if (!draft.font || draft.font === 'treball') draft.font = 'manual'; renderSong(); }
   else if (c === 'cancel') { editing = false; renderSong(); }
-  else if (b.dataset.tab) { songTab = b.dataset.tab; for (const t of document.querySelectorAll('.songs-panel .tab')) t.classList.toggle('on', t.dataset.tab === songTab); renderSongTab(); }
+  else if (b.dataset.slevel) { songLevel = b.dataset.slevel === 'x' ? null : Number(b.dataset.slevel); songPage = 0; renderSongTab(); }
+  else if (b.dataset.tab) { songTab = b.dataset.tab; songPage = 0; for (const t of document.querySelectorAll('.songs-panel .tab')) t.classList.toggle('on', t.dataset.tab === songTab); renderSongTab(); }
   else if (b.dataset.ksong) { const s = songIndex.get(b.dataset.ksong); if (s) loadSong(s, s.font); }
   else if (b.dataset.del) { store.deleteSong(b.dataset.del); renderSongTab(); }
   else if (b.dataset.lib) loadFromLibrary(b.dataset.lib);
@@ -482,15 +508,14 @@ function renderSkills() {
     ${song && !nx ? pathEndHtml() : ''}
     <div class="panel banda">
       <h3>🎸 A la banda ja pots…</h3>
-      ${unlocked.length ? `<ul>${unlocked.map((x) => `<li><span class="pick-mini" style="--c:${i.color}">${x.level.n}</span>${esc(x.banda)}</li>`).join('')}</ul>` : '<p class="muted">Encara res: comença pel nivell 1 i, quan un pas et surti, marca «A prop» o «Ja ho tens!».</p>'}
+      ${unlocked.length ? `<ul>${unlocked.map((x) => `<li><span class="pick-mini" style="--c:${i.color}">${x.level.n}</span>${esc(x.banda)}</li>`).join('')}</ul>` : '<p class="muted">🌱 → 🙂 → 🤘</p>'}
     </div>
     <div class="skills-grid">
       ${levels.map((x) => `
-        <div class="skill ${x.done ? 'done' : x.unlocked ? 'on' : ''}" style="--c:${i.color}">
+        <div class="skill ${x.done ? 'done' : x.unlocked ? 'on' : ''}" style="--c:${i.color}" title="${esc(x.banda)}">
           <div class="skill-head"><span class="pick-badge">${x.level.n}</span><div><b>${esc(x.level.titol)}</b><small>${x.doneCount} de ${x.steps.length} passos</small></div><span class="skill-state">${x.done ? '✓' : x.unlocked ? '' : '🔒'}</span></div>
-          ${x.ok.length || x.almost.length ? `<ul class="skill-steps">${x.ok.map((p) => `<li>${pill('ok')} ${esc(p.titol)}</li>`).join('')}${x.almost.map((p) => `<li class="almost">${pill('gairebe')} ${esc(p.titol)}</li>`).join('')}</ul>` : ''}
+          <div class="skill-dots">${x.steps.map((p) => { const b = x.ok.includes(p) ? 'ok' : x.almost.includes(p) ? 'gairebe' : ''; return `<i class="ss-dot${b ? ` b-${b}` : ''}" title="${esc(p.titol)}"></i>`; }).join('')}</div>
           ${x.cards.length ? `<div class="skill-cards">${x.cards.map((id) => `<img src="${cardById(id)?.img}" alt="Carta ${esc(id)}" title="Carta ${esc(id)}">`).join('')}</div>` : ''}
-          <p class="skill-banda">${esc(x.banda)}</p>
         </div>`).join('')}
     </div>
     ${pathHtml(i.id)}`;
@@ -506,7 +531,7 @@ function stepTitle(instId, id) {
 function pathHtml(instId) {
   const n = decided().length;
   if (n < MIN_DECISIONS) {
-    return `<div class="panel cami-panel"><h3>Com tries el teu camí</h3><p class="muted">Després de cada intent tries què vols fer: baixar el tempo, posar o treure la guia, tornar a un pas anterior, passar al següent… Quan hagis pres unes quantes decisions (${n} de ${MIN_DECISIONS}), aquí veuràs quines t'han funcionat.</p></div>`;
+    return '';
   }
   const last = lastDecisions((id) => stepTitle(instId, id));
   return `<div class="panel cami-panel"><h3>Com tries el teu camí</h3>

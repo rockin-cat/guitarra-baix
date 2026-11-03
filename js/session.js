@@ -832,7 +832,7 @@ function drawHand(st, beat, chord) {
 
 // ---- L'ajuda que es retira --------------------------------------------------------------------------------
 
-const HELP_NOTES = ['', 'Ara la pista es va apagant…', 'Gairebé sense ajuda: escolta la banda.', 'Ara sol: només el pols.'];
+const HELP_NOTES = ['', 'Ara el compàs es va apagant…', 'Gairebé sense ajuda: escolta la banda.', 'Ara sol: només el pols.'];
 const HELP_NOTES_HAND = ['', 'Les fletxes ja no s\'encenen: segueix el pols.', 'Les fletxes s\'esvaeixen…', 'Ara sol: només el pols.'];
 
 function setHelp(st, level) {
@@ -933,8 +933,10 @@ function frame(st) {
       const nxt = nextChange(st, pos, e);
       const lead = Math.min(store.settings().nextLead ?? 2, M.pulses) * M.pulseLen;
       st.neck.show({ mode: 'chord', cur: e, next: nxt?.e ?? next, showNext: !!nxt && nxt.dist <= lead + 1e-6, label: e.chord });
+      st.nextChord = nxt && nxt.dist <= lead + 1e-6 ? nxt.e.chord : null;
     } else {
       st.neck.show({ mode: 'notes', cur: e, next, showNext: true, label: e.chord ?? '' });
+      st.nextChord = null;
       if (cur?.tech) st.neck.techPhase(cur, (pos.abs - cur.abs) / cur.dur);
     }
   }
@@ -966,7 +968,7 @@ function frame(st) {
     const sg = st.plan?.(j);
     if (sg) bars[j] = { seg: sg, content: sg.mode === 'count' ? null : st.song.content(sg.k) };
   }
-  st.lane.draw({ ...pos, bars }, { voice: !!st.step.voice, marks: st.marks });
+  st.lane.draw({ ...pos, bars }, { voice: !!st.step.voice, marks: st.marks, prog: st.bars });
 }
 
 /** El primer esdeveniment amb un acord diferent de l'actual (pot ser d'aquí a més d'un compàs). */
@@ -1004,18 +1006,32 @@ function improvView(st, chord) {
   return { mode: 'scale', ctx, ctxKey: `${chord.symbol}:${st.step.mode}`, label: `${chord.symbol} · ${st.step.mode === 'chord' ? 'notes de l\'acord' : `pentatònica de ${pcName(st.key.root)}${st.key.minor ? ' menor' : ' major'}`}` };
 }
 
+/** Les posicions (acords diferents) de la cançó, en l'ordre en què surten, amb la digitació. */
+function songPositions(st) {
+  if (st.posKey === st.song) return st.positions;
+  st.posKey = st.song;
+  const seen = new Map();
+  for (let k = 0; k < st.bars.length; k++) {
+    for (const e of st.song.content(k).part) if (e.chord && e.voicing && !seen.has(e.chord)) seen.set(e.chord, e.voicing);
+  }
+  if (!seen.size) for (const b of st.bars) for (const sg of b) if (!seen.has(sg.chord.symbol)) seen.set(sg.chord.symbol, null);
+  st.positions = [...seen].map(([chord, voicing]) => ({ chord, voicing }));
+  return st.positions;
+}
+
 function updateSide(st, content, pos, ev) {
   const host = st.el('card');
   const M = st.M;
   const step = st.step;
-  let key;
   let cards = [];
   if (st.kind === 'compose' && content) {
     const b = st.compose[(pos.bar?.seg?.k ?? 0) % st.compose.length];
     cards = [b.rhythm, b.melodic];
   } else if (step.carta) cards = [step.carta];
-  const showBoxes = st.inst.id === 'guitarra' && ev?.voicing && st.kind !== 'improv';
-  key = JSON.stringify([cards, showBoxes ? ev.chord : null, step.genLine]);
+  const showPos = st.kind !== 'improv' && st.kind !== 'compose';
+  const positions = showPos ? songPositions(st) : [];
+  const boxes = st.inst.id === 'guitarra' && positions.some((p) => p.voicing);
+  const key = JSON.stringify([cards, positions.map((p) => p.chord), boxes, step.genLine]);
   if (host.dataset.key !== key) {
     host.dataset.key = key;
     host.innerHTML = '';
@@ -1025,14 +1041,27 @@ function updateSide(st, content, pos, ev) {
       if (!c) continue;
       host.append(h(`<div class="rcard"><img src="${c.img}" alt="Carta ${esc(id)}"><i class="sweep"></i></div>`));
     }
-    if (showBoxes) {
-      const wrap = h('<div class="boxes"></div>');
-      wrap.append(chordBox(ev.voicing, { title: ev.chord, color: st.inst.color }));
+    if (positions.length) {
+      const wrap = h(`<div class="positions${boxes ? '' : ' names'}" style="--n:${positions.length}"><div class="pos-head" title="Posicions diferents en aquesta cançó">🖐 <b>${positions.length}</b></div><div class="pos-grid"></div></div>`);
+      const grid = wrap.querySelector('.pos-grid');
+      for (const p of positions) {
+        const cell = h(`<div class="pos-cell" data-chord="${esc(p.chord)}"></div>`);
+        if (boxes && p.voicing) cell.append(chordBox(p.voicing, { title: p.chord, color: st.inst.color, small: true }));
+        else cell.textContent = p.chord;
+        grid.append(cell);
+      }
       host.append(wrap);
     }
   }
   const x = content ? 7 + 86 * (pos.beat / M.beats) : -10;
   for (const s of host.querySelectorAll('.sweep')) s.style.left = `${x}%`;
+  // la posició d'ara encesa i la que ve, marcada
+  const now = ev?.chord ?? (content ? chordAtBeat(content.bar, pos.beat, M).symbol : null);
+  const nxt = st.nextChord ?? null;
+  for (const cell of host.querySelectorAll('.pos-cell')) {
+    cell.classList.toggle('cur', cell.dataset.chord === now);
+    cell.classList.toggle('next', !!nxt && cell.dataset.chord === nxt && nxt !== now);
+  }
 }
 
 function previewPos(st) {
@@ -1073,7 +1102,7 @@ function drawIdleLane(st, pos) {
   const plan = (i) => (i === 0 ? { mode: 'count' } : { mode: 'demo', k: i - 1 });
   const bars = [];
   for (let i = 0; i < 4; i++) { const seg = plan(i); bars[i] = { seg, content: seg.mode === 'count' ? null : st.song.content(seg.k) }; }
-  st.lane.draw({ i: pos?.i ?? 0, abs: pos ? pos.abs : 0.6 * st.M.beats, beat: 0, bars, song: st.song }, { voice: !!st.step.voice });
+  st.lane.draw({ i: 1, abs: st.M.beats, beat: 0, bars, song: st.song }, { voice: !!st.step.voice, prog: st.bars });
 }
 
 // ---- Corda a corda (comprovar un acord) -----------------------------------------------------------------

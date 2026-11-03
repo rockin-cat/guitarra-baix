@@ -125,3 +125,8 @@ Amb un cable jack → USB (o l'ampli connectat per USB), el joc escolta la guita
 - Triar un nivell al full de ruta porta directament a tocar el primer pas pendent; els subnivells són punts a la capçalera de la mateixa pantalla (sense menú intermedi).
 - Abans de tocar, el pas es veu animat en silenci (👀) com a exemple.
 - «Aprèn a llegir la pantalla»: animacions i etiquetes curtes en lloc de paràgrafs.
+
+## Versió 26 · res no es desplaça
+- La pista que corria de dreta a esquerra ara és un mapa quiet: a dalt, **la roda** (els compassos de la part on ets, amb el d'ara omplint-se); a sota, **el compàs d'ara**, fix, amb el patró sencer i una línia groga que el recorre.
+- Al lateral, **totes les posicions de la cançó** (🖐 X): l'actual encesa, la que ve marcada amb línia discontínua.
+- Cap pantalla té barra de desplaçament: les llistes de cançons van per pàgines (‹ 1/3 ›) i per nivell (0 · 1 · 2 · 3 · +); «Què sé fer» fa servir punts en lloc de llistes.

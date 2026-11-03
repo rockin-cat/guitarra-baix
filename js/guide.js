@@ -44,7 +44,7 @@ export function renderGuide(host, instId, { onDone } = {}) {
     { t: 'Els trasts', build: pageFrets },
     { t: g ? 'Els dits i els acords' : 'Els números del baix', build: pageFingers },
     { t: g ? 'La mà dreta: la púa' : 'La mà dreta', build: pagePick },
-    { t: 'La pista', build: pageLane },
+    { t: 'La roda i el compàs', build: pageLane },
     { t: 'Les cartes i el diagrama', build: pageCards },
     { t: 'El marcador: quan toques', build: pageBadge },
   ];
@@ -221,10 +221,10 @@ export function renderGuide(host, instId, { onDone } = {}) {
 
   // 6 · la pista
   function pageLane(el) {
-    el.innerHTML = lead('Toca quan arriba a la línia groga.');
+    el.innerHTML = lead('La roda: on ets. El compàs: quiet, avança la línia groga.');
     const st = h('<div class="stage gstage"><canvas class="lane"></canvas></div>');
     el.append(st);
-    el.insertAdjacentHTML('beforeend', tags([['<span class="lg line"></span>', 'ara'], ['<span class="lg num">1 2 3 4</span>', 'temps'], ['<span class="lg chord">G</span>', 'acord'], ['<span class="lg tag">A</span>', 'part'], ...(g ? [['<span class="lg arrow">↓</span>', 'cop'], ['<span class="lg arrow ghost">↓</span>', 'a l\'aire']] : []), ['<span class="lg dot">5</span>', g ? 'nota' : 'nota de l\'acord'], ['<span class="lg dot sm">h2</span>', 'h · p · / · ↗']]));
+    el.insertAdjacentHTML('beforeend', tags([['<span class="lg chord">G D Em C</span>', 'la roda'], ['<span class="lg line"></span>', 'ara'], ['<span class="lg num">1 2 3 4</span>', 'temps'], ['<span class="lg tag">A</span>', 'part'], ...(g ? [['<span class="lg arrow">↓</span>', 'cop'], ['<span class="lg arrow ghost">↓</span>', 'a l\'aire']] : []), ['<span class="lg dot">5</span>', g ? 'nota' : 'nota de l\'acord'], ['<span class="lg dot sm">h2</span>', 'h · p · / · ↗']]));
     const lane = createLane(st.querySelector('canvas'), { color: inst.color });
     const M = metre('4/4');
     const { bars } = parseProgression('[A] G | D | Em | C');
@@ -236,7 +236,7 @@ export function renderGuide(host, instId, { onDone } = {}) {
       const i = Math.floor(abs / 4);
       const bs = [];
       for (let j = 0; j < 7; j++) bs[j] = { seg: { mode: 'demo', k: j % 4 }, content: content[j % 4] };
-      lane.draw({ i, abs, beat: abs % 4, bars: bs, song });
+      lane.draw({ i, abs, beat: abs % 4, bars: bs, song }, { prog: bars });
     });
     cleanup.push(() => lane.destroy());
   }

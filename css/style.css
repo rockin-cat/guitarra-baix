@@ -527,7 +527,7 @@ main { grid-area: main; min-height: 0; min-width: 0; position: relative; display
 .skills-top { padding: 10px 16px; }
 @media (max-width: 1100px) { .skills-grid { grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); } }
 .player-ico { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 2; vertical-align: -3px; margin-right: 6px; }
-.lane { height: clamp(96px, calc(100dvh - 620px), 150px); }
+.lane { height: clamp(124px, calc(100dvh - 600px), 172px); }
 @media (max-height: 720px) and (min-width: 761px) {
   .stage { padding: 8px 12px 10px; }
   .stage-top { min-height: 36px; }
@@ -752,3 +752,38 @@ details.tips[open] summary { opacity: .6; }
 .ss-dot.b-gairebe { background: #fff6d6; border-color: #f0b400; color: #6b4f00; }
 .ss-dot.cur { border-color: var(--accent); background: var(--accent); color: #111; transform: scale(1.1); }
 .ss-dot:hover { border-color: var(--tinta); }
+
+/* v26 · les posicions de la cançó (totes a la vista) */
+.positions { background: #fff; border: 1px solid var(--line, #e5e0da); border-radius: 12px; padding: 8px 10px 10px; }
+.pos-head { font-size: 15px; color: #6b6460; margin-bottom: 4px; }
+.pos-head b { font-size: 18px; color: #221f20; }
+.pos-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(72px, 1fr)); gap: 6px; }
+.positions:not(.names) .pos-grid { grid-template-columns: repeat(min(var(--n), 3), 1fr); }
+.pos-cell { border: 2px solid transparent; border-radius: 10px; opacity: .42; transition: opacity .25s, border-color .25s, transform .25s; display: flex; justify-content: center; align-items: center; }
+.pos-cell svg { width: 100%; height: auto; max-height: 118px; }
+.positions.names .pos-cell { font: 700 18px Ubuntu, sans-serif; padding: 8px 0; background: #f4f1ec; }
+.pos-cell.cur { opacity: 1; border-color: var(--accent, #f97316); transform: scale(1.04); }
+.pos-cell.next { opacity: .85; border-color: var(--accent, #f97316); border-style: dashed; }
+@media (prefers-reduced-motion: reduce) { .pos-cell { transition: none; } }
+.card-host .positions { width: 100%; }
+
+/* v26 · cap barra de desplaçament: llistes en pàgines, tot cap a la pantalla */
+.side { overflow: hidden; }
+.guide-body { overflow: hidden; }
+.guide-body svg.hand { max-height: min(150px, 17vh); width: auto; }
+.positions:not(.names) .pos-grid { grid-template-columns: repeat(min(var(--n), 4), 1fr); gap: 4px; }
+.pos-cell svg { max-height: 96px; }
+#song-list { overflow: hidden; display: flex; flex-direction: column; margin-right: 0; padding-right: 0; }
+#song-list .songs.paged { flex: none; }
+.pager { display: flex; align-items: center; justify-content: center; gap: 14px; margin-top: auto; padding-top: 6px; font-weight: 700; color: var(--gris); }
+.pager .icon-btn { font-size: 22px; width: 40px; height: 34px; }
+.pager .icon-btn:disabled { opacity: .3; }
+.lvl-chips { display: flex; gap: 6px; margin: 2px 0 6px; }
+.lvl-chip { width: 36px; height: 36px; border-radius: 50%; border: 2px solid var(--linia); background: #fff; font: 700 15px Ubuntu, sans-serif; cursor: pointer; color: var(--tinta); }
+.lvl-chip.on { background: var(--tinta); color: var(--groc); border-color: var(--tinta); }
+.skill-dots { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 8px; }
+.skill-dots .ss-dot { width: 14px; height: 14px; min-width: 0; padding: 0; border-radius: 50%; border: 2px solid var(--linia); background: #fff; display: inline-block; }
+.skill-dots .ss-dot.b-ok { background: #22a35a; border-color: #22a35a; }
+.skill-dots .ss-dot.b-gairebe { background: #f5b301; border-color: #f5b301; }
+#v-skills { overflow: hidden; }
+.lg.chord { padding: 0 8px; }

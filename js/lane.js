@@ -1,8 +1,23 @@
-// La pista: el que ve, de dreta a esquerra, fins a la línia de «ara».
-// Fletxes per als rascats (grises si la mà passa sense tocar), bombolles per a les notes,
-// el nom de l'acord a cada canvi i la línia de veu quan s'ha de cantar.
+// El mapa (v26): res no es desplaça.
+//  · A dalt, la roda: tots els compassos del tros de la cançó on ets, amb el compàs d'ara encès
+//    i omplint-se a mesura que avança (el general).
+//  · A sota, el compàs d'ara, quiet: el patró sencer (fletxes o notes) i un cursor que el recorre
+//    (el concret). Com que el patró es repeteix, el dibuix no canvia: només avança el cursor.
 
-const MODE_TEXT = { count: '⏱', demo: '👂', play: '🎸 TU', question: '👂 ?', answer: '🎸 TU' };
+const MODE_TEXT = { count: '⏱', demo: '👂', play: '🎸 TU', question: '👂 ?', answer: '🎸 TU', preview: '👀' };
+
+/** El tros de la roda que es veu: la part de la cançó (A, B…) o blocs de 8 compassos. */
+export function wheelWindow(prog, k) {
+  const L = prog.length;
+  const j = ((k % L) + L) % L;
+  const starts = [0];
+  prog.forEach((b, i) => { if (i > 0 && b.part) starts.push(i); });
+  let a = 0;
+  for (const s0 of starts) if (s0 <= j) a = s0;
+  let b = starts.find((s0) => s0 > j) ?? L;
+  if (b - a > 8) { a += Math.floor((j - a) / 8) * 8; b = Math.min(b, a + 8); }
+  return { a, b, j };
+}
 
 export function createLane(canvas, { color = '#f97316' } = {}) {
   const ctx2 = canvas.getContext('2d');
@@ -21,7 +36,7 @@ export function createLane(canvas, { color = '#f97316' } = {}) {
   const ro = new ResizeObserver(fit);
   ro.observe(canvas);
 
-  function draw(pos, { voice = false, marks = null } = {}) {
+  function draw(pos, { voice = false, marks = null, prog = null } = {}) {
     const c = ctx2;
     c.setTransform(dpr, 0, 0, dpr, 0, 0);
     c.clearRect(0, 0, w, h);
@@ -30,114 +45,164 @@ export function createLane(canvas, { color = '#f97316' } = {}) {
     if (!pos) return;
     const { M } = pos.song;
     const B = M.beats;
-    const ppb = w / (B * 2.4); // píxels per negra: hi caben 2,4 compassos
-    const nowX = Math.round(w * 0.2);
-    const X = (abs) => nowX + (abs - pos.abs) * ppb;
-    const rowChord = 20;
-    const rowEv = voice ? h * 0.5 : h * 0.6;
-    const rowVoice = h - 20;
+    const bar = pos.bars[pos.i];
+    const mode = bar?.seg?.mode;
+    const content = bar?.content;
+    // en el compte enrere, el compàs que ve
+    let shown = content;
+    let k = bar?.seg?.k;
+    let countIn = false;
+    if (!content) {
+      countIn = true;
+      for (let j = pos.i + 1; j <= pos.i + 2; j++) {
+        const nb = pos.bars[j];
+        if (nb?.content) { shown = nb.content; k = nb.seg.k; break; }
+      }
+    }
+    const frac = countIn ? 0 : Math.max(0, Math.min(1, pos.beat / B));
 
-    const first = Math.max(0, pos.i - 1);
-    for (let i = first; i <= pos.i + 3; i++) {
-      const bar = pos.bars[i];
-      const x0 = X(i * B);
-      if (x0 > w + 10) break;
-      // fons del compàs segons el moment
-      const mode = bar?.seg?.mode;
-      c.fillStyle = mode === 'play' || mode === 'answer' ? 'rgba(255,255,255,0.035)' : mode === 'count' ? 'rgba(253,190,16,0.06)' : 'rgba(0,0,0,0)';
-      c.fillRect(x0, 0, B * ppb, h);
-      // línies de pulsació i subdivisió
-      for (let b = 0; b < B; b += M.pulseLen / M.sub) {
-        const x = X(i * B + b);
-        const strong = Math.abs(b % M.pulseLen) < 1e-6;
-        c.strokeStyle = b === 0 ? 'rgba(255,255,255,0.45)' : strong ? 'rgba(255,255,255,0.16)' : 'rgba(255,255,255,0.06)';
-        c.lineWidth = b === 0 ? 2 : 1;
-        c.beginPath(); c.moveTo(x, 30); c.lineTo(x, h); c.stroke();
-        if (strong) {
-          c.fillStyle = 'rgba(255,255,255,0.28)';
-          c.font = '600 11px Ubuntu, sans-serif';
-          c.fillText(String(Math.round(b / M.pulseLen) + 1), x + 3, 42);
-        }
-      }
-      if (!bar) continue;
-      if (mode && MODE_TEXT[mode]) {
-        c.fillStyle = mode === 'play' || mode === 'answer' ? color : 'rgba(255,255,255,0.45)';
-        c.font = '700 10px Ubuntu, sans-serif';
-        c.fillText(MODE_TEXT[mode], x0 + 4, h - 6 - (voice ? 26 : 0));
-      }
-      const content = bar.content;
-      if (!content) {
-        // compte enrere
-        c.fillStyle = 'rgba(253,190,16,0.8)';
-        c.font = '700 22px Ubuntu, sans-serif';
-        for (let p = 0; p < M.pulses; p++) c.fillText(String(p + 1), X(i * B + p * M.pulseLen) + 6, rowEv + 8);
-        continue;
-      }
-      // nom de la part (estructura de la cançó)
-      if (content.bar.part) {
-        c.fillStyle = '#fdbe10';
-        c.font = '700 11px Ubuntu, sans-serif';
-        const tw = c.measureText(content.bar.part.toUpperCase()).width;
-        c.fillRect(x0 + 2, 2, tw + 10, 15);
-        c.fillStyle = '#111';
-        c.fillText(content.bar.part.toUpperCase(), x0 + 7, 13);
-      }
-      // acords
-      for (const seg of content.bar) {
-        const x = X(i * B + seg.start * B);
-        c.fillStyle = '#fff';
-        c.font = '700 16px Ubuntu, sans-serif';
-        c.fillText(seg.chord.symbol, x + 6, content.bar.part && seg.start === 0 ? rowChord + 10 : rowChord);
-      }
-      // esdeveniments de la part
-      const showPart = mode !== 'answer' || false;
-      if (showPart) {
-        for (const e of content.part) {
-          const x = X(i * B + e.beat);
-          const len = Math.max(6, e.dur * ppb - 4);
-          const past = i * B + e.beat + e.dur < pos.abs;
-          c.globalAlpha = past ? 0.35 : 1;
-          if (e.kind === 'strum') arrow(c, x, rowEv, e.dir, e.ghost, color, len);
-          else bubble(c, x, rowEv, e.label, color, len);
+    // ---- la roda --------------------------------------------------------------
+    const wheelH = prog ? 40 : 0;
+    if (prog && k != null) {
+      const { a, b, j } = wheelWindow(prog, k);
+      const n = b - a;
+      const gap = 6;
+      const left = 8;
+      const cw = (w - left * 2 - gap * (n - 1)) / n;
+      for (let t = 0; t < n; t++) {
+        const idx = a + t;
+        const x = left + t * (cw + gap);
+        const cur = idx === j;
+        const past = idx < j;
+        c.fillStyle = cur ? 'rgba(255,255,255,0.14)' : 'rgba(255,255,255,0.05)';
+        rr(c, x, 6, cw, 28, 7); c.fill();
+        if (cur && !countIn) {
+          c.fillStyle = color;
+          c.globalAlpha = 0.85;
+          rr(c, x, 6, Math.max(8, cw * frac), 28, 7); c.fill();
           c.globalAlpha = 1;
         }
-      }
-      if (voice) {
-        for (const v of content.voice) {
-          const x = X(i * B + v.beat);
-          c.fillStyle = v.speak ? '#fdbe10' : '#9ad1ff';
-          c.font = `${v.speak ? 700 : 600} 15px Ubuntu, sans-serif`;
-          c.fillText(v.text, x + 2, rowVoice);
-          if (v.sing) { c.fillStyle = 'rgba(154,209,255,0.25)'; c.fillRect(x, rowVoice + 5, Math.max(4, v.dur * ppb - 4), 3); }
+        if (cur) { c.strokeStyle = countIn ? '#fdbe10' : color; c.lineWidth = 2; rr(c, x, 6, cw, 28, 7); c.stroke(); }
+        const names = prog[idx].map((sg) => sg.chord.symbol).join(' ');
+        c.fillStyle = cur ? '#fff' : past ? 'rgba(255,255,255,0.4)' : 'rgba(255,255,255,0.75)';
+        c.font = `700 ${cw < 60 ? 12 : 15}px Ubuntu, sans-serif`;
+        c.textAlign = 'center';
+        c.fillText(names, x + cw / 2, 25.5, cw - 8);
+        c.textAlign = 'left';
+        if (prog[idx].part && t === 0 && cw > 70) {
+          c.fillStyle = '#fdbe10';
+          c.font = '700 10px Ubuntu, sans-serif';
+          c.fillText(prog[idx].part.toUpperCase().slice(0, 10), x + 7, 24);
         }
       }
     }
-    // el que ha sentit el joc: un anell de color al cop que tocava i un punt on has tocat tu
-    if (marks?.length) {
+
+    // ---- el compàs d'ara, quiet ---------------------------------------------------
+    const top = wheelH + 6;
+    const left = 16;
+    const right = w - 16;
+    const ppb = (right - left) / B;
+    const X = (beat) => left + beat * ppb;
+    const rowEv = voice ? top + (h - top) * 0.4 : top + (h - top) * 0.52;
+    const rowVoice = h - 12;
+    c.fillStyle = mode === 'play' || mode === 'answer' ? 'rgba(255,255,255,0.035)' : 'rgba(0,0,0,0)';
+    c.fillRect(left, top, right - left, h - top);
+    for (let b = 0; b <= B + 1e-6; b += M.pulseLen / M.sub) {
+      const x = X(b);
+      const strong = Math.abs(b % M.pulseLen) < 1e-6;
+      c.strokeStyle = b === 0 || b >= B - 1e-6 ? 'rgba(255,255,255,0.45)' : strong ? 'rgba(255,255,255,0.16)' : 'rgba(255,255,255,0.06)';
+      c.lineWidth = b === 0 || b >= B - 1e-6 ? 2 : 1;
+      c.beginPath(); c.moveTo(x, top); c.lineTo(x, h); c.stroke();
+      if (strong && b < B - 1e-6) {
+        const p = Math.round(b / M.pulseLen);
+        const on = !countIn ? Math.floor(pos.beat / M.pulseLen) === p : false;
+        c.fillStyle = on ? '#fdbe10' : 'rgba(255,255,255,0.3)';
+        c.font = '700 12px Ubuntu, sans-serif';
+        c.fillText(String(p + 1), x + 4, top + 13);
+      }
+    }
+    if (mode && MODE_TEXT[mode]) {
+      c.fillStyle = mode === 'play' || mode === 'answer' ? color : 'rgba(255,255,255,0.45)';
+      c.font = '700 11px Ubuntu, sans-serif';
+      c.textAlign = 'right';
+      c.fillText(MODE_TEXT[mode], right - 4, top + 13);
+      c.textAlign = 'left';
+    }
+    if (countIn) {
+      // compte enrere: els números grossos i, transparent, el patró que ve
+      const pulse = Math.floor(pos.beat / M.pulseLen);
+      for (let p = 0; p < M.pulses; p++) {
+        c.fillStyle = p === pulse ? '#fdbe10' : 'rgba(253,190,16,0.35)';
+        c.font = `700 ${p === pulse ? 30 : 22}px Ubuntu, sans-serif`;
+        c.fillText(String(p + 1), X(p * M.pulseLen) + ppb * M.pulseLen * 0.4, rowEv + 10);
+      }
+    }
+    if (shown) {
+      c.globalAlpha = countIn ? 0.22 : 1;
+      // acords dins del compàs (si n'hi ha més d'un)
+      if (shown.bar.length > 1) {
+        for (const sg of shown.bar) {
+          c.fillStyle = '#fff';
+          c.font = '700 13px Ubuntu, sans-serif';
+          c.fillText(sg.chord.symbol, X(sg.start * B) + 22, top + 13);
+        }
+      }
+      for (const e of shown.part) {
+        const x = X(e.beat);
+        const len = Math.max(6, e.dur * ppb - 4);
+        const done = !countIn && e.beat + e.dur <= pos.beat + 0.02;
+        const now = !countIn && e.beat <= pos.beat + 0.02 && pos.beat < e.beat + e.dur;
+        if (!countIn) c.globalAlpha = done ? 0.4 : 1;
+        if (now) { c.fillStyle = 'rgba(253,190,16,0.16)'; c.fillRect(x, top + 18, Math.max(18, e.dur * ppb), h - top - 18); }
+        if (e.kind === 'strum') arrow(c, x, rowEv, e.dir, e.ghost, color, len);
+        else bubble(c, x, rowEv, e.label, color, len);
+      }
+      c.globalAlpha = countIn ? 0.22 : 1;
+      if (voice) {
+        for (const v of shown.voice) {
+          const x = X(v.beat);
+          c.fillStyle = v.speak ? '#fdbe10' : '#9ad1ff';
+          c.font = `${v.speak ? 700 : 600} 15px Ubuntu, sans-serif`;
+          c.fillText(v.text, x + 2, rowVoice);
+          if (v.sing) { c.fillStyle = 'rgba(154,209,255,0.25)'; c.fillRect(x, rowVoice + 4, Math.max(4, v.dur * ppb - 4), 3); }
+        }
+      }
+      c.globalAlpha = 1;
+    }
+    // el que ha sentit el joc en aquest compàs
+    if (marks?.length && !countIn) {
       const COL = { ok: '#44d17a', mid: '#ffb347', bad: '#ff5a5a' };
+      const a0 = pos.i * B;
       for (const m of marks) {
-        const x = X(m.abs);
-        if (x < -20 || x > w + 20) continue;
+        if (m.abs < a0 - 0.05 || m.abs > a0 + B) continue;
+        const x = X(m.abs - a0);
         c.strokeStyle = c.fillStyle = COL[m.cls] ?? '#fff';
         if (m.ring) {
           c.lineWidth = 3;
           c.beginPath(); c.arc(x + 8, rowEv, 21, 0, Math.PI * 2); c.stroke();
         } else {
           c.beginPath(); c.arc(x, rowEv + 30, 5, 0, Math.PI * 2); c.fill();
-          c.lineWidth = 2;
-          c.beginPath(); c.moveTo(x, rowEv + 22); c.lineTo(x, rowEv + 38); c.stroke();
         }
       }
     }
-    // la línia d'ara
-    c.strokeStyle = '#fdbe10';
-    c.lineWidth = 3;
-    c.beginPath(); c.moveTo(nowX, 26); c.lineTo(nowX, h); c.stroke();
-    c.fillStyle = '#fdbe10';
-    c.beginPath(); c.moveTo(nowX - 7, 26); c.lineTo(nowX + 7, 26); c.lineTo(nowX, 34); c.fill();
+    // el cursor
+    if (!countIn) {
+      const x = X(pos.beat);
+      c.strokeStyle = '#fdbe10';
+      c.lineWidth = 3;
+      c.beginPath(); c.moveTo(x, top + 18); c.lineTo(x, h); c.stroke();
+      c.fillStyle = '#fdbe10';
+      c.beginPath(); c.moveTo(x - 7, top + 16); c.lineTo(x + 7, top + 16); c.lineTo(x, top + 24); c.fill();
+    }
   }
 
   return { draw, fit, destroy: () => ro.disconnect() };
+}
+
+function rr(c, x, y, w, h, r) {
+  c.beginPath();
+  c.moveTo(x + r, y); c.arcTo(x + w, y, x + w, y + h, r); c.arcTo(x + w, y + h, x, y + h, r);
+  c.arcTo(x, y + h, x, y, r); c.arcTo(x, y, x + w, y, r); c.closePath();
 }
 
 function arrow(c, x, y, dir, ghost, color, len) {
