@@ -46,6 +46,7 @@ export async function devices() {
 export async function start(deviceId = settings().deviceId) {
   stop();
   await resumeAudio();
+  await applyOutput();
   const ctx = audioContext();
   const stream = await navigator.mediaDevices.getUserMedia({
     audio: { deviceId: deviceId ? { exact: deviceId } : undefined, echoCancellation: false, noiseSuppression: false, autoGainControl: false, channelCount: { ideal: 2 } },
@@ -293,6 +294,19 @@ export async function calibrate(onTick) {
 const NOTE_NAMES = ['Do', 'Do♯', 'Re', 'Mi♭', 'Mi', 'Fa', 'Fa♯', 'Sol', 'La♭', 'La', 'Si♭', 'Si'];
 export const noteName = (m) => `${NOTE_NAMES[((Math.round(m) % 12) + 12) % 12]}`;
 
+/** Per on surt el so (amb un cable USB, el sistema a vegades hi envia el so i no se sent res). */
+export async function applyOutput() {
+  const ctx = audioContext();
+  const id = settings().outId ?? '';
+  if (!ctx.setSinkId) return;
+  try { if ((ctx.sinkId ?? '') !== id) await ctx.setSinkId(id); } catch { /* el dispositiu ja no hi és */ }
+}
+async function testSound() {
+  await resumeAudio();
+  const t = audioContext().currentTime + 0.05;
+  for (let i = 0; i < 4; i++) click(t + i * 0.3, i === 0);
+}
+
 /** Obre el diàleg. onChange(on) quan s'encén o s'apaga l'escolta. */
 export function openDialog({ onChange, focus = null } = {}) {
   let dlg = document.getElementById('listen-dlg');
@@ -307,6 +321,8 @@ export function openDialog({ onChange, focus = null } = {}) {
     <form method="dialog">
       <h2>La teva guitarra</h2>
       <p class="muted small">🔌 Cable jack → USB (o l'ampli per USB).</p>
+      <div class="ld-out row"><b>🔊</b><select id="ld-out" title="Per on surt el so del joc"><option value="">Sortida per defecte</option></select><button type="button" class="btn btn-ghost btn-small" id="ld-test">🔊 Prova</button></div>
+      <p class="muted small" id="ld-out-tip">No sents la banda? Amb el cable USB connectat, l'ordinador pot enviar el so al cable: tria aquí els auriculars o els altaveus.</p>
       <ol class="ld-steps">
         <li>Connecta el cable a l'ordinador i tria'l aquí:
           <div class="row"><select id="ld-dev"><option value="">Entrada per defecte</option></select><button type="button" class="btn btn-ghost btn-small" id="ld-on">Escolta</button></div></li>
@@ -344,11 +360,24 @@ export function openDialog({ onChange, focus = null } = {}) {
       sel.value = list.some((d) => d.deviceId === s.deviceId) ? s.deviceId : '';
     } catch { /* sense permís encara */ }
   };
+  const fillOut = async () => {
+    const sel = $('ld-out');
+    if (!('setSinkId' in AudioContext.prototype)) { sel.parentElement.hidden = true; $('ld-out-tip').hidden = true; return; }
+    try {
+      const outs = (await navigator.mediaDevices.enumerateDevices()).filter((d) => d.kind === 'audiooutput' && d.deviceId !== 'default');
+      sel.innerHTML = '<option value="">Sortida per defecte</option>' + outs.map((d) => `<option value="${d.deviceId}">${(d.label || 'Sortida').replace(/[<>&"]/g, '')}</option>`).join('');
+      sel.value = outs.some((d) => d.deviceId === s.outId) ? s.outId : '';
+    } catch { /* res */ }
+  };
+  $('ld-out').addEventListener('change', async (e) => { s.outId = e.target.value; store.save(); await applyOutput(); testSound(); });
+  $('ld-test').addEventListener('click', () => testSound());
+  fillOut();
   const turnOn = async () => {
     try {
       await start($('ld-dev').value);
       s.on = true; store.save();
       await fill();
+      await fillOut();
       $('ld-on').textContent = 'Escoltant ✓';
       onChange?.(true);
     } catch (err) {

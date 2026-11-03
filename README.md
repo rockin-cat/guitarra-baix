@@ -136,3 +136,9 @@ Amb un cable jack → USB (o l'ampli connectat per USB), el joc escolta la guita
 - A sota, **la carta i el patró** de la mà dreta (fletxes; la barra vol dir «deixa que soni», el buit és silenci) que s'encenen amb el pols. Ni pista ni línia.
 - La fitxa d'ara s'omple a mesura que avança el compàs; la que ve es marca amb línia discontínua.
 - A ⚙ Opcions, «🎸 Mànec» torna a la vista del mànec.
+
+## Versió 28 · la pilota que bota
+- Com als jocs de teclat i bateria: **la carta del patró amb una pilota** que hi bota i cau a cada cop, i al costat **què toques** (el trast als power chords, el diagrama als oberts), amb el que ve en petit. A dalt, xips petits de la roda.
+- Mana l'element nou: si el pas porta carta (patró rítmic, rascat), la carta és gran; si no, l'acord.
+- Rascat: les fletxes animades només surten mentre escoltes (👂); quan toques tu, només la carta i la pilota.
+- Al diàleg de la guitarra, **🔊 Sortida**: amb el cable USB connectat, l'ordinador pot enviar-hi el so i no se sent la banda. Aquí es tria per on ha de sortir, amb un botó de prova.

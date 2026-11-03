@@ -281,7 +281,7 @@ function rebuildStep(st) {
   buildSong(st);
   renderPulses(st);
   if (st.handOnly || st.wheelView) buildHand(st);
-  st.tilesKey = null;
+  st.wv = null;
   setButtons(st, false);
   showIdle(st);
 }
@@ -386,6 +386,7 @@ async function go(st, what) {
   st.el('badge').textContent = '⏳';
   try {
     await player.prepare(st.inst.id);
+    await listen.applyOutput();
   } catch { /* sense so, l'animació funciona igual */ }
   if (current !== st) return;
   // escolta la guitarra (si s'havia connectat abans, es torna a obrir l'entrada)
@@ -813,60 +814,149 @@ function setWheelView(st, on) {
   st.root.querySelector('.stage').classList.toggle('wheel-view', on);
   st.root.classList.toggle('wheel-mode', on);
   st.el('wheel').hidden = !on;
-  st.el('hand').hidden = !on && !st.handOnly;
-  st.tilesKey = null;
+  st.el('hand').hidden = !st.handOnly;
+  st.wv = null;
   if (on || st.handOnly) buildHand(st);
   if (st.song && !player.isPlaying()) showIdle(st);
 }
 
-/** Què es veu a la fitxa d'un acord: el trast de la fonamental (power chords) o el diagrama vertical. */
-function tileBody(st, chord, v) {
-  if (!v) return `<span class="t-fret">${esc(chord)}</span>`;
-  if (v.power) {
-    const s = v.frets.findIndex((f) => f >= 0);
-    const f = v.frets[s];
-    return `<span class="t-fret">${f}</span><small class="t-str">corda ${6 - s}</small>`;
-  }
-  return chordBox(v, { title: '\u00a0', color: st.inst.color }).outerHTML;
+
+// ---- Vista de roda (v28): com els jocs de teclat i bateria ------------------------------------------------
+//  · a dalt, xips petits amb la roda (on ets de la cançó);
+//  · «què toques»: el trast (power chords) o el diagrama (oberts, celletes), i el que ve;
+//  · la carta del patró amb la pilota que bota a cada cop.
+// L'element nou del pas mana: si el pas porta carta (patró rítmic, rascat), la carta és gran; si no, l'acord.
+
+const RHYTHM_CARD = { W: 'mb5', Q: 'mb1', E: 'mb13' };
+
+function wheelCard(st) {
+  const p = st.step.part ?? {};
+  const id = st.step.carta ?? p.card ?? (st.M?.id === '4/4' ? RHYTHM_CARD[p.rhythm] : null);
+  return cardById(id);
+}
+
+/** Si no hi ha carta, se'n dibuixa una: rodona blava = toques, línia = deixa sonar, rodona blanca = silenci. */
+function drawnCard(moves) {
+  const n = moves.length;
+  const W = 170; const H = 240; const x0 = W * 0.04; const step = (W * 0.92) / n;
+  let g = '';
+  [...moves].forEach((m, i) => {
+    const cx = x0 + step * (i + 0.5);
+    if (m === 'D' || m === 'U') g += `<circle cx="${cx}" cy="${H / 2}" r="${Math.min(13, step * 0.42)}" fill="#3db8f5"/>`;
+    else if (m === '=') g += `<rect x="${cx - step / 2}" y="${H / 2 - 3}" width="${step}" height="6" fill="#3db8f5" opacity=".45"/>`;
+    else if (m === '_') g += `<circle cx="${cx}" cy="${H / 2}" r="${Math.min(13, step * 0.42)}" fill="#fff" stroke="#cfc8bf"/>`;
+  });
+  return `<svg class="wv-svgcard" viewBox="0 0 ${W} ${H}"><rect x="1" y="1" width="${W - 2}" height="${H - 2}" rx="12" fill="#f4f1ec"/>${g}</svg>`;
+}
+
+function buildWheel(st) {
+  const host = st.el('wheel');
+  const card = wheelCard(st);
+  const moves = handMoves(st);
+  st.wvSlots = card?.strum ? card.strum.length : card ? st.M.beats / st.M.pulseLen : moves.length;
+  const focus = st.step.carta || st.step.part?.card ? 'card' : 'chord';
+  host.innerHTML = `
+    <div class="wv-chips" data-wv="chips"></div>
+    <div class="wv-main focus-${focus}">
+      <div class="wv-now">
+        <div class="wv-cur"><b data-wv="name"></b><div class="wv-body" data-wv="body"></div></div>
+        <div class="wv-next" data-wv="next"><span>→</span><b data-wv="nname"></b><div class="wv-nbody" data-wv="nbody"></div></div>
+      </div>
+      <div class="wv-card"><div class="wv-cardbox">${card ? `<img src="${card.img}" alt="Carta ${esc(card.id)}">` : drawnCard(moves)}<i class="wv-ball" data-wv="ball"></i><i class="wv-shadow" data-wv="shadow"></i></div></div>
+    </div>`;
+  st.wv = Object.fromEntries([...host.querySelectorAll('[data-wv]')].map((e) => [e.dataset.wv, e]));
+  st.wvChord = null; st.wvNext = null; st.tilesKey = null;
+  st.wvBodies = new Map();
+}
+
+/** El que es veu de cada acord: el trast de la fonamental (power chords) o el diagrama vertical. */
+function chordBodyHtml(st, chord) {
+  if (st.wvBodies.has(chord)) return st.wvBodies.get(chord);
+  let v = null;
+  for (let k = 0; k < st.bars.length && !v; k++) v = st.song.content(k).part.find((x) => x.chord === chord && x.voicing)?.voicing ?? null;
+  let html = '';
+  if (v?.power) {
+    const sI = v.frets.findIndex((f) => f >= 0);
+    html = `<span class="t-fret">${v.frets[sI]}</span><small class="t-str">corda ${6 - sI}</small>`;
+  } else if (v) html = chordBox(v, { title: ' ', color: st.inst.color }).outerHTML;
+  const out = { html, power: !!v?.power, fret: v?.power ? v.frets[v.frets.findIndex((f) => f >= 0)] : null };
+  st.wvBodies.set(chord, out);
+  return out;
 }
 
 function drawTiles(st, pos, mode) {
-  const host = st.el('wheel');
+  if (!st.wv) buildWheel(st);
+  const M = st.M;
+  const B = M.beats;
   const bar = pos.bars[pos.i];
   let k = bar?.seg?.k;
-  let countIn = !bar?.content;
-  if (countIn) for (let j = pos.i + 1; j <= pos.i + 2; j++) { const nb = pos.bars[j] ?? { seg: st.plan?.(j) }; if (nb?.seg && nb.seg.mode !== 'count') { k = nb.seg.k; break; } }
-  if (k == null) k = 0;
+  let content = bar?.content;
+  const countIn = !content;
+  if (countIn) for (let j = pos.i + 1; j <= pos.i + 2; j++) { const nb = pos.bars[j] ?? { seg: st.plan?.(j) }; if (nb?.seg && nb.seg.mode !== 'count') { k = nb.seg.k; content = nb.content ?? st.song.content(k); break; } }
+  if (k == null) { k = 0; content = st.song.content(0); }
+  // xips de la roda
   const { a, b, j } = wheelWindow(st.bars, k);
-  const key = `${a}:${b}:${st.song === st.tilesSong}`;
+  const key = `${a}:${b}`;
   if (st.tilesKey !== key) {
     st.tilesKey = key;
-    st.tilesSong = st.song;
-    const tiles = [];
-    for (let idx = a; idx < b; idx++) {
-      const segs = st.bars[idx];
-      const evs = st.song.content(idx).part;
-      const cells = segs.map((sg) => {
-        const e = evs.find((x) => x.chord === sg.chord.symbol && x.voicing) ?? null;
-        return `<div class="t-chord" data-chord="${esc(sg.chord.symbol)}"><b>${esc(sg.chord.symbol)}</b><div class="t-body">${tileBody(st, sg.chord.symbol, e?.voicing)}</div></div>`;
-      }).join('');
-      tiles.push(`<div class="tile" data-j="${idx}">${st.bars[idx].part && idx === a ? `<span class="t-part">${esc(st.bars[idx].part)}</span>` : ''}${cells}<i class="t-fill"></i></div>`);
-    }
-    host.innerHTML = `<div class="tiles" style="--n:${b - a}">${tiles.join('')}</div>`;
-    st.tileEls = [...host.querySelectorAll('.tile')];
+    st.wv.chips.style.setProperty('--n', b - a);
+    st.wv.chips.innerHTML = Array.from({ length: b - a }, (_, t) => {
+      const idx = a + t;
+      const names = st.bars[idx].map((sg) => { const bd = chordBodyHtml(st, sg.chord.symbol); return `${esc(sg.chord.symbol)}${bd.power ? `<small>${bd.fret}</small>` : ''}`; }).join(' ');
+      return `<div class="wv-chip" data-j="${idx}">${st.bars[idx].part && t === 0 ? `<i>${esc(st.bars[idx].part)}</i>` : ''}<span>${names}</span><u></u></div>`;
+    }).join('');
+    st.tileEls = [...st.wv.chips.children];
   }
-  const frac = countIn ? 0 : Math.max(0, Math.min(1, pos.beat / st.M.beats));
+  const frac = countIn ? 0 : Math.max(0, Math.min(1, pos.beat / B));
   for (const t of st.tileEls) {
     const idx = Number(t.dataset.j);
     t.classList.toggle('cur', idx === j);
     t.classList.toggle('past', idx < j && !countIn);
-    t.classList.toggle('wait', countIn && idx === j);
-    t.classList.toggle('next', !!st.nextChord && idx === (j + 1 < b ? j + 1 : a) && idx !== j);
-    const fill = t.querySelector('.t-fill');
+    const u = t.lastElementChild;
     const w = idx === j ? `${Math.round(frac * 100)}%` : '0%';
-    if (fill.style.width !== w) fill.style.width = w;
+    if (u.style.width !== w) u.style.width = w;
   }
-  void mode;
+  // què toques ara i què ve
+  const now = countIn ? content.bar[0].chord.symbol : chordAtBeat(content.bar, pos.beat, M).symbol;
+  if (st.wvChord !== now) {
+    st.wvChord = now;
+    st.wv.name.textContent = now;
+    st.wv.body.innerHTML = chordBodyHtml(st, now).html;
+    st.wv.body.parentElement.classList.remove('pop'); void st.wv.body.offsetWidth; st.wv.body.parentElement.classList.add('pop');
+  }
+  const nx = st.nextChord && st.nextChord !== now ? st.nextChord : null;
+  if (st.wvNext !== nx) {
+    st.wvNext = nx;
+    st.wv.next.classList.toggle('on', !!nx);
+    if (nx) { st.wv.nname.textContent = nx; st.wv.nbody.innerHTML = chordBodyHtml(st, nx).html; }
+  }
+  // la pilota: bota a cada cop (no als moviments sense tocar) i hi cau just a temps
+  const hits = content.part.filter((e) => e.kind === 'strum' && !e.ghost).map((e) => e.beat);
+  if (!hits.length) hits.push(0);
+  const xOf = (beat) => 4 + 92 * ((beat / B) * st.wvSlots + 0.5) / st.wvSlots;
+  let x; let y;
+  if (countIn) {
+    // en el compte, bota al lloc del primer cop a cada pols
+    const ph = (pos.beat % M.pulseLen) / M.pulseLen;
+    x = xOf(hits[0]); y = 4 * ph * (1 - ph);
+  } else {
+    const b0 = pos.beat;
+    let h0 = hits.filter((hh) => hh <= b0 + 1e-6).at(-1);
+    let h1 = hits.find((hh) => hh > b0 + 1e-6);
+    if (h0 == null) { h0 = hits.at(-1) - B; }
+    if (h1 == null) h1 = hits[0] + B;
+    const ph = (b0 - h0) / (h1 - h0);
+    const x0 = xOf(Math.max(0, h0)); const x1 = h1 >= B ? xOf(hits[0]) : xOf(h1);
+    x = h0 < 0 ? x1 : x0 + (x1 - x0) * ph;
+    y = Math.min(1, (h1 - h0) / M.pulseLen) * 4 * ph * (1 - ph);
+  }
+  st.wv.ball.style.left = `${x}%`;
+  st.wv.ball.style.top = `${50 - 38 * y}%`;
+  st.wv.shadow.style.left = `${x}%`;
+  st.wv.shadow.style.opacity = String(0.5 - 0.35 * y);
+  // el rascat s'ensenya amb les fletxes mentre escoltes; quan toques tu, només la carta i la pilota
+  const intro = st.step.part?.type === 'rascat' && (mode === 'demo' || mode === 'preview' || mode === 'count' && st.what !== 'play');
+  st.el('hand').hidden = !intro;
 }
 
 function setHandOnly(st, on) {
@@ -1050,7 +1140,7 @@ function frame(st) {
   // carta i diagrames
   updateSide(st, content, pos, cur ?? next);
   if (st.handOnly || st.wheelView) drawHand(st, mode === 'count' ? -1 : pos.beat, (cur ?? next)?.chord ?? chordNow?.symbol ?? '');
-  if (st.wheelView && !st.handOnly) drawTiles(st, pos, mode);
+  if (st.wheelView) drawTiles(st, pos, mode);
   // la pista també ensenya els compassos que encara no s'han programat
   const bars = pos.bars.slice();
   for (let j = Math.max(0, pos.i); j <= pos.i + 3; j++) {
