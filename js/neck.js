@@ -270,10 +270,14 @@ const ease = (p) => { const x = clamp(p); return x < 0.5 ? 2 * x * x : 1 - Math.
 // ---- Diagrama d'acord vertical (com les cartes de diagrames ROCKIN) -------------------------------------------
 
 export function chordBox(v, { title = '', color = '#f97316', small = false } = {}) {
-  const w = small ? 92 : 140;
   const fretsShown = 5;
+  const played0 = v?.frets?.filter((f) => f > 0) ?? [];
+  const hiFret = played0.length ? Math.max(...played0) : 1;
+  const extra = hiFret > 5 ? (small ? 12 : 16) : 0; // lloc per al número de trast a l'esquerra
+  const w = (small ? 92 : 140) + extra;
   const pad = small ? 14 : 20;
-  const gx = (w - pad * 2) / 5;
+  const left = pad + extra;
+  const gx = (w - left - pad) / 5;
   const gy = small ? 16 : 24;
   const h = pad * 2 + gy * fretsShown + (small ? 18 : 26);
   const svg = el('svg', { viewBox: `0 0 ${w} ${h}`, class: 'chordbox', width: w, height: h });
@@ -284,17 +288,17 @@ export function chordBox(v, { title = '', color = '#f97316', small = false } = {
   const base = hi <= 5 ? 1 : lo;
   const top = pad + (small ? 18 : 26);
   el('text', { x: w / 2, y: small ? 13 : 18, 'text-anchor': 'middle', class: 'cb-title' }, svg).textContent = title || v.name;
-  if (base === 1) el('rect', { x: pad, y: top - 4, width: gx * 5, height: 4, fill: '#221f20' }, svg);
-  else el('text', { x: pad - 4, y: top + gy * 0.65, 'text-anchor': 'end', class: 'cb-fret' }, svg).textContent = base;
-  for (let i = 0; i <= fretsShown; i++) el('line', { x1: pad, x2: pad + gx * 5, y1: top + i * gy, y2: top + i * gy, stroke: '#9b9590' }, svg);
-  for (let s = 0; s < 6; s++) el('line', { x1: pad + s * gx, x2: pad + s * gx, y1: top, y2: top + gy * fretsShown, stroke: '#4b4542', 'stroke-width': 1 + (5 - s) * 0.25 }, svg);
+  if (base === 1) el('rect', { x: left, y: top - 4, width: gx * 5, height: 4, fill: '#221f20' }, svg);
+  else el('text', { x: left - 7, y: top + gy * 0.68, 'text-anchor': 'end', class: 'cb-fret' }, svg).textContent = `${base}`;
+  for (let i = 0; i <= fretsShown; i++) el('line', { x1: left, x2: left + gx * 5, y1: top + i * gy, y2: top + i * gy, stroke: '#9b9590' }, svg);
+  for (let s = 0; s < 6; s++) el('line', { x1: left + s * gx, x2: left + s * gx, y1: top, y2: top + gy * fretsShown, stroke: '#4b4542', 'stroke-width': 1 + (5 - s) * 0.25 }, svg);
   if (v.barre) {
     const fy = top + (v.barre.fret - base + 0.5) * gy;
-    el('rect', { x: pad + v.barre.from * gx - 6, y: fy - 6, width: (v.barre.to - v.barre.from) * gx + 12, height: 12, rx: 6, fill: color }, svg);
+    el('rect', { x: left + v.barre.from * gx - 5, y: fy - 6, width: (v.barre.to - v.barre.from) * gx + 10, height: 12, rx: 6, fill: color }, svg);
   }
   const cov = v.covered ?? [];
   v.frets.forEach((f, s) => {
-    const x = pad + s * gx;
+    const x = left + s * gx;
     if (f < 0) { el('text', { x, y: top - 7, 'text-anchor': 'middle', class: 'cb-mark' }, svg).textContent = '×'; return; }
     if (f === 0) { el('circle', { cx: x, cy: top - 11, r: small ? 3.5 : 5, fill: 'none', stroke: '#221f20', 'stroke-width': 1.5 }, svg); return; }
     if (v.barre && f === v.barre.fret && v.fingers[s] === 1) return;
@@ -302,6 +306,6 @@ export function chordBox(v, { title = '', color = '#f97316', small = false } = {
     el('circle', { cx: x, cy, r: small ? 6 : 9, fill: color }, svg);
     if (!small && v.fingers[s]) el('text', { x, y: cy + 4, 'text-anchor': 'middle', class: 'cb-finger' }, svg).textContent = v.fingers[s];
   });
-  if (cov.length) el('rect', { x: pad - gx / 2, y: top - 20, width: gx * cov.length, height: gy * fretsShown + 22, fill: '#4a4a4a', 'fill-opacity': 0.85 }, svg);
+  if (cov.length) el('rect', { x: left - gx / 2, y: top - 20, width: gx * cov.length, height: gy * fretsShown + 22, fill: '#4a4a4a', 'fill-opacity': 0.85 }, svg);
   return svg;
 }

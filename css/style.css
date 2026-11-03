@@ -129,7 +129,7 @@ dialog::backdrop { background: rgba(17, 24, 39, .55); }
 .boxes { background: #fff; border: 1px solid var(--linia); border-radius: 8px; padding: 6px; }
 .chordbox .cb-title { font: 700 15px Ubuntu, sans-serif; fill: var(--tinta); }
 .chordbox .cb-finger { font: 700 11px Ubuntu, sans-serif; fill: #111; }
-.chordbox .cb-fret { font: 600 11px Ubuntu, sans-serif; fill: var(--gris); }
+.chordbox .cb-fret { font: 800 15px Ubuntu, sans-serif; fill: var(--tinta); }
 .chordbox .cb-mark { font: 700 13px Ubuntu, sans-serif; fill: var(--ko); }
 .explain { background: #fff; border: 1px solid var(--linia); border-radius: 10px; padding: 12px 14px; font-size: 14px; }
 .explain p { margin: 0 0 6px; font-size: 15px; }

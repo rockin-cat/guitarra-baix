@@ -264,13 +264,14 @@ export function openSession(host, baseStep, ctx) {
   st.el('dyn').checked = S.dynamicBand !== false;
   st.el('dyn').addEventListener('change', (e) => { S.dynamicBand = e.target.checked; store.save(); rebuildStep(st); });
   st.el('metro').addEventListener('change', (e) => { st.metronome = e.target.checked; S.metronome = st.metronome; store.save(); player.setMetronome(st.metronome); });
-  st.el('guide').addEventListener('change', (e) => { st.auto = false; st.guide = e.target.checked ? 0.3 : 0; S.guide = st.guide; store.save(); player.setGuide(st.guide); showHelpInd(st); });
+  st.el('guide').addEventListener('change', (e) => { st.auto = false; st.guide = e.target.checked ? 0.5 : 0; S.guide = st.guide; store.save(); player.setGuide(st.guide); showHelpInd(st); });
   st.el('fade').addEventListener('change', (e) => { st.auto = false; st.fade = e.target.checked; S.fadeHelp = st.fade; store.save(); if (!st.fade) setHelp(st, 0); showHelpInd(st); });
   st.el('handonly').addEventListener('change', (e) => { S.handOnly = e.target.checked; store.save(); setHandOnly(st, e.target.checked); });
   st.el('neckview').addEventListener('change', (e) => { S.neckView = e.target.checked; store.save(); setWheelView(st, !e.target.checked); });
 
   renderPulses(st);
   showIdle(st);
+  player.prepare(inst.id).catch(() => {});
   st.raf = requestAnimationFrame(() => frame(st));
   // la primera vegada que entres en un pas, l'exemple sona sol: veus com es fa i el sents
   if (!['improv', 'compose', 'tune'].includes(kind) && !store.stepState(baseStep.id) && store.settings().autoDemo !== false) {
@@ -721,7 +722,7 @@ function autoLevel(st) {
 }
 function applyAutoHelp(st, level = autoLevel(st)) {
   st.autoLevel = level;
-  st.guide = level === 0 ? 0.3 : 0;
+  st.guide = level === 0 ? 0.5 : 0;
   st.fade = level >= 2;
   st.el('guide').checked = st.guide > 0;
   st.el('fade').checked = st.fade;
@@ -804,7 +805,7 @@ function pickOption(st, id, to) {
   if (id === 'slower') { setTempo(st, st.tempo - 10); hideAssess(st); return go(st, again); }
   if (id === 'faster') { setTempo(st, st.tempo + 10); hideAssess(st); return go(st, again); }
   if (id === 'guide-on' || id === 'guide-off') {
-    st.guide = id === 'guide-on' ? 0.3 : 0;
+    st.guide = id === 'guide-on' ? 0.5 : 0;
     st.el('guide').checked = st.guide > 0;
     store.settings().guide = st.guide; store.save();
     hideAssess(st); return go(st, again);
@@ -1045,7 +1046,9 @@ function drawBall(st, pos, content, countIn) {
     }
   }
   let x; let y;
-  if (countIn) {
+  if (pos.bars[pos.i]?.seg?.mode === 'end') {
+    ground = land[0].y; x = land[0].x; y = ground;
+  } else if (countIn) {
     const ph = (pos.beat % M.pulseLen) / M.pulseLen;
     ground = land[0].y; x = land[0].x; y = ground - maxHop * 0.6 * Math.sin(Math.PI * ph);
   } else {
@@ -1201,7 +1204,7 @@ function frame(st) {
   const badge = st.el('badge');
   const big = st.el('big');
   const nextSeg = st.plan?.(pos.i + 1);
-  let label = { count: '⏱', demo: '👂', play: '🎸 TU', question: '👂 ?', answer: '🎸 TU', preview: '👀' }[mode] ?? '';
+  let label = { count: '⏱', demo: '👂', play: '🎸 TU', question: '👂 ?', answer: '🎸 TU', preview: '👀', end: '🏁' }[mode] ?? '';
   let bigText = '';
   if (mode === 'count') bigText = String(pulse + 1);
   if (mode === 'demo' && nextSeg?.mode === 'play') { label = '👂 → 🎸'; bigText = String(M.pulses - pulse); }
@@ -1235,6 +1238,8 @@ function frame(st) {
       if (cur?.tech) st.neck.techPhase(cur, (pos.abs - cur.abs) / cur.dur);
     }
   }
+  // l'animació d'abans de començar sona (fluixet), sense banda
+  if (pos.preview && cur && st.prevHeard !== cur.id && pos.abs >= cur.abs) { st.prevHeard = cur.id; if (!cur.ghost) player.playNow(st.song, cur, 0.55); }
   // la púa
   if (cur) {
     const spb = pos.spq;

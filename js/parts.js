@@ -13,7 +13,7 @@
 
 import { chordAt, mod } from './theory.js';
 import { cardById, cardOnsets } from './data/cartes.js';
-import { INSTRUMENTS, guitarVoicing, bassRole, guitarLadder, soundingLadder, positionsOf, roleOf } from './fretboard.js';
+import { INSTRUMENTS, guitarVoicing, bassRole, guitarLadder, soundingLadder, positionsOf, roleOf, powerRoot6 } from './fretboard.js';
 
 /** La mateixa nota (o l'octava) en un lloc amb `minFret` trasts com a mínim i una corda més aguda per a la quinta. */
 function movedRoot(inst, root, minFret) {
@@ -166,9 +166,10 @@ export function partBar(spec, instId, bar, M, k = 0) {
       const chord = segChord(bar, a, M);
       const hi = heights.indexOf(ranks[i]);
       if (instId === 'guitarra') {
-        const v = voicingOf(chord);
+        let v = voicingOf(chord);
         if (v.power || v.covered) {
-          // power chords: el dibuix es fa amb la forma (fonamental, quinta, octava)
+          // power chords: el dibuix es fa amb la forma sencera (fonamental, quinta, octava), encara que al nivell només se'n toqui una part
+          if (v.power) v = powerRoot6(chord, 3);
           const ladder = soundingLadder(chord, v);
           const idx = nH > 1 ? Math.round((hi * (ladder.length - 1)) / (nH - 1)) : 0;
           out.push(noteEvent(inst, ladder[Math.min(idx, ladder.length - 1)], a, d, chord, { voicing: v }));

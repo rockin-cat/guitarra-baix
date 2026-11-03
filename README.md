@@ -163,3 +163,10 @@ Amb un cable jack → USB (o l'ampli connectat per USB), el joc escolta la guita
 - **Patrons melòdics (guitarra)**: amb power chords el dibuix es fa amb la forma (fonamental, quinta, octava). Amb acords oberts es trien tantes **cordes** com alçades té el dibuix (botons 6…1 al costat de ▶; per defecte 4·3 o 4·3·2) i el dibuix va per aquestes cordes; si en un acord una corda no sona, s'agafa la veïna. A l'escolta es veu el mànec amb les cordes triades il·luminades i la carta amb la pilota. La pilota segueix els punts de la carta melòdica (geometria del joc de teclat, `MELODIC_LAYOUT`).
 - Cartes de rascat: la pilota cau a cada fletxa que toca (posicions mesurades a les imatges). «Només mà dreta» ja no és el mode per defecte.
 - Diàleg de la guitarra: 🔊 tria de la sortida de so.
+
+## Versió 33 · final al temps fort, redobles que canvien, l'animació sona
+- **Acabament**: quan s'acaba la lliçó, al temps fort del compàs següent tota la banda fa un cop (plat, bombo, baix, teclat, guitarra) i el deixa sonar; la teva part també hi és (🏁 al marcador).
+- **Redobles diferents** a cada volta (sis patrons que van rotant).
+- **L'animació d'abans de començar sona** (la teva part, fluixa, sense banda), i la guia sonora mentre toques tu va **a l'esquerra** i una mica més forta, perquè es distingeixi de la banda.
+- Patrons melòdics amb power chords: sempre amb la forma sencera (1 · 5 · 8), encara que al nivell només se'n toqui una part.
+- Diagrames amb celleta més amunt del 5è trast: el número de trast es veu (més gran i amb lloc propi).

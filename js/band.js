@@ -203,6 +203,29 @@ export function bandBar(styleId, bar, M, without) {
   return out;
 }
 
+/** El cop final: tota la banda al temps fort, deixant-ho sonar (crash, bombo, baix, teclat i guitarra). */
+export function finalHit(chord, M, without) {
+  const c = chord;
+  const long = Math.max(2, M.beats);
+  const out = [
+    { inst: 'drum', piece: 'crash', beat: 0, vel: 1 }, { inst: 'drum', piece: 'kk', beat: 0, vel: 1 },
+    ev('baix', 0, long, bassR(c), 0.7, { fam: 'bass' }),
+    ev('rhodes', 0, long, keys(c), 0.14, { fam: 'keys' }),
+    ev('acustica', 0, long, strum(c), 0.24, { strum: 0.014, fam: 'gtr' }),
+  ];
+  return out.filter((e) => e.fam !== without);
+}
+
+/** Redobles de final de volta (van rotant): [temps, peça, força] a partir del final del compàs. */
+export const FILLS = [
+  (B) => [[B - 1, 'sn', 0.7], [B - 0.75, 'stick', 0.8], [B - 0.5, 'sn', 0.9], [B - 0.25, 'stick', 1]],
+  (B) => [[B - 1, 'kk', 0.9], [B - 0.5, 'kk', 0.9], [B - 0.25, 'sn', 1]],
+  (B) => [[B - 1, 'sn', 0.8], [B - 0.5, 'sn', 0.9], [B - 0.25, 'sn', 1]],
+  (B) => [[B - 1.5, 'stick', 0.7], [B - 1, 'stick', 0.8], [B - 0.5, 'sn', 0.9], [B - 0.25, 'kk', 1]],
+  (B) => [[B - 0.5, 'sn', 1]],
+  (B) => [[B - 2, 'sn', 0.7], [B - 1.5, 'ghost', 0.6], [B - 1, 'sn', 0.8], [B - 0.5, 'stick', 0.9], [B - 0.25, 'sn', 1]],
+];
+
 /** Clics de metrònom d'un compàs (a cada pulsació; el primer accentuat). */
 export const clicksBar = (M) => range(M.pulses, M.pulseLen).map((b, i) => ({ inst: 'click', beat: b, accent: i === 0 }));
 

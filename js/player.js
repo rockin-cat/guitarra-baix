@@ -1,8 +1,8 @@
 // El rellotge: programa compàs a compàs la banda, la teva part (a la demostració)
 // i el metrònom, i diu a l'animació on som.
 
-import { audioContext, resumeAudio, loadSet, drum, click, tone, stopAll, busGain } from './audio.js';
-import { bandBar, stylesFor, clicksBar, BAND_SETS } from './band.js';
+import { audioContext, resumeAudio, loadSet, setsReady, drum, click, tone, stopAll, busGain } from './audio.js';
+import { bandBar, stylesFor, clicksBar, BAND_SETS, finalHit, FILLS } from './band.js';
 import { partBar, voiceBar } from './parts.js';
 import { INSTRUMENTS } from './fretboard.js';
 import { metre } from './theory.js';
@@ -34,8 +34,10 @@ function dynamicBand(o, k, bar, M, without) {
   if (inBar === L - 1 && L > 1) {
     // redoble al final de la volta
     const B = M.beats;
-    out = out.filter((e) => !(e.inst === 'drum' && e.beat >= B - 1));
-    out.push(...[B - 1, B - 0.75, B - 0.5, B - 0.25].map((b, i) => ({ inst: 'drum', piece: i % 2 ? 'stick' : 'sn', beat: b, vel: 0.7 + i * 0.1 })));
+    const fill = FILLS[round % FILLS.length](B);
+    const from = Math.min(...fill.map(([b]) => b));
+    out = out.filter((e) => !(e.inst === 'drum' && e.beat >= from - 1e-6));
+    out.push(...fill.map(([b, piece, vel]) => ({ inst: 'drum', piece, beat: b, vel })));
   }
   if (inBar === 0 && round > 0) out.push({ inst: 'drum', piece: 'crash', beat: 0, vel: 0.8 });
   return out;
@@ -95,11 +97,11 @@ export function start(song, plan, opts = {}) {
     const horizon = ctx.currentTime + 0.35;
     while (r.ended == null && r.t0 + r.next * r.barDur < horizon) {
       const seg = plan(r.next);
-      if (!seg) { r.ended = r.next; break; }
+      if (!seg) { r.ended = r.next; scheduleEnd(r, r.next); break; }
       scheduleBar(r, r.next, seg);
       r.next++;
     }
-    if (r.ended != null && ctx.currentTime > r.t0 + r.ended * r.barDur + 0.25) {
+    if (r.ended != null && ctx.currentTime > r.t0 + r.ended * r.barDur + (r.bars[r.ended] ? 1.6 : 0.25)) {
       const cb = r.opts.onEnd;
       stop();
       cb?.();
@@ -117,6 +119,25 @@ export function stop() {
   stopAll();
 }
 
+/** L'acabament: al temps fort del compàs següent, tota la banda fa un cop i el deixa sonar. */
+function scheduleEnd(r, i) {
+  const { song, spq } = r;
+  let last = null;
+  for (let j = i - 1; j >= 0 && !last; j--) if (r.bars[j]?.content) last = r.bars[j];
+  if (!last || song.estil === 'metronom') return;
+  const seg = last.content.bar.at(-1);
+  const chord = seg.chord;
+  const t = r.t0 + i * r.barDur;
+  const at = (beat) => t + beat * spq;
+  r.bars[i] = { i, t, seg: { mode: 'end', k: last.seg.k }, content: { bar: [{ chord, start: 0, len: 1 }], band: [], part: [], voice: [] } };
+  for (const e of finalHit(chord, song.M, song.family)) playBand(e, at, spq);
+  // la teva part també hi és (a l'exemple, forta; quan toques tu, com la guia)
+  const partGain = last.seg.mode === 'demo' ? 1 : (r.opts.guide ?? 0);
+  const ev = last.content.part.find((e) => e.kind === 'strum' && !e.ghost && e.chord === chord.symbol) ?? last.content.part.find((e) => e.notes?.length);
+  if (partGain > 0 && ev) playPart(song, { ...ev, beat: 0, dur: Math.max(2, song.M.beats), legato: false, legatoNext: false, tech: null }, at, spq, partGain, last.seg.mode === 'play' ? -0.75 : 0);
+  r.opts.onBar?.(r.bars[i]);
+}
+
 function scheduleBar(r, i, seg) {
   const { song, spq } = r;
   const t = r.t0 + i * r.barDur;
@@ -130,7 +151,9 @@ function scheduleBar(r, i, seg) {
   if (!content) return;
   for (const e of content.band) playBand(e, at, spq);
   const partGain = seg.mode === 'demo' || seg.mode === 'question' ? 1 : seg.mode === 'play' ? (r.opts.guide ?? 0) : 0;
-  if (partGain > 0) for (const e of content.part) playPart(song, e, at, spq, partGain);
+  // la guia sonora (la teva part, fluixa, mentre toques tu) va a l'esquerra perquè es distingeixi de la banda
+  const pan = seg.mode === 'play' ? -0.75 : 0;
+  if (partGain > 0) for (const e of content.part) playPart(song, e, at, spq, partGain, pan);
   const voiceGain = seg.mode === 'demo' ? 1 : seg.mode === 'play' ? Math.max(r.opts.guide ?? 0, r.opts.voiceGuide ? 0.6 : 0) : 0;
   if (voiceGain > 0) for (const v of content.voice) if (v.sing && v.midi) tone('rhodes', v.midi, at(v.beat), v.dur * spq, { gain: 0.32 * voiceGain, dest: 'me' });
   r.opts.onBar?.(r.bars[i]);
@@ -143,14 +166,14 @@ function playBand(e, at, spq) {
 }
 
 /** Fa sonar un esdeveniment de la teva part (també el fa servir «corda a corda»). */
-export function playPart(song, e, at, spq, gain = 1) {
+export function playPart(song, e, at, spq, gain = 1, pan = 0) {
   const inst = INSTRUMENTS[song.inst];
   const t = at(e.beat);
   const dur = Math.max(0.12, e.dur * spq);
   if (e.kind === 'strum') {
     if (e.ghost) return;
     const n = e.notes.length;
-    e.notes.forEach((m, j) => tone(inst.sound, m, t + j * 0.011, dur, { gain: (0.34 - (e.dir === 'U' ? 0.08 : 0)) * gain * (1 - j / (n * 4)), dest: 'me' }));
+    e.notes.forEach((m, j) => tone(inst.sound, m, t + j * 0.011, dur, { gain: (0.34 - (e.dir === 'U' ? 0.08 : 0)) * gain * (1 - j / (n * 4)), dest: 'me', pan }));
     return;
   }
   if (e.kind !== 'note') return;
@@ -158,18 +181,18 @@ export function playPart(song, e, at, spq, gain = 1) {
   const g = (song.inst === 'baix' ? 0.75 : 0.55) * gain;
   const tech = e.tech;
   // nota lligada (hammer-on / pull-off): sense atac de púa i una mica més fluixa
-  if (e.legato) { tone(inst.sound, m, t, dur, { gain: g * 0.78, dest: 'me', attack: 0.012 }); return; }
-  if (e.legatoNext) { tone(inst.sound, m, t, Math.max(0.06, e.dur * spq), { gain: g, dest: 'me', release: 0.015 }); return; }
-  if (!tech) { tone(inst.sound, m, t, dur, { gain: g, dest: 'me' }); return; }
+  if (e.legato) { tone(inst.sound, m, t, dur, { gain: g * 0.78, dest: 'me', pan, attack: 0.012 }); return; }
+  if (e.legatoNext) { tone(inst.sound, m, t, Math.max(0.06, e.dur * spq), { gain: g, dest: 'me', pan, release: 0.015 }); return; }
+  if (!tech) { tone(inst.sound, m, t, dur, { gain: g, dest: 'me', pan }); return; }
   const half = dur / 2;
   const m2 = inst.tuning[e.pos[0].s] + tech.to;
   if (tech.type === 'h' || tech.type === 'p') {
-    tone(inst.sound, m, t, half, { gain: g, dest: 'me', release: 0.02 });
-    tone(inst.sound, m2, t + half, half, { gain: g * 0.75, dest: 'me', attack: 0.012 });
+    tone(inst.sound, m, t, half, { gain: g, dest: 'me', pan, release: 0.02 });
+    tone(inst.sound, m2, t + half, half, { gain: g * 0.75, dest: 'me', pan, attack: 0.012 });
   } else if (tech.type === 's') {
-    tone(inst.sound, m, t, dur, { gain: g, dest: 'me', glideTo: [{ at: half * 0.7, midi: m2, dur: half * 0.45 }] });
+    tone(inst.sound, m, t, dur, { gain: g, dest: 'me', pan, glideTo: [{ at: half * 0.7, midi: m2, dur: half * 0.45 }] });
   } else if (tech.type === 'b') {
-    tone(inst.sound, m, t, dur, { gain: g, dest: 'me', glideTo: [{ at: dur * 0.25, midi: m + (tech.semis ?? 2), dur: dur * 0.3 }] });
+    tone(inst.sound, m, t, dur, { gain: g, dest: 'me', pan, glideTo: [{ at: dur * 0.25, midi: m + (tech.semis ?? 2), dur: dur * 0.3 }] });
   }
 }
 
@@ -188,4 +211,13 @@ export function position() {
 
 export function setGuide(v) { if (run) run.opts.guide = v; }
 export function setMetronome(v) { if (run) run.opts.metronome = v; }
+/** Fa sonar un esdeveniment ara mateix (l'animació muda d'abans de començar, que així no és muda). */
+export function playNow(song, e, gain = 0.7) {
+  const ctx = audioContext();
+  if (ctx.state !== 'running' || !setsReady(SETS_FOR(song.inst))) return;
+  const spq = 60 / song.tempo / song.M.pulseLen;
+  const t = ctx.currentTime + 0.01;
+  playPart(song, { ...e, beat: 0 }, () => t, spq, gain);
+}
+
 export const bandVolume = (v) => { const g = busGain('band'); const d = busGain('drums'); if (g) g.value = 0.8 * v; if (d) d.value = 0.85 * v; };
