@@ -787,3 +787,34 @@ details.tips[open] summary { opacity: .6; }
 .skill-dots .ss-dot.b-gairebe { background: #f5b301; border-color: #f5b301; }
 #v-skills { overflow: hidden; }
 .lg.chord { padding: 0 8px; }
+
+/* v27 · vista de roda per als acords de guitarra: fitxes + carta + patró (com el joc de teclat) */
+.stage.wheel-view .neck-host, .stage.wheel-view .lane { display: none; }
+.stage.wheel-view:not(.hand-only) .hand-chord { display: none; }
+.stage.hand-only .wheel-host { display: none; }
+.wheel-mode .side .rcard, .wheel-mode .side .positions { display: none; }
+.wheel-host { padding: 4px 2px 10px; }
+.tiles { display: grid; grid-template-columns: repeat(var(--n), minmax(0, 1fr)); gap: 10px; }
+.tile { position: relative; overflow: hidden; display: flex; gap: 4px; justify-content: center; background: var(--nit2); border: 3px solid transparent; border-radius: 14px; padding: 8px 6px 12px; opacity: .55; transition: opacity .25s, border-color .25s, transform .25s; }
+.tile.cur { opacity: 1; border-color: var(--accent); transform: translateY(-3px); }
+.tile.wait { opacity: 1; border-color: var(--groc); border-style: dashed; }
+.tile.next { opacity: .9; border-color: var(--accent); border-style: dashed; }
+.tile.past { opacity: .35; }
+.t-part { position: absolute; top: 6px; left: 8px; font: 700 11px Ubuntu, sans-serif; color: #111; background: var(--groc); border-radius: 4px; padding: 1px 6px; text-transform: uppercase; }
+.t-chord { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: center; }
+.t-chord > b { font: 800 clamp(20px, 2.6vw, 30px) Ubuntu, sans-serif; color: #fff; }
+.t-body { width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: clamp(90px, 20vh, 170px); }
+.t-body svg.chordbox { width: 100%; max-width: 140px; height: auto; max-height: clamp(110px, 24vh, 200px); background: #fff; border-radius: 10px; }
+.t-fret { font: 800 clamp(56px, 9vw, 110px)/1 Ubuntu, sans-serif; color: var(--accent); }
+.t-str { color: #9aa4b2; font: 700 14px Ubuntu, sans-serif; margin-top: 4px; }
+.t-fill { position: absolute; left: 0; bottom: 0; height: 6px; width: 0; background: var(--accent); }
+.hcell.hold .hc-mark, .hcell.rest .hc-mark { display: block; width: 100%; height: clamp(70px, 14vh, 130px); }
+.hcell.hold .hc-mark { background: linear-gradient(var(--accent), var(--accent)) center / 100% 6px no-repeat; opacity: .45; }
+.hcell.rest { background: transparent; }
+.stage.wheel-view .hcell svg, .stage.wheel-view .hcell .hc-mark { height: clamp(48px, 9vh, 90px); }
+.stage[data-help="2"] .t-body { opacity: .25; }
+.stage[data-help="3"] .t-body { opacity: 0; }
+.t-body { transition: opacity 1.6s ease; }
+@media (prefers-reduced-motion: reduce) { .tile, .t-body { transition: none; } }
+.stage.wheel-view .hand-card { width: auto; height: clamp(90px, 17vh, 150px); }
+.stage.wheel-view .hand-row { gap: 14px; }

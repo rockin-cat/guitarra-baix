@@ -130,3 +130,9 @@ Amb un cable jack → USB (o l'ampli connectat per USB), el joc escolta la guita
 - La pista que corria de dreta a esquerra ara és un mapa quiet: a dalt, **la roda** (els compassos de la part on ets, amb el d'ara omplint-se); a sota, **el compàs d'ara**, fix, amb el patró sencer i una línia groga que el recorre.
 - Al lateral, **totes les posicions de la cançó** (🖐 X): l'actual encesa, la que ve marcada amb línia discontínua.
 - Cap pantalla té barra de desplaçament: les llistes de cançons van per pàgines (‹ 1/3 ›) i per nivell (0 · 1 · 2 · 3 · +); «Què sé fer» fa servir punts en lloc de llistes.
+
+## Versió 27 · acords com al joc de teclat
+- Als passos d'acords de guitarra (power chords, oberts, celletes) el mànec deixa pas a **les fitxes de la roda**: cada compàs és una fitxa gran amb l'acord. Power chords: només el **número del trast** de la fonamental (i la corda). Oberts i celletes: el **diagrama vertical**, com el del Generador.
+- A sota, **la carta i el patró** de la mà dreta (fletxes; la barra vol dir «deixa que soni», el buit és silenci) que s'encenen amb el pols. Ni pista ni línia.
+- La fitxa d'ara s'omple a mesura que avança el compàs; la que ve es marca amb línia discontínua.
+- A ⚙ Opcions, «🎸 Mànec» torna a la vista del mànec.
