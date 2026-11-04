@@ -117,7 +117,7 @@ function onsetOf(buf) {
   return 0;
 }
 
-function start(buffer, time, { gain = 1, rate = 1, dest = 'band', dur = null, release = 0.08, pan = 0, attack = 0, glide = null }) {
+function start(buffer, time, { gain = 1, rate = 1, dest = 'band', dur = null, release = 0.08, pan = 0, attack = 0, glide = null, skip = 0 }) {
   const c = audioContext();
   const src = c.createBufferSource();
   src.buffer = buffer;
@@ -144,7 +144,7 @@ function start(buffer, time, { gain = 1, rate = 1, dest = 'band', dur = null, re
   }
   src.connect(g);
   node.connect(bus[dest] ?? bus.master);
-  src.start(t, buffer.onset || 0);
+  src.start(t, (buffer.onset || 0) + skip); // skip: salta l'atac de la púa (notes lligades)
   if (dur != null) {
     const end = t + Math.max(0.03, dur);
     g.gain.setValueAtTime(gain, end);
@@ -216,7 +216,7 @@ export function click(time, accent = false) {
 // ---- Instruments afinats ------------------------------------------------------------------------------------
 
 /** Una nota d'un instrument de mostres: fa servir la mostra més propera i en canvia l'afinació. */
-export function tone(set, midi, time, dur, { gain = 0.6, dest = 'band', release = 0.12, pan = 0, attack = 0, glideTo = null } = {}) {
+export function tone(set, midi, time, dur, { gain = 0.6, dest = 'band', release = 0.12, pan = 0, attack = 0, glideTo = null, skip = 0 } = {}) {
   const map = buffers[set];
   if (!map || !map.size) return null;
   let best = null;
@@ -233,7 +233,7 @@ export function tone(set, midi, time, dur, { gain = 0.6, dest = 'band', release 
     let prev = rate;
     glide = glideTo.map((g) => { const to = Math.pow(2, (g.midi - best) / 12); const step = { at: g.at, dur: g.dur, from: prev, to }; prev = to; return step; });
   }
-  return start(map.get(best), time, { gain, rate, dest, dur, release, pan, attack, glide });
+  return start(map.get(best), time, { gain, rate, dest, dur, release, pan, attack, glide, skip });
 }
 
 /** Atura tot el que s'havia programat (amb una baixada ràpida perquè no peti). */

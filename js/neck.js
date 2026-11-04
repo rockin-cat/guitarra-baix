@@ -121,6 +121,7 @@ export function createNeck(host, inst, { thickTop = false } = {}) {
 
   let shownKey = '';
   let lastVoicing = null;
+  let anacrusis = 0; // quan es va lliscar per última vegada en anacrusa (performance.now)
   /** Els punts (i la celleta) apareixen desplaçats dx i llisquen fins al lloc. */
   function slideFrom(dx, nFrets = 1) {
     const dur = Math.min(0.45, 0.16 + 0.035 * Math.abs(nFrets));
@@ -166,13 +167,14 @@ export function createNeck(host, inst, { thickTop = false } = {}) {
       if (view.ctx) for (const p of view.ctx) dot(layerCtx, p.s, p.f, p.label ?? '', p.cls ?? '');
       const cur = view.cur;
       // power chords i celletes: la forma llisca pel mànec fins al trast nou (en lloc de desaparèixer i tornar a sortir)
-      const anchor = (v) => (v?.power || v?.barre ? (v.barre ? v.barre.fret : v.frets.find((f) => f >= 0)) : null);
-      const from = anchor(lastVoicing);
-      const to = anchor(view.mode === 'chord' ? cur?.voicing : null);
+      const from = voicingAnchor(lastVoicing);
+      const to = voicingAnchor(view.mode === 'chord' ? cur?.voicing : null);
       lastVoicing = view.mode === 'chord' ? cur?.voicing ?? null : null;
       if (view.mode === 'chord' && cur?.voicing) {
         drawVoicing(layerNow, cur.voicing);
-        if (from != null && to != null && from !== to) slideFrom(fretX(from, frets) - fretX(to, frets), to - from);
+        // si la forma ja ha lliscat en anacrusa, ara ja és al lloc; si no, llisca ara
+        if (performance.now() - anacrusis < 400) { for (const l of [layerNow, layerBarre]) { l.style.transition = 'none'; l.style.transform = ''; } }
+        else if (from != null && to != null && from !== to) slideFrom(fretX(from, frets) - fretX(to, frets), to - from);
         if (view.showNext && view.next?.voicing && view.next.chord !== cur.chord) {
           drawVoicing(layerNext, view.next.voicing, { ring: true });
           nextLabel.textContent = `Ara ve: ${view.next.chord}`;
@@ -188,7 +190,13 @@ export function createNeck(host, inst, { thickTop = false } = {}) {
       }
     },
     /** Moviment de la púa i vibració de les cordes. Es crida a cada fotograma. */
-    animate({ pick, now }) {
+    /** Diferència en píxels entre dos trasts (per lliscar la forma en anacrusa). */
+    fretDx(fromFret, toFret) { return fretX(toFret, frets) - fretX(fromFret, frets); },
+    animate({ pick, now, slide }) {
+      if (slide != null) {
+        anacrusis = performance.now();
+        for (const l of [layerNow, layerBarre]) { l.style.transition = 'none'; l.style.transform = `translateX(${slide.toFixed(1)}px)`; }
+      }
       if (pick) {
         const { p, ghost, dir, s } = pick;
         let py;
@@ -286,6 +294,9 @@ const clamp = (x) => Math.max(0, Math.min(1, x));
 const ease = (p) => { const x = clamp(p); return x < 0.5 ? 2 * x * x : 1 - Math.pow(-2 * x + 2, 2) / 2; };
 
 // ---- Diagrama d'acord vertical (com les cartes de diagrames ROCKIN) -------------------------------------------
+
+/** El trast que ancora una forma mòbil (power chord: la fonamental; celleta: el trast de la celleta). */
+export const voicingAnchor = (v) => (v?.power || v?.barre ? (v.barre ? v.barre.fret : v.frets.find((f) => f >= 0)) : null);
 
 export function chordBox(v, { title = '', color = '#f97316', small = false } = {}) {
   const fretsShown = 5;

@@ -2,7 +2,7 @@
 // També fa d'afinador (nivell 7), de compositor (nivell 9) i d'improvisació (nivell 10).
 
 import * as player from './player.js';
-import { createNeck, chordBox } from './neck.js';
+import { createNeck, chordBox, voicingAnchor } from './neck.js';
 import { createLane, wheelWindow } from './lane.js';
 import { CARD_LAYOUT, MELODIC_LAYOUT } from './data/layouts.js';
 import { DEFAULT_ARP_STRINGS, arpStrings } from './parts.js';
@@ -157,6 +157,7 @@ export function openSession(host, baseStep, ctx) {
             <div class="ctrl-main">
               <button type="button" class="btn btn-ghost btn-big btn-sym" data-act="listen" title="Escolta: t'ho ensenyo" aria-label="Escolta">👂</button>
               <button type="button" class="btn btn-primary btn-big btn-sym" data-act="play" title="Toca (barra d'espai)" aria-label="Toca">▶</button>
+              <button type="button" class="btn btn-ghost btn-big btn-sym" data-act="pause" title="Pausa" aria-label="Pausa" hidden>⏸</button>
               <button type="button" class="btn btn-big btn-stop btn-sym" data-act="stop" title="Atura" aria-label="Atura" hidden>■</button>
               <span class="help-ind" data-el="helpind" title="El joc va retirant l'ajuda a mesura que et surt"></span>
               <button type="button" class="btn btn-ghost btn-small opts-btn" data-act="opts" aria-expanded="false">⚙ Opcions</button>
@@ -173,7 +174,6 @@ export function openSession(host, baseStep, ctx) {
               <div class="strpick" data-el="strpick" hidden title="Les cordes amb què fas el dibuix de la carta (tantes com alçades té)"><span>🎼 Cordes</span>${[5, 4, 3, 2, 1, 0].map((s) => `<button type="button" class="str-btn" data-str="${s}">${6 - s}</button>`).join('')}</div>
               <label class="toggle" data-el="handwrap" hidden title="Amaga el mànec i la pista: només la carta i les fletxes del rascat"><input type="checkbox" data-el="handonly"> Només mà dreta</label>
               <button type="button" class="btn btn-ghost btn-small" data-act="strings" hidden>Corda a corda</button>
-              <button type="button" class="btn btn-ghost btn-small" data-act="full">Escolta i toca seguit</button>
               <button type="button" class="btn btn-ghost btn-small listen-btn" data-act="listen-dlg" title="Amb un cable jack → USB, el joc t'escolta i et corregeix">🎸 Connecta la guitarra</button>
             </div>
             <div class="ctrl-opts ctrl-song" data-el="songbar"></div>
@@ -209,7 +209,6 @@ export function openSession(host, baseStep, ctx) {
     st.el('rounds').value = '-1';
     st.el('rounds').disabled = true;
     $('[data-act="listen"]', root).hidden = true;
-    $('[data-act="full"]', root).hidden = true;
     $('[data-act="play"]', root).title = 'Comença';
   }
   if (inst.id === 'guitarra' && (st.step.part?.type === 'strum' || st.step.part?.type === 'rascat')) $('[data-act="strings"]', root).hidden = false;
@@ -278,7 +277,7 @@ export function openSession(host, baseStep, ctx) {
   st.raf = requestAnimationFrame(() => frame(st));
   // la primera vegada que entres en un pas, l'exemple sona sol: veus com es fa i el sents
   if (!['improv', 'compose', 'tune'].includes(kind) && !store.stepState(baseStep.id) && store.settings().autoDemo !== false) {
-    setTimeout(() => { if (current === st && !player.isPlaying()) go(st, 'listen'); }, 700);
+    setTimeout(() => { if (current === st && !player.isPlaying()) go(st, 'full'); }, 700);
   }
   return st;
 }
@@ -594,9 +593,11 @@ function feedJudge(st, pos) {
 }
 
 function setButtons(st, playing) {
-  for (const b of st.root.querySelectorAll('[data-act="full"],[data-act="strings"],[data-act="slower"],[data-act="faster"]')) b.disabled = playing;
+  for (const b of st.root.querySelectorAll('[data-act="strings"],[data-act="slower"],[data-act="faster"]')) b.disabled = playing;
   $('[data-act="listen"]', st.root).hidden = playing || st.kind === 'improv';
   $('[data-act="play"]', st.root).hidden = playing;
+  $('[data-act="pause"]', st.root).hidden = !playing;
+  $('[data-act="pause"]', st.root).textContent = '⏸';
   $('[data-act="stop"]', st.root).hidden = !playing;
   $('[data-act="stop"]', st.root).disabled = !playing;
   st.root.classList.toggle('playing', playing);
@@ -615,7 +616,9 @@ function onClick(st, ev) {
   if (act === 'goto') { closeSession(); st.ctx.nav?.goStep(b.dataset.id); return; }
   if (act === 'golevel') { closeSession(); st.ctx.nav?.goLevel(Number(b.dataset.n)); return; }
   if (act === 'back') { closeSession(); st.ctx.onBack?.(); return; }
-  if (act === 'full' || act === 'listen' || act === 'play') return go(st, act);
+  if (act === 'listen') return go(st, st.kind === 'improv' ? 'play' : 'full'); // l'exemple i, tot seguit, l'exercici
+  if (act === 'full' || act === 'play') return go(st, act);
+  if (act === 'pause') { const b = $('[data-act="pause"]', st.root); if (player.isPaused()) { player.resume(); b.textContent = '⏸'; b.title = 'Pausa'; } else { player.pause(); b.textContent = '▶'; b.title = 'Continua'; } return; }
   if (act === 'stop') return stopRun(st);
   if (act === 'opts') { const d = st.el('drawer'); d.hidden = !d.hidden; b.setAttribute('aria-expanded', String(!d.hidden)); b.classList.toggle('on', !d.hidden); return; }
   if (act === 'close-assess') { hideAssess(st); return; }
@@ -1201,7 +1204,7 @@ function frame(st) {
   const pos = live ?? previewPos(st);
   if (!pos || pos.i < 0) { if (pos) drawIdleLane(st, pos); return; }
   const seg = pos.bar?.seg ?? st.plan?.(pos.i);
-  const mode = seg?.mode ?? 'count';
+  const mode = seg?.mode ?? (pos.i > 0 && !st.plan?.(pos.i) ? 'end' : 'count');
   if (mode === 'play' || mode === 'answer') st.ranPlay = true;
   if (st.judge) feedJudge(st, pos);
   if (listen.isOn()) st.el('lmeter').style.width = `${Math.round(listen.level() * 100)}%`;
@@ -1243,6 +1246,7 @@ function frame(st) {
     if (e.kind === 'strum') {
       // l'acord següent («Ara ve») apareix amb l'antelació triada a Configuració (per defecte, 2 temps)
       const nxt = nextChange(st, pos, e);
+      st.nextMove = nxt?.e ?? null;
       const lead = Math.min(store.settings().nextLead ?? 2, M.pulses) * M.pulseLen;
       st.neck.show({ mode: 'chord', cur: e, next: nxt?.e ?? next, showNext: !!nxt && nxt.dist <= lead + 1e-6, label: e.chord });
       st.nextChord = nxt && nxt.dist <= lead + 1e-6 ? nxt.e.chord : null;
@@ -1263,7 +1267,19 @@ function frame(st) {
     const p = ((pos.abs - cur.abs) * spb + lead) / dur;
     if (cur.kind === 'strum') {
       const strings = cur.voicing ? cur.voicing.midi.map((m, s) => (m != null ? s : -1)).filter((s) => s >= 0) : [];
-      st.neck.animate({ pick: { id: cur.id, p, dir: cur.dir, ghost: cur.ghost, strings: cur.dir === 'U' ? strings.slice(-4) : strings } });
+      // power chords i celletes: la forma llisca en anacrusa (després de l'últim cop, i al temps 1 ja hi és)
+      let slide = null;
+      const nx = st.nextMove;
+      if (nx && nx.chord !== cur.chord) {
+        const a = voicingAnchor(cur.voicing);
+        const b = voicingAnchor(nx.voicing);
+        if (a != null && b != null && a !== b) {
+          const win = Math.min(nx.abs - cur.abs, M.pulseLen);
+          const start = nx.abs - win;
+          if (pos.abs >= start) { const q = Math.min(1, (pos.abs - start) / win); const ease = 1 - Math.pow(1 - q, 3); slide = st.neck.fretDx(a, b) * ease; }
+        }
+      }
+      st.neck.animate({ pick: { id: cur.id, p, dir: cur.dir, ghost: cur.ghost, strings: cur.dir === 'U' ? strings.slice(-4) : strings }, slide });
     } else {
       if (cur.legato) {
         // hammer-on / pull-off: la púa no es mou, però la corda torna a sonar

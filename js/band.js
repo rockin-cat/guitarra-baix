@@ -26,6 +26,7 @@ export const defaultStyle = (metreId) => ({ '3/4': 'vals', '6/8': 'balada68', '1
 // ---- Veus ---------------------------------------------------------------------------------------------------
 const inRange = (pc, low) => low + mod(pc - low, 12);
 const bassR = (c) => inRange(c.root, 28);
+export const bassRoot = bassR;
 const bass5 = (c) => bassR(c) + (c.fifth ?? 7);
 const bass3 = (c) => bassR(c) + (c.third ?? 4);
 
@@ -59,7 +60,8 @@ const STYLE = {
       ...dr('hh', range(B * 2, 0.5), 0.8), ...dr('sn', [1, 3].filter((b) => b < B)), ...dr('kk', [0, 1.5, 2].filter((b) => b < B)),
       ...[[0, 1.4, bassR, 0.6], [1.5, 0.45, bassR, 0.45], [2, 0.9, bassR, 0.55], [3, 0.45, bass5, 0.45], [3.5, 0.45, (x) => bassR(x) + 12, 0.4]]
         .filter(([b]) => b < B).map(([b, d, f, g]) => ev('baix', b, d, f(c), g, { fam: 'bass' })),
-      ev('rhodes', 0, B - 0.1, keys(c), 0.09, { fam: 'keys' }),
+      ev('rhodes', 0, B - 0.1, keys(c), 0.08, { fam: 'keys' }),
+      ...(B >= 4 ? [ev('rhodes', 2.5, 0.3, keys(c), 0.1, { fam: 'keys' })] : []),
       ...[[0, 1, 1], [1, 0.5, 1], [1.5, 0.5, -1], [2.5, 0.5, -1], [3, 0.5, 1], [3.5, 0.45, -1]].filter(([b]) => b < B)
         .map(([b, d, dir]) => ev('acustica', b, d, dir > 0 ? strum(c) : strum(c).slice(1).reverse(), dir > 0 ? 0.2 : 0.13, { strum: 0.012, fam: 'gtr' })),
     ];

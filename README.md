@@ -177,3 +177,11 @@ Amb un cable jack → USB (o l'ampli connectat per USB), el joc escolta la guita
 ## Versió 35
 - **S'acaba a la tònica**: el cop final és l'acord I de la tonalitat (o i, si és menor), no l'últim acord del tros. La tonalitat s'endevina mirant quins acords són de cada tonalitat candidata (`guessKey`).
 - **Power chords i celletes llisquen pel mànec** fins al trast nou en comptes de desaparèixer i tornar a sortir (més lent com més lluny).
+
+## Versió 36 · demostració que porta a l'exercici, pausa, base millor
+- **👂 = l'exemple i, tot seguit, l'exercici** (l'últim compàs de l'exemple fa de compte: «👂 → 🎸»). Fora el botó «Escolta i toca seguit».
+- **⏸ Pausa** mentre sona (barra d'espai = pausa/continua).
+- **Mescla de l'exemple**: la bateria i la banda baixen mentre sona la mostra de guitarra o baix.
+- **Lliscament en anacrusa**: els power chords i les celletes llisquen després de l'últim cop i al temps 1 ja són al trast nou.
+- **Hammer-on / pull-off**: la segona nota ja no té atac de púa (se salta l'atac de la mostra i entra suau).
+- **Base millor**: charles amb accents, charles obert a l'últim contratemps (3a volta), ride (4a), nota d'aproximació del baix abans de cada canvi d'acord, plat als canvis de part, teclat amb un petit cop a l'«i» de 2 al pop, i una mica d'imprecisió humana als temps i les forces.

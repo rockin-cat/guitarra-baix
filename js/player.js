@@ -2,7 +2,7 @@
 // i el metrònom, i diu a l'animació on som.
 
 import { audioContext, resumeAudio, loadSet, setsReady, drum, click, tone, stopAll, busGain } from './audio.js';
-import { bandBar, stylesFor, clicksBar, BAND_SETS, finalHit, FILLS } from './band.js';
+import { bandBar, stylesFor, clicksBar, BAND_SETS, finalHit, FILLS, bassRoot } from './band.js';
 import { partBar, voiceBar } from './parts.js';
 import { INSTRUMENTS } from './fretboard.js';
 import { metre, guessKey, parseChord, pcName, mod } from './theory.js';
@@ -28,12 +28,31 @@ function dynamicBand(o, k, bar, M, without) {
     if (pool.length > 1) { const i = pool.indexOf(style); style = pool[(Math.max(0, i) + Math.floor((round - 2) / 2)) % pool.length]; }
   }
   let out = bandBar(style, bar, M, without);
-  if (o.dynamic === false || style === 'metronom') return out;
+  if (style === 'metronom') return out;
+  const B = M.beats;
+  // charles amb accents (fort al temps, fluix a contratemps)
+  out = out.map((e) => (e.inst === 'drum' && e.piece === 'hh' ? { ...e, vel: (e.vel ?? 1) * (Math.abs(e.beat % M.pulseLen) < 1e-6 ? 1 : 0.7) } : e));
+  // el baix s'acosta a l'acord que ve (nota d'aproximació a l'última corxera) quan canvia
+  const nextBar = o.bars[((k + 1) % L + L) % L];
+  const cur = bar.at(-1).chord; const nxt = nextBar?.[0]?.chord;
+  if (without !== 'bass' && nxt && mod(nxt.root - cur.root, 12) !== 0 && round > 0) {
+    const target = bassRoot(nxt);
+    const from = bassRoot(cur);
+    const appr = target > from ? target - 1 : target + 2;
+    const i = out.findIndex((e) => e.fam === 'bass' && e.beat >= B - 0.5 - 1e-6);
+    const ev = { inst: 'baix', beat: B - 0.5, dur: 0.45, notes: [appr], gain: 0.5, fam: 'bass' };
+    if (i >= 0) out[i] = { ...out[i], notes: [appr], dur: Math.min(out[i].dur, B - out[i].beat) }; else out.push(ev);
+  }
+  if (o.dynamic === false) return out;
   if (round === 0) out = out.filter((e) => e.fam !== 'keys' && e.fam !== 'gtr');
   else if (round === 1) out = out.filter((e) => e.fam !== 'gtr');
+  // a partir de la tercera volta, el charles obre a l'últim contratemps; a la quarta, ride en comptes de charles
+  if (round >= 2) out = out.map((e) => (e.inst === 'drum' && e.piece === 'hh' && Math.abs(e.beat - (B - 0.5)) < 1e-6 ? { ...e, piece: 'oh' } : e));
+  if (round >= 3 && round % 2 === 1) out = out.map((e) => (e.inst === 'drum' && e.piece === 'hh' ? { ...e, piece: 'ride', vel: (e.vel ?? 1) * 1.1 } : e));
+  // plat als canvis de part de la cançó
+  if (bar.part && k > 0 && inBar !== 0) out.push({ inst: 'drum', piece: 'crash', beat: 0, vel: 0.7 });
   if (inBar === L - 1 && L > 1) {
     // redoble al final de la volta
-    const B = M.beats;
     const fill = FILLS[round % FILLS.length](B);
     const from = Math.min(...fill.map(([b]) => b));
     out = out.filter((e) => !(e.inst === 'drum' && e.beat >= from - 1e-6));
@@ -112,8 +131,22 @@ export function start(song, plan, opts = {}) {
   return r;
 }
 
+/** Pausa: el rellotge d'àudio s'atura (i amb ell la música i l'animació); reprèn on era. */
+export async function pause() {
+  if (!run || run.paused) return;
+  run.paused = true;
+  try { await audioContext().suspend(); } catch { /* res */ }
+}
+export async function resume() {
+  if (!run?.paused) return;
+  run.paused = false;
+  try { await audioContext().resume(); } catch { /* res */ }
+}
+export const isPaused = () => !!run?.paused;
+
 export function stop() {
   if (!run) return;
+  if (run.paused) { run.paused = false; audioContext().resume().catch(() => {}); }
   clearInterval(run.timer);
   run = null;
   stopAll();
@@ -149,6 +182,11 @@ function scheduleBar(r, i, seg) {
   const content = seg.mode === 'count' ? null : song.content(seg.k);
   r.bars[i] = { i, t, seg, content };
   const at = (beat) => t + beat * spq;
+  // mescla: a l'exemple, la banda (sobretot la bateria) baixa perquè es senti bé la guitarra o el baix
+  const demo = seg.mode === 'demo' || seg.mode === 'question';
+  const vol = r.opts.bandVol ?? 1;
+  const gd = busGain('drums'); const gb = busGain('band');
+  if (gd && gb) { gd.setTargetAtTime((demo ? 0.3 : 0.85) * vol, Math.max(t - 0.05, audioContext().currentTime), 0.05); gb.setTargetAtTime((demo ? 0.45 : 0.8) * vol, Math.max(t - 0.05, audioContext().currentTime), 0.05); }
   // metrònom: al compte, o sempre si està encès
   if (seg.mode === 'count' || r.opts.metronome || song.estil === 'metronom') {
     for (const c of clicksBar(song.M)) click(at(c.beat), c.accent);
@@ -164,10 +202,13 @@ function scheduleBar(r, i, seg) {
   r.opts.onBar?.(r.bars[i]);
 }
 
+// una mica d'imprecisió humana: la banda no sona com una màquina
+const jitter = (ms) => (Math.random() * 2 - 1) * ms / 1000;
 function playBand(e, at, spq) {
-  if (e.inst === 'drum') { drum(e.piece, at(e.beat), { vel: e.vel ?? 1 }); return; }
-  const t = at(e.beat);
-  e.notes.forEach((m, j) => tone(e.inst, m, t + (e.strum ? j * e.strum : 0), e.dur * spq, { gain: e.gain }));
+  if (e.inst === 'drum') { drum(e.piece, at(e.beat) + (e.beat === 0 ? 0 : jitter(4)), { vel: (e.vel ?? 1) * (0.93 + Math.random() * 0.07) }); return; }
+  const t = at(e.beat) + jitter(6);
+  const g = e.gain * (0.92 + Math.random() * 0.1);
+  e.notes.forEach((m, j) => tone(e.inst, m, t + (e.strum ? j * e.strum : 0), e.dur * spq, { gain: g }));
 }
 
 /** Fa sonar un esdeveniment de la teva part (també el fa servir «corda a corda»). */
@@ -186,14 +227,15 @@ export function playPart(song, e, at, spq, gain = 1, pan = 0) {
   const g = (song.inst === 'baix' ? 0.75 : 0.55) * gain;
   const tech = e.tech;
   // nota lligada (hammer-on / pull-off): sense atac de púa i una mica més fluixa
-  if (e.legato) { tone(inst.sound, m, t, dur, { gain: g * 0.78, dest: 'me', pan, attack: 0.012 }); return; }
+  // nota lligada (hammer-on / pull-off): sense l'atac de la púa (se salta el principi de la mostra i entra suau)
+  if (e.legato) { tone(inst.sound, m, t, dur, { gain: g * 0.7, dest: 'me', pan, attack: 0.02, skip: 0.04 }); return; }
   if (e.legatoNext) { tone(inst.sound, m, t, Math.max(0.06, e.dur * spq), { gain: g, dest: 'me', pan, release: 0.015 }); return; }
   if (!tech) { tone(inst.sound, m, t, dur, { gain: g, dest: 'me', pan }); return; }
   const half = dur / 2;
   const m2 = inst.tuning[e.pos[0].s] + tech.to;
   if (tech.type === 'h' || tech.type === 'p') {
     tone(inst.sound, m, t, half, { gain: g, dest: 'me', pan, release: 0.02 });
-    tone(inst.sound, m2, t + half, half, { gain: g * 0.75, dest: 'me', pan, attack: 0.012 });
+    tone(inst.sound, m2, t + half, half, { gain: g * 0.68, dest: 'me', pan, attack: 0.02, skip: 0.04 });
   } else if (tech.type === 's') {
     tone(inst.sound, m, t, dur, { gain: g, dest: 'me', pan, glideTo: [{ at: half * 0.7, midi: m2, dur: half * 0.45 }] });
   } else if (tech.type === 'b') {
@@ -225,4 +267,4 @@ export function playNow(song, e, gain = 0.7) {
   playPart(song, { ...e, beat: 0 }, () => t, spq, gain);
 }
 
-export const bandVolume = (v) => { const g = busGain('band'); const d = busGain('drums'); if (g) g.value = 0.8 * v; if (d) d.value = 0.85 * v; };
+export const bandVolume = (v) => { if (run) run.opts.bandVol = v; const g = busGain('band'); const d = busGain('drums'); if (g) g.value = 0.8 * v; if (d) d.value = 0.85 * v; };
