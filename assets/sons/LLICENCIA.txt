@@ -6,4 +6,7 @@ Sons de la carpeta "sons/"
 - baix: Swagbass, de Karoryfer Lecolds (D. Smolken), CC0 1.0 (domini públic)
   (https://github.com/sfzinstruments/karoryfer.swagbass). Capes p, f (2 variants) i fff, mp3 mono normalitzats.
 - rhodes, piano: soundfont FluidR3_GM, via https://github.com/gleitz/midi-js-soundfonts (MIT, Benjamin Gleitzman)
-- guitarra, guitarra_dist, acustica: soundfont MusyngKite, via https://github.com/gleitz/midi-js-soundfonts (MIT)
+- guitarra: Black And Green Guitars (Gretsch Anniversary verda, so «twang»), de Karoryfer Lecolds (Brian Wood), CC0 1.0
+  (https://github.com/sfzinstruments/karoryfer.black-and-green-guitars). Una nota cada 3 semitons de Mi2 a Do#6,
+  capes p, f (2 variants) i fff, mp3 mono normalitzats.
+- guitarra_dist, acustica: soundfont MusyngKite, via https://github.com/gleitz/midi-js-soundfonts (MIT)

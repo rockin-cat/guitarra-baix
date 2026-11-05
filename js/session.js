@@ -160,6 +160,7 @@ export function openSession(host, baseStep, ctx) {
               <button type="button" class="btn btn-ghost btn-big btn-sym" data-act="listen" title="Escolta: t'ho ensenyo" aria-label="Escolta">👂</button>
               <button type="button" class="btn btn-primary btn-big btn-sym" data-act="play" title="Toca (barra d'espai)" aria-label="Toca">▶</button>
               <button type="button" class="btn btn-ghost btn-big btn-sym" data-act="pause" title="Pausa" aria-label="Pausa" hidden>⏸</button>
+              <button type="button" class="btn btn-ghost btn-sym slowmo" data-act="slowmo" title="A càmera lenta (l'animació, l'exemple i l'exercici)" aria-pressed="false">🐌</button>
               <button type="button" class="btn btn-big btn-stop btn-sym" data-act="stop" title="Atura" aria-label="Atura" hidden>■</button>
               <span class="help-ind" data-el="helpind" title="El joc va retirant l'ajuda a mesura que et surt"></span>
               <button type="button" class="btn btn-ghost btn-small opts-btn" data-act="opts" aria-expanded="false">⚙ Opcions</button>
@@ -283,8 +284,10 @@ export function openSession(host, baseStep, ctx) {
   const introKey = `${inst.id}:${ctx.levelN}`;
   if (ctx.levelN && hasIntro(inst.id, ctx.levelN) && pl && !pl.intros?.[introKey]) {
     (pl.intros ??= {})[introKey] = true; store.save();
-    openIntro(st, () => { if (autoDemo && current === st && !player.isPlaying()) go(st, 'full'); });
+    if (autoDemo) st.demoPending = true;
+    openIntro(st, () => { if (autoDemo && current === st && !player.isPlaying()) go(st, 'full'); else st.demoPending = false; });
   } else if (autoDemo) {
+    st.demoPending = true;
     setTimeout(() => { if (current === st && !player.isPlaying()) go(st, 'full'); }, 700);
   }
   return st;
@@ -462,6 +465,7 @@ async function go(st, what) {
   st.judge?.destroy();
   st.judge = listen.isOn() && st.kind !== 'improv' && st.kind !== 'compose' ? createJudge(st.inst.id, { onVerdict: (v) => showVerdict(st, v) }) : null;
   st.listenSum = null;
+  st.demoPending = false;
   st.soloBars = 0; st.lastSoloBar = null; st.naturalEnd = false;
   st.marks = [];
   resetDots(st);
@@ -628,6 +632,15 @@ function onClick(st, ev) {
   if (act === 'full' || act === 'play') return go(st, act);
   if (act === 'pause') { const b = $('[data-act="pause"]', st.root); if (player.isPaused()) { player.resume(); b.textContent = '⏸'; b.title = 'Pausa'; } else { player.pause(); b.textContent = '▶'; b.title = 'Continua'; } return; }
   if (act === 'stop') return stopRun(st);
+  if (act === 'slowmo') {
+    // càmera lenta: el tempo baixa al 60 %; un altre clic el torna on era
+    if (st.slowFrom) { setTempo(st, st.slowFrom); st.slowFrom = null; } else { st.slowFrom = st.tempo; setTempo(st, Math.round(st.tempo * 0.6)); }
+    b.classList.toggle('on', !!st.slowFrom); b.setAttribute('aria-pressed', String(!!st.slowFrom));
+    b.title = st.slowFrom ? `A càmera lenta (${st.tempo}) · torna a ${st.slowFrom}` : 'A càmera lenta';
+    if (player.isPlaying()) { const what = st.what; stopRun(st); go(st, what === 'full' ? 'full' : what); }
+    else st.preview = performance.now();
+    return;
+  }
   if (act === 'opts') { const d = st.el('drawer'); d.hidden = !d.hidden; b.setAttribute('aria-expanded', String(!d.hidden)); b.classList.toggle('on', !d.hidden); return; }
   if (act === 'close-assess') { hideAssess(st); return; }
   if (act === 'intro') { if (player.isPlaying()) stopRun(st); openIntro(st); return; }
@@ -793,11 +806,10 @@ function optionsFor(st) {
   const res = st.result;
   const { r } = res;
   const o = [];
-  if (!st.auto) {
-    if (r === 'ok') o.push({ id: 'faster', text: `⏩ ${Math.min(200, st.tempo + 10)}` });
-    else o.push({ id: 'slower', text: `🐢 ${Math.max(40, st.tempo - 10)}` });
-    if (st.kind !== 'improv') o.push(st.guide ? { id: 'guide-off', text: '🔇 Sense guia' } : { id: 'guide-on', text: '🔈 Amb guia' });
-  }
+  // el tempo sempre es pot triar (més a poc a poc o, si ha anat bé, més ràpid)
+  if (st.tempo > 40) o.push({ id: 'slower', text: `🐢 Més lent (${Math.max(40, st.tempo - 10)})` });
+  if (r === 'ok' && st.tempo < 200) o.push({ id: 'faster', text: `⏩ Més ràpid (${Math.min(200, st.tempo + 10)})` });
+  if (!st.auto && st.kind !== 'improv') o.push(st.guide ? { id: 'guide-off', text: '🔇 Sense guia' } : { id: 'guide-on', text: '🔈 Amb guia' });
   // practicar només el que falla: només quan l'eina ho pot aïllar
   if (res.gaps.includes('forma') && !$('[data-act="strings"]', st.root).hidden) o.push({ id: 'strings', text: '🔍 Corda a corda' });
   if (res.gaps.includes('dreta') && !st.el('handwrap').hidden && !st.handOnly) o.push({ id: 'hand', text: '✋ Només mà dreta' });
@@ -1216,7 +1228,7 @@ function frame(st) {
   }
   // l'animació d'abans de començar sona (fluixet), sense banda
   // (el primer segon no sona: si l'exemple arrenca sol just després, no s'escapa cap nota abans de l'entrada)
-  if (pos.preview && cur && st.prevHeard !== cur.id && pos.abs >= cur.abs) { st.prevHeard = cur.id; if (!cur.ghost && !st.introOpen && performance.now() - st.preview > 1200) player.playNow(st.song, cur, 0.55); }
+  if (pos.preview && cur && st.prevHeard !== cur.id && pos.abs >= cur.abs) { st.prevHeard = cur.id; if (!cur.ghost && !st.introOpen && !st.demoPending && performance.now() - st.preview > 1200) player.playNow(st.song, cur, 0.55); }
   // la púa
   if (cur) {
     const spb = pos.spq;

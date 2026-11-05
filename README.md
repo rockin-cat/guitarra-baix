@@ -216,3 +216,10 @@ Amb un cable jack → USB (o l'ampli connectat per USB), el joc escolta la guita
 - Versió 46: a pantalla completa l'escenari omple la pantalla (sense lateral) i la carta, les fitxes i el mànec creixen amb l'alçada.
 - Versió 47: la mini explicació s'adapta a com toques els acords (power chord o oberts) i el que hi ha darrere es queda quiet i tapat.
 - Versió 48: «Ja ho tens!» sense que el joc t'escolti només compta si has tocat fins al final amb la pantalla esvaïda del tot i sense guia sonora (almenys una volta); si no, queda «A prop» i la propera vegada l'ajuda s'esvaeix.
+
+## Versió 49 · guitarra nova, estèreo, càmera lenta
+- **Guitarra: Black And Green Guitars** (Gretsch, so «twang»), de Karoryfer, CC0: una nota cada 3 semitons de Mi2 a Do#6, capes p / f (2 variants) / fff (64 mp3, 1,1 MB). La fan servir la teva part (exemple i guia) i la guitarra elèctrica neta de la banda.
+- **La banda en estèreo**: guitarres una mica a la dreta, teclat a l'esquerra, baix i bateria al mig.
+- **🐌 Càmera lenta**: un botó al costat de ▶ baixa el tempo al 60 % (l'animació d'abans de començar, l'exemple i l'exercici); un altre clic el torna on era.
+- Després de valorar, sempre surt «🐢 Més lent» (i «⏩ Més ràpid» si ha anat bé).
+- Quan l'exemple ha d'arrencar sol, l'animació d'abans ja no sona (no s'escapa cap nota abans de l'entrada).

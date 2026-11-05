@@ -925,3 +925,5 @@ body.is-fs[data-view="session"] .wv .t-body svg.chordbox { max-width: 240px; max
 body.is-fs[data-view="session"] .wv.focus-card .t-body svg.chordbox { max-height: 20vh; }
 body.is-fs[data-view="session"] .stage.wv-demo .neck-host svg.neck { max-height: 42vh; }
 body.is-fs[data-view="session"] .hand-host .hcell svg { height: clamp(70px, 16vh, 180px); }
+.slowmo { font-size: 22px; }
+.slowmo.on { background: color-mix(in srgb, var(--accent) 25%, #fff); border-color: var(--accent); }
