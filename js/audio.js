@@ -5,7 +5,7 @@
 // Tot el que sona es programa amb temps de l'AudioContext: la banda, la
 // bateria de la demostració, el clic i els cops de l'alumnat.
 
-import SOUNDS from './data/sons.js';
+import SOUNDS, { SONS_REV } from './data/sons.js';
 
 let ctx = null;
 const bus = {};
@@ -92,7 +92,7 @@ export function loadSet(set) {
   loading[set] = Promise.all(
     (SOUNDS[set] ?? []).map(async (name) => {
       try {
-        const res = await fetch(`assets/sons/${set}/${encodeURIComponent(name)}.mp3`);
+        const res = await fetch(`assets/sons/${set}/${encodeURIComponent(name)}.mp3?r=${SONS_REV}`);
         const buf = await c.decodeAudioData(await res.arrayBuffer());
         buf.onset = onsetOf(buf);
         // mostres amb capes de força i variants: «kk_v2_r1» (bateria) o «A2_f_r1» (notes: p, f, fff)
