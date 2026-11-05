@@ -185,3 +185,7 @@ Amb un cable jack → USB (o l'ampli connectat per USB), el joc escolta la guita
 - **Lliscament en anacrusa**: els power chords i les celletes llisquen després de l'últim cop i al temps 1 ja són al trast nou.
 - **Hammer-on / pull-off**: la segona nota ja no té atac de púa (se salta l'atac de la mostra i entra suau).
 - **Base millor**: charles amb accents, charles obert a l'últim contratemps (3a volta), ride (4a), nota d'aproximació del baix abans de cada canvi d'acord, plat als canvis de part, teclat amb un petit cop a l'«i» de 2 al pop, i una mica d'imprecisió humana als temps i les forces.
+
+## Versió 37
+- **Entrada entre l'exemple i l'exercici**: després de la demostració hi ha un compàs de compte (⏱) abans de tocar.
+- **Mànec de 15 trasts**: els power chords i les celletes dels trasts alts (Eb a l'11, amb la quinta al 13) es veuen sencers. Marques als trasts 12 i 15.

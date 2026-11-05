@@ -8,13 +8,13 @@ export const INSTRUMENTS = {
     id: 'guitarra', nom: 'Guitarra elèctrica', curt: 'Guitarra',
     tuning: [40, 45, 50, 55, 59, 64], // Mi2 La2 Re3 Sol3 Si3 Mi4
     stringNames: ['Mi', 'La', 'Re', 'Sol', 'Si', 'Mi'],
-    frets: 12, sound: 'guitarra', color: '#f97316', colorSoft: '#fdba74', icon: '🎸',
+    frets: 15, sound: 'guitarra', color: '#f97316', colorSoft: '#fdba74', icon: '🎸',
   },
   baix: {
     id: 'baix', nom: 'Baix elèctric', curt: 'Baix',
     tuning: [28, 33, 38, 43], // Mi1 La1 Re2 Sol2
     stringNames: ['Mi', 'La', 'Re', 'Sol'],
-    frets: 12, sound: 'baix', color: '#a855f7', colorSoft: '#d8b4fe', icon: '🎸',
+    frets: 15, sound: 'baix', color: '#a855f7', colorSoft: '#d8b4fe', icon: '🎸',
   },
 };
 export const instrument = (id) => INSTRUMENTS[id] ?? INSTRUMENTS.guitarra;

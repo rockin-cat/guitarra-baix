@@ -430,11 +430,12 @@ function makePlan(st, what) {
   const listenBars = Math.max(demoBars, L);
   if (what === 'listen') return (i) => (i === 0 ? { mode: 'count' } : i <= listenBars ? { mode: 'demo', k: i - 1 } : null);
   if (what === 'play') return (i) => (i === 0 ? { mode: 'count' } : i <= playBars ? { mode: 'play', k: i - 1 } : null);
-  // escolta i toca: compte, demostració, i la banda continua (l'últim compàs de l'exemple ja fa de compte)
+  // escolta i toca: compte, demostració, entrada (un compàs de compte) i a tocar
   return (i) => {
     if (i === 0) return { mode: 'count' };
     if (i <= demoBars) return { mode: 'demo', k: i - 1 };
-    if (i <= demoBars + playBars) return { mode: 'play', k: i - 1 - playOffset };
+    if (i === demoBars + 1) return { mode: 'count' };
+    if (i <= demoBars + 1 + playBars) return { mode: 'play', k: i - 2 - playOffset };
     return null;
   };
 }

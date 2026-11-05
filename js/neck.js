@@ -15,7 +15,7 @@ const el = (tag, attrs = {}, parent = null) => {
 
 const W = 1100;
 const NUT = 96;
-const LAST = 960; // trast 12
+const LAST = 960; // l'últim trast (15)
 const PICK_X = 1035;
 
 /** x del centre d'un trast (0 = a l'aire, davant de la celleta). */
@@ -44,12 +44,12 @@ export function createNeck(host, inst, { thickTop = false } = {}) {
   // fusta, trasts i punts
   el('rect', { x: NUT, y: top - gap * 0.55, width: LAST - NUT + 8, height: gap * (n - 1) + gap * 1.1, rx: 6, class: 'wood' }, svg);
   el('rect', { x: LAST + 30, y: top - gap * 0.9, width: W - LAST - 40, height: gap * (n - 1) + gap * 1.8, rx: 18, class: 'body' }, svg);
-  for (const f of [3, 5, 7, 9]) el('circle', { cx: fretX(f, frets), cy: top + (gap * (n - 1)) / 2, r: 7, class: 'inlay' }, svg);
+  for (const f of [3, 5, 7, 9, 15].filter((f) => f <= frets)) el('circle', { cx: fretX(f, frets), cy: top + (gap * (n - 1)) / 2, r: 7, class: 'inlay' }, svg);
   for (const off of [-1, 1]) el('circle', { cx: fretX(12, frets), cy: top + (gap * (n - 1)) / 2 + off * gap * (n === 6 ? 1 : 0.9), r: 7, class: 'inlay' }, svg);
   el('rect', { x: NUT - 5, y: top - gap * 0.55, width: 9, height: gap * (n - 1) + gap * 1.1, class: 'nut' }, svg);
   for (let f = 1; f <= frets; f++) el('line', { x1: wireX(f, frets), x2: wireX(f, frets), y1: top - gap * 0.55, y2: top + gap * (n - 1) + gap * 0.55, class: 'fret' }, svg);
   const numbers = el('g', { class: 'fret-numbers' }, svg);
-  for (const f of [1, 3, 5, 7, 9, 12]) el('text', { x: fretX(f, frets), y: H - 4, 'text-anchor': 'middle' }, numbers).textContent = f;
+  for (const f of [1, 3, 5, 7, 9, 12, 15].filter((f) => f <= frets)) el('text', { x: fretX(f, frets), y: H - 4, 'text-anchor': 'middle' }, numbers).textContent = f;
 
   // cordes
   const strings = [];
