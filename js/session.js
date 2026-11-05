@@ -611,7 +611,6 @@ function onClick(st, ev) {
   if (b.dataset.rate) return rate(st, b.dataset.rate);
   if (b.dataset.gap) return toggleGap(st, b.dataset.gap);
   if (b.dataset.opt) return pickOption(st, b.dataset.opt, b.dataset.id);
-  if (act === 'goto') { closeSession(); st.ctx.nav?.goStep(b.dataset.id); return; }
   if (act === 'golevel') { closeSession(); st.ctx.nav?.goLevel(Number(b.dataset.n)); return; }
   if (act === 'back') { closeSession(); st.ctx.onBack?.(); return; }
   if (act === 'listen') return go(st, st.kind === 'improv' ? 'play' : 'full'); // l'exemple i, tot seguit, l'exercici
@@ -620,7 +619,7 @@ function onClick(st, ev) {
   if (act === 'stop') return stopRun(st);
   if (act === 'opts') { const d = st.el('drawer'); d.hidden = !d.hidden; b.setAttribute('aria-expanded', String(!d.hidden)); b.classList.toggle('on', !d.hidden); return; }
   if (act === 'close-assess') { hideAssess(st); return; }
-  if (act === 'goto') { if (b.dataset.to !== st.baseStep.id) { closeSession(); st.ctx.nav?.goStep(b.dataset.to); } return; }
+  if (act === 'goto') { const to = b.dataset.to ?? b.dataset.id; if (to && to !== st.baseStep.id) { closeSession(); st.ctx.nav?.goStep(to); } return; }
   if (act === 'listen-dlg') return listen.openDialog({ onChange: () => updateListenUi(st) });
   if (act === 'slower' || act === 'faster') return setTempo(st, st.tempo + (act === 'faster' ? 5 : -5));
   if (act === 'strings') return stringByString(st);
