@@ -162,6 +162,7 @@ export function createNeck(host, inst, { thickTop = false } = {}) {
       if (key === shownKey) return;
       shownKey = key;
       clear(layerBarre, layerNext, layerCtx, layerNow, layerTech, layerMute);
+      layerNext.style.opacity = '';
       chordLabel.textContent = view.label ?? '';
       strings.forEach((x, i) => x.g.classList.toggle('lit', !!view.lit?.includes(i)));
       nextLabel.textContent = '';
@@ -174,8 +175,11 @@ export function createNeck(host, inst, { thickTop = false } = {}) {
       if (view.mode === 'chord' && cur?.voicing) {
         drawVoicing(layerNow, cur.voicing);
         // si la forma ja ha lliscat en anacrusa, ara ja és al lloc; si no, llisca ara
-        if (performance.now() - anacrusis < 400) { for (const l of [layerNow, layerBarre]) { l.style.transition = 'none'; l.style.transform = ''; } }
-        else if (from != null && to != null && from !== to) slideFrom(fretX(from, frets) - fretX(to, frets), to - from);
+        // (un altre cop del mateix acord a mig lliscament no ha de tornar la forma enrere: es manté on és)
+        if (from != null && to != null && from === to) { /* mateixa forma: no es toca el desplaçament */ }
+        else if (performance.now() - anacrusis < 400) { for (const l of [layerNow, layerBarre]) { l.style.transition = 'none'; l.style.transform = ''; } }
+        else if (from != null && to != null) slideFrom(fretX(from, frets) - fretX(to, frets), to - from);
+        else for (const l of [layerNow, layerBarre]) { l.style.transition = 'none'; l.style.transform = ''; }
         if (view.showNext && view.next?.voicing && view.next.chord !== cur.chord) {
           drawVoicing(layerNext, view.next.voicing, { ring: true });
           nextLabel.textContent = `Ara ve: ${view.next.chord}`;
@@ -196,6 +200,7 @@ export function createNeck(host, inst, { thickTop = false } = {}) {
     animate({ pick, now, slide }) {
       if (slide != null) {
         anacrusis = performance.now();
+        layerNext.style.opacity = '0'; // la forma que llisca ja diu on va: sense l'anella de «ara ve» no surt dues vegades
         for (const l of [layerNow, layerBarre]) { l.style.transition = 'none'; l.style.transform = `translateX(${slide.toFixed(1)}px)`; }
       }
       if (pick) {

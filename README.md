@@ -223,3 +223,5 @@ Amb un cable jack → USB (o l'ampli connectat per USB), el joc escolta la guita
 - **🐌 Càmera lenta**: un botó al costat de ▶ baixa el tempo al 60 % (l'animació d'abans de començar, l'exemple i l'exercici); un altre clic el torna on era.
 - Després de valorar, sempre surt «🐢 Més lent» (i «⏩ Més ràpid» si ha anat bé).
 - Quan l'exemple ha d'arrencar sol, l'animació d'abans ja no sona (no s'escapa cap nota abans de l'entrada).
+
+- **v50**: teclat de la banda amb mostres de Rhodes reals (jRhodes3c, CC BY-NC-SA); guitarres sense el brunzit agut de les gravacions (filtre a 6 kHz); el lliscament dels power chords ja no surt dues vegades.
