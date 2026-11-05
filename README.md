@@ -213,3 +213,4 @@ Amb un cable jack → USB (o l'ampli connectat per USB), el joc escolta la guita
 - La pilota i la carta ara són un mòdul compartit (`js/cardball.js`).
 - Les × de les cordes que no es toquen ja no llisquen amb la forma.
 - Versió 45: mentre es veu la mini explicació no sona res més (ni l'animació muda ni l'exemple).
+- Versió 46: a pantalla completa l'escenari omple la pantalla (sense lateral) i la carta, les fitxes i el mànec creixen amb l'alçada.

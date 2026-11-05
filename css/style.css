@@ -905,3 +905,23 @@ details.tips[open] summary { opacity: .6; }
 .intro-box .wv-row .tile { padding: 4px 6px 8px; }
 @media (max-height: 740px) { .intro-box .in-neck svg.neck { max-height: 105px; } .in-boxes svg.chordbox { max-height: 90px; } .intro-box .wv-row .t-body svg.chordbox { max-height: 95px; } }
 .intro-box .t-body { min-height: 0; }
+
+/* v46 · pantalla completa: l'escenari ocupa tota la pantalla i la carta i les fitxes creixen */
+body.is-fs[data-view="session"] .sess-grid { grid-template-columns: minmax(0, 1fr); }
+body.is-fs[data-view="session"] .side { display: none; }
+body.is-fs[data-view="session"] .sess-main { overflow: hidden; }
+body.is-fs[data-view="session"] .stage { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+body.is-fs[data-view="session"] .stage > .neck-host { flex: none; }
+body.is-fs[data-view="session"] .stage > .lane { flex: 1; min-height: 120px; height: auto; }
+body.is-fs[data-view="session"] .stage .wheel-host { flex: 1; min-height: 0; display: flex !important; flex-direction: column; }
+body.is-fs[data-view="session"] .stage .wheel-host[hidden] { display: none !important; }
+body.is-fs[data-view="session"] .wv { flex: 1; min-height: 0; }
+body.is-fs[data-view="session"] .wv-cardwrap { flex: 1; min-height: 0; }
+body.is-fs[data-view="session"] .stage .wv .wv-cardbox { height: 100% !important; max-height: 100%; }
+body.is-fs[data-view="session"] .wv .t-chord > b { font-size: clamp(24px, 4.5vh, 48px); }
+body.is-fs[data-view="session"] .wv .t-fret { font-size: clamp(56px, 13vh, 170px); }
+body.is-fs[data-view="session"] .wv.focus-card .t-fret { font-size: clamp(44px, 9vh, 120px); }
+body.is-fs[data-view="session"] .wv .t-body svg.chordbox { max-width: 240px; max-height: 30vh; }
+body.is-fs[data-view="session"] .wv.focus-card .t-body svg.chordbox { max-height: 20vh; }
+body.is-fs[data-view="session"] .stage.wv-demo .neck-host svg.neck { max-height: 42vh; }
+body.is-fs[data-view="session"] .hand-host .hcell svg { height: clamp(70px, 16vh, 180px); }
