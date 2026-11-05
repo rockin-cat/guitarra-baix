@@ -863,8 +863,16 @@ details.tips[open] summary { opacity: .6; }
 .str-btn { width: 30px; height: 30px; border-radius: 50%; border: 2px solid var(--linia); background: #fff; font: 700 13px Ubuntu, sans-serif; cursor: pointer; color: var(--tinta); }
 .str-btn.on { background: var(--accent); border-color: var(--accent); color: #111; }
 .stage.wheel-view.wv-demo .wheel-host { display: block; }
-.stage.wheel-view.wv-demo .wv-row { display: none; }
-.stage.wheel-view.wv-demo .wv .wv-cardbox { height: clamp(110px, 20vh, 170px); }
+.stage.wheel-view.wv-demo .wv-row { display: grid; } /* v51: a l'escolta, la mateixa roda amb els números que quan toques: només hi afegeix el mànec */
+.stage.wheel-view.wv-demo .wv-row .tile { min-height: 0; }
+.stage.wheel-view.wv-demo .wv .wv-cardbox { height: clamp(80px, 14vh, 140px); }
+/* v51: a l'escolta hi cap tot (mànec + roda + carta) sense créixer: tot una mica més petit */
+.stage.wheel-view.wv-demo .neck-host svg.neck { max-height: 22vh; }
+.stage.wheel-view.wv-demo .neck-host { margin: 0 0 4px; }
+.stage.wheel-view.wv-demo .wv .t-fret, .stage.wheel-view.wv-demo .wv.focus-card .t-fret { font-size: clamp(24px, 5vh, 48px); }
+.stage.wheel-view.wv-demo .wv .tile { padding: 2px 6px 6px; }
+.stage.wheel-view.wv-demo .wv .t-body svg.chordbox { max-height: 9vh; }
+.stage.wheel-view.wv-demo .wv-row { gap: 8px; margin-bottom: 4px; }
 .stage.wheel-view.wv-demo .wv { padding-top: 0; }
 .neck .string.lit line { filter: drop-shadow(0 0 4px var(--accent)); stroke-width: 3.5; }
 .ctrl-main .strpick { margin-left: 8px; }
@@ -923,7 +931,8 @@ body.is-fs[data-view="session"] .wv .t-fret { font-size: clamp(56px, 13vh, 170px
 body.is-fs[data-view="session"] .wv.focus-card .t-fret { font-size: clamp(44px, 9vh, 120px); }
 body.is-fs[data-view="session"] .wv .t-body svg.chordbox { max-width: 240px; max-height: 30vh; }
 body.is-fs[data-view="session"] .wv.focus-card .t-body svg.chordbox { max-height: 20vh; }
-body.is-fs[data-view="session"] .stage.wv-demo .neck-host svg.neck { max-height: 42vh; }
+body.is-fs[data-view="session"] .stage.wv-demo .neck-host svg.neck { max-height: 30vh; }
+body.is-fs[data-view="session"] .stage.wv-demo .wv .t-fret { font-size: clamp(28px, 7vh, 80px); }
 body.is-fs[data-view="session"] .hand-host .hcell svg { height: clamp(70px, 16vh, 180px); }
 .slowmo { font-size: 22px; }
 .slowmo.on { background: color-mix(in srgb, var(--accent) 25%, #fff); border-color: var(--accent); }

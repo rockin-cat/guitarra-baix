@@ -224,4 +224,5 @@ Amb un cable jack → USB (o l'ampli connectat per USB), el joc escolta la guita
 - Després de valorar, sempre surt «🐢 Més lent» (i «⏩ Més ràpid» si ha anat bé).
 - Quan l'exemple ha d'arrencar sol, l'animació d'abans ja no sona (no s'escapa cap nota abans de l'entrada).
 
+- **v51**: a l'escolta es veu la mateixa roda amb els números que quan toques (només s'hi afegeix el mànec); l'animació d'espera ja no sona (el primer so és sempre el compte d'entrada).
 - **v50**: teclat de la banda amb mostres de Rhodes reals (jRhodes3c, CC BY-NC-SA); guitarres sense el brunzit agut de les gravacions (filtre a 6 kHz); el lliscament dels power chords ja no surt dues vegades.

@@ -1228,7 +1228,7 @@ function frame(st) {
   }
   // l'animació d'abans de començar sona (fluixet), sense banda
   // (el primer segon no sona: si l'exemple arrenca sol just després, no s'escapa cap nota abans de l'entrada)
-  if (pos.preview && cur && st.prevHeard !== cur.id && pos.abs >= cur.abs) { st.prevHeard = cur.id; if (!cur.ghost && !st.introOpen && !st.demoPending && performance.now() - st.preview > 1200) player.playNow(st.song, cur, 0.55); }
+  // (v51: l'animació d'espera ja no sona: el so arriba amb l'exemple, sempre després del compte d'entrada)
   // la púa
   if (cur) {
     const spb = pos.spq;
