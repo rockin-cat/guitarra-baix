@@ -188,7 +188,10 @@ function scheduleBar(r, i, seg) {
   const gd = busGain('drums'); const gb = busGain('band');
   if (gd && gb) { gd.setTargetAtTime((demo ? 0.3 : 0.85) * vol, Math.max(t - 0.05, audioContext().currentTime), 0.05); gb.setTargetAtTime((demo ? 0.45 : 0.8) * vol, Math.max(t - 0.05, audioContext().currentTime), 0.05); }
   // metrònom: al compte, o sempre si està encès
-  if (seg.mode === 'count' || r.opts.metronome || song.estil === 'metronom') {
+  if (seg.mode === 'count') {
+    // l'entrada la fa el bateria amb les baquetes (i el clic de fons), com en una banda de debò
+    for (const c of clicksBar(song.M)) { click(at(c.beat), c.accent); drum('stick', at(c.beat), { vel: c.accent ? 1 : 0.8 }); }
+  } else if (r.opts.metronome || song.estil === 'metronom') {
     for (const c of clicksBar(song.M)) click(at(c.beat), c.accent);
   }
   if (!content) return;
