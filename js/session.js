@@ -415,13 +415,10 @@ const helpStep = (st) => Math.max(2, Math.min(4, st.bars.length));
 
 function makePlan(st, what) {
   const L = st.bars.length;
-  // cançons llargues: la demostració és la primera part (o 8 compassos) i després es toca des del principi
+  // la demostració fa tota la roda (si és molt curta, es repeteix fins a 4 compassos; si és la cançó sencera, com a molt 16)
   let demoBars = L >= 4 ? L : L * Math.ceil(4 / L);
-  if (L > 8) {
-    const nextPart = st.bars.findIndex((b, j) => j > 0 && b.part);
-    demoBars = nextPart > 0 && nextPart <= 12 ? nextPart : 8;
-  }
-  const playOffset = demoBars % L === 0 ? 0 : demoBars;
+  if (L > 16) demoBars = 16;
+  const playOffset = demoBars; // en tocar, es comença des del principi de la roda
   const playBars = roundsFor(st) * L;
   if (st.kind === 'improv') {
     const qa = st.step.mode === 'qa';
@@ -1010,7 +1007,7 @@ function drawTiles(st, pos, mode) {
   const stage = st.root.querySelector('.stage');
   if (stage.classList.contains('wv-demo') !== demo) stage.classList.toggle('wv-demo', demo);
   if (!stage.classList.contains('wv-arp') && st.step.part?.type === 'arp') stage.classList.add('wv-arp');
-  st.el('hand').hidden = !(demo && st.step.part?.type === 'rascat');
+  st.el('hand').hidden = !st.handOnly;
 }
 
 /** La pilota (com al joc de teclat): cau al centre de cada rodona, un cop per pols; els cops més llargs, més amunt. */

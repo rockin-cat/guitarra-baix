@@ -862,10 +862,10 @@ details.tips[open] summary { opacity: .6; }
 .strpick span { margin-right: 4px; color: var(--gris); }
 .str-btn { width: 30px; height: 30px; border-radius: 50%; border: 2px solid var(--linia); background: #fff; font: 700 13px Ubuntu, sans-serif; cursor: pointer; color: var(--tinta); }
 .str-btn.on { background: var(--accent); border-color: var(--accent); color: #111; }
-.stage.wheel-view.wv-demo.wv-arp .wheel-host { display: block; }
-.stage.wheel-view.wv-demo.wv-arp .wv-row { display: none; }
-.stage.wheel-view.wv-demo.wv-arp .wv-cardbox { height: clamp(110px, 20vh, 170px); }
-.stage.wheel-view.wv-demo.wv-arp .wv { padding-top: 0; }
+.stage.wheel-view.wv-demo .wheel-host { display: block; }
+.stage.wheel-view.wv-demo .wv-row { display: none; }
+.stage.wheel-view.wv-demo .wv .wv-cardbox { height: clamp(110px, 20vh, 170px); }
+.stage.wheel-view.wv-demo .wv { padding-top: 0; }
 .neck .string.lit line { filter: drop-shadow(0 0 4px var(--accent)); stroke-width: 3.5; }
 .ctrl-main .strpick { margin-left: 8px; }
 @media (max-height: 720px) { .wv-arp.wheel-view .wv.focus-card .wv-cardbox { height: clamp(120px, 24vh, 220px); } .wv-arp .wv .t-body svg.chordbox { max-height: 90px; } }

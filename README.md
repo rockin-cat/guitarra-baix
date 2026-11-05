@@ -189,3 +189,7 @@ Amb un cable jack → USB (o l'ampli connectat per USB), el joc escolta la guita
 ## Versió 37
 - **Entrada entre l'exemple i l'exercici**: després de la demostració hi ha un compàs de compte (⏱) abans de tocar.
 - **Mànec de 15 trasts**: els power chords i les celletes dels trasts alts (Eb a l'11, amb la quinta al 13) es veuen sencers. Marques als trasts 12 i 15.
+
+## Versió 38
+- **La demostració fa tota la roda** (abans, amb la cançó sencera, només la primera part o 8 compassos) i en tocar es comença des del principi de la roda.
+- **A la demostració també es veu la carta** amb la pilota, sota el mànec.
