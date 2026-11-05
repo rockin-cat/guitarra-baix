@@ -846,7 +846,10 @@ function openIntro(st, onDone) {
   st.closeIntro?.();
   if (player.isPlaying()) { player.stop(); setButtons(st, false); }
   st.introOpen = true;
-  st.closeIntro = showIntro(st.root.querySelector('.sess-main'), st.inst.id, st.ctx.levelN, { onDone: () => { st.introOpen = false; st.closeIntro = null; st.preview = performance.now(); onDone?.(); } });
+  // la forma dels acords que toca ara (power chord o oberta), perquè l'explicació ensenyi el mateix
+  let mode = 'obert';
+  for (let k = 0; k < st.bars.length && mode === 'obert'; k++) if (st.song.content(k).part.some((e) => e.voicing?.power)) mode = 'power';
+  st.closeIntro = showIntro(st.root.querySelector('.sess-main'), st.inst.id, st.ctx.levelN, { mode, onDone: () => { st.introOpen = false; st.closeIntro = null; st.preview = performance.now(); onDone?.(); } });
 }
 
 function showAssess(st) {
@@ -1141,6 +1144,7 @@ function frame(st) {
   if (current !== st) return;
   st.raf = requestAnimationFrame(() => frame(st));
   if (st.kind === 'tune') return;
+  if (st.introOpen) return; // amb l'explicació oberta, el que hi ha darrere es queda quiet
   const live = player.position();
   // quan no sona res, l'animació fa una passada muda pels primers compassos: es veu què cal fer sense llegir
   const pos = live ?? previewPos(st);

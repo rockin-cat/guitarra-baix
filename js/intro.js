@@ -7,11 +7,16 @@ import { parseChord, metre, pentatonic, mod } from './theory.js';
 import { tone, resumeAudio, loadSet, audioContext, click, drum } from './audio.js';
 import { cardById } from './data/cartes.js';
 import { cardGeometry, ballAt, paintBall, canvasCtx } from './cardball.js';
-import { settings, chordMode } from './store.js';
+import { settings } from './store.js';
 
 const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const h = (html) => { const t = document.createElement('template'); t.innerHTML = html.trim(); return t.content.firstElementChild; };
 const M4 = metre('4/4');
+// com toca ara l'alumne els acords (ho diu la sessió): 'power' o 'obert'
+let MODE = 'obert';
+const isPower = () => MODE === 'power';
+/** La forma d'un acord tal com la toca ara l'alumne. */
+const shape = (sym) => (isPower() ? powerRoot6(parseChord(sym), 3) : guitarVoicing(parseChord(sym)));
 
 // ---- so --------------------------------------------------------------------------------------------------------
 async function ready(inst) { await resumeAudio(); await loadSet(inst.sound); }
@@ -53,7 +58,7 @@ export const INTROS = {
     1: {
       t: 'La roda d\'acords',
       build(el, inst, loop) {
-        const power = typeof chordMode() === 'object' && chordMode()?.type === 'power' || chordMode() == null;
+        const power = isPower();
         el.innerHTML = lead(power ? 'Cada fitxa, un acord: <b>el número és el trast</b> a la corda 6.' : 'Cada fitxa, un acord: <b>el diagrama són els dits</b>.');
         const chords = ['G', 'D', 'Em', 'C'].map((c) => parseChord(c));
         const vs = chords.map((c) => (power ? powerRoot6(c, 3) : guitarVoicing(c)));
@@ -67,7 +72,7 @@ export const INTROS = {
       t: 'Les cartes rítmiques',
       build(el, inst, loop) {
         el.innerHTML = lead('<b>● = un cop</b>. ○ = silenci. La pilota et diu quan.') + tags([['●', 'cop'], ['○', 'silenci']]);
-        const v = guitarVoicing(parseChord('G'));
+        const v = shape('G');
         const cb = cardBall(cardById('mb2'), null, { onHit: () => strum(inst, v.midi, { dur: 0.6 }) });
         el.append(cb.el);
         loop(cb.frame);
@@ -77,7 +82,7 @@ export const INTROS = {
       t: 'Les cartes de rascat',
       build(el, inst, loop) {
         el.innerHTML = lead('<b>Fletxa negra = toques</b> (avall o amunt). Grisa = la mà passa sense tocar.') + tags([['<span class="lg arrow">↓</span>', 'avall'], ['<span class="lg arrow">↑</span>', 'amunt'], ['<span class="lg arrow ghost">↓</span>', 'a l\'aire']]);
-        const v = guitarVoicing(parseChord('G'));
+        const v = shape('G');
         const card = cardById('rg2');
         const dirs = [...card.strum].filter((m) => m !== m.toLowerCase());
         const cb = cardBall(card, null, { onHit: (i) => strum(inst, dirs[i] === 'U' ? v.midi.slice(2) : v.midi, { dir: dirs[i], dur: 0.5, gain: 0.4 }) });
@@ -89,7 +94,7 @@ export const INTROS = {
       t: 'Cantar i tocar',
       build(el, inst, loop) {
         el.innerHTML = lead('Toques i, a sobre, <b>cantes la lletra blava</b>. A l\'exemple la sents.') + tags([['🎸', 'toques'], ['🎤', 'cantes']]);
-        const v = guitarVoicing(parseChord('C'));
+        const v = shape('C');
         const cb = cardBall(cardById('mb1'), null, { onHit: (i) => { strum(inst, v.midi, { dur: 0.6, gain: 0.35 }); if (i % 2 === 0) note({ sound: 'rhodes' }, 64 + (i ? 3 : 0), 0.9, 0.25); } });
         el.append(cb.el);
         loop(cb.frame);
@@ -98,7 +103,7 @@ export const INTROS = {
     5: {
       t: 'Les cartes melòdiques',
       build(el, inst, loop) {
-        const power = typeof chordMode() === 'object' && chordMode()?.type === 'power';
+        const power = isPower();
         el.innerHTML = lead(power ? 'El dibuix puja i baixa per <b>la forma: 1 · 5 · 8</b>.' : 'El dibuix puja i baixa per <b>les cordes que tries</b> (aquí, 4 i 3).');
         const c = parseChord('G');
         const v = power ? powerRoot6(c, 3) : guitarVoicing(c);
@@ -159,7 +164,7 @@ export const INTROS = {
       t: 'Composició',
       build(el, inst, loop) {
         el.innerHTML = lead('<b>Carta rítmica + carta melòdica</b> = la teva frase. Tu tries quines.') + '<div class="in-cols"></div>';
-        const v = guitarVoicing(parseChord('G'));
+        const v = shape('G');
         const ladder = [v.midi[2], v.midi[3], v.midi[4]].filter((m) => m != null);
         const seq = cardById('pm5').contour.flat();
         const rhythm = cardBall(cardById('mb2'), null, { onHit: (i) => note(inst, ladder[seq[i % seq.length] % ladder.length], 0.6) });
@@ -271,7 +276,8 @@ export const hasIntro = (instId, n) => !!INTROS[instId]?.[n];
  * Mostra la introducció del nivell dins de `host` (per sobre de l'escenari). onDone quan es tanca.
  * Torna una funció per tancar-la.
  */
-export function showIntro(host, instId, n, { onDone } = {}) {
+export function showIntro(host, instId, n, { onDone, mode = 'obert' } = {}) {
+  MODE = mode;
   const def = INTROS[instId]?.[n];
   if (!def) { onDone?.(); return () => {}; }
   const inst = INSTRUMENTS[instId];
