@@ -462,6 +462,7 @@ async function go(st, what) {
   st.judge?.destroy();
   st.judge = listen.isOn() && st.kind !== 'improv' && st.kind !== 'compose' ? createJudge(st.inst.id, { onVerdict: (v) => showVerdict(st, v) }) : null;
   st.listenSum = null;
+  st.soloBars = 0; st.lastSoloBar = null; st.naturalEnd = false;
   st.marks = [];
   resetDots(st);
   updateListenUi(st);
@@ -488,6 +489,7 @@ function stopRun(st) {
 
 function finished(st, natural) {
   if (current !== st) return;
+  st.naturalEnd = !!natural;
   setHelp(st, 0);
   setButtons(st, false);
   showIdle(st);
@@ -645,10 +647,15 @@ function setTempo(st, t) {
   st.el('tempo').textContent = st.tempo;
 }
 
-function rate(st, r) {
+function rate(st, r) { // eslint-disable-line no-param-reassign
   const id = st.step.id;
   const before = id ? store.stepState(id) : null;
   const levelWasDone = !!st.ctx.nav?.levelDone();
+  // «Ja ho tens!» només compta si el joc t'ha escoltat i ha anat bé, o si l'has tocat fins al final sense ajuda
+  // (la pantalla esvaïda del tot, sense guia sonora, almenys una volta)
+  const asked = r;
+  const earned = r !== 'ok' || st.listenSum?.level === 'ok' || (st.naturalEnd && (st.soloBars ?? 0) >= Math.max(2, st.bars.length));
+  if (!earned) r = 'gairebe';
   const s = id ? store.markStep(id, r, st.tempo) : null;
   // el que surt al camí de power chords o d'acords oberts és com es toquen els acords a la resta de nivells
   if (r === 'ok' && st.inst.id === 'guitarra' && st.baseStep.chordMode && typeof st.baseStep.chordMode === 'object' && st.baseStep.nivell === 1) store.setChordMode(st.baseStep.chordMode);
@@ -657,7 +664,11 @@ function rate(st, r) {
   st.result = res;
   // l'ajuda de la propera vegada (si l'alumne canvia la valoració, es torna a calcular des del mateix punt)
   if (st.autoBase) { st.autoLevel = st.autoBase.l; setTempo(st, st.autoBase.tempo); }
-  res.autoMsg = stepAutoHelp(st, r);
+  res.autoMsg = stepAutoHelp(st, asked);
+  if (!earned) {
+    if (id && st.auto) { helpMap()[id] = 2; store.save(); applyAutoHelp(st, 2); }
+    res.autoMsg = '🙂 De moment, «A prop». Per tenir-ho, toca\'l una vegada sense ajuda: la propera vegada la pantalla s\'anirà esvaint fins que toquis sol, sense guia sonora.';
+  }
   // el registre de decisions: l'efecte de la tria anterior i un registre nou (si ja n'hi ha un d'aquest resultat, es corregeix)
   if (id && !st.rec) { auto.fillEffect(id, r); st.rec = auto.record({ step: id, r, gaps: [], wasOk: res.wasOk }); st.recAt = { tempo: st.tempo, guide: !!st.guide }; }
   else if (st.rec) auto.updateRecord(st.rec, { level: auto.levelOf(r), wasOk: res.wasOk || undefined });
@@ -1161,6 +1172,7 @@ function frame(st) {
     const total = roundsFor(st) * st.bars.length;
     const per = Number.isFinite(total) ? Math.max(1, total / 4) : helpStep(st);
     setHelp(st, Math.min(3, Math.floor((pos.i - st.playStart) / per)));
+    if (st.helpLevel === 3 && !st.guide) st.soloBars = (st.soloBars ?? 0) + (st.lastSoloBar !== pos.i ? 1 : 0), st.lastSoloBar = pos.i;
   } else if (st.helpLevel) setHelp(st, 0);
 
   // marcador superior

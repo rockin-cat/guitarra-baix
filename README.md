@@ -215,3 +215,4 @@ Amb un cable jack → USB (o l'ampli connectat per USB), el joc escolta la guita
 - Versió 45: mentre es veu la mini explicació no sona res més (ni l'animació muda ni l'exemple).
 - Versió 46: a pantalla completa l'escenari omple la pantalla (sense lateral) i la carta, les fitxes i el mànec creixen amb l'alçada.
 - Versió 47: la mini explicació s'adapta a com toques els acords (power chord o oberts) i el que hi ha darrere es queda quiet i tapat.
+- Versió 48: «Ja ho tens!» sense que el joc t'escolti només compta si has tocat fins al final amb la pantalla esvaïda del tot i sense guia sonora (almenys una volta); si no, queda «A prop» i la propera vegada l'ajuda s'esvaeix.
