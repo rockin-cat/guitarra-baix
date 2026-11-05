@@ -204,3 +204,4 @@ Amb un cable jack → USB (o l'ampli connectat per USB), el joc escolta la guita
 - L'entrada (compte) la fan les baquetes de la bateria a més del clic, tant abans de l'exemple com abans de l'exercici.
 - Versió 42: el baix de la banda una mica més enrere a la mescla (×0,62).
 - Versió 43: els números dels subnivells (a dalt) tornen a portar al pas (un gestor antic els interceptava).
+- La nota que s'escapava abans de l'entrada era l'animació muda que sona: ara el primer segon no sona.

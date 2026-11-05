@@ -1254,7 +1254,8 @@ function frame(st) {
     }
   }
   // l'animació d'abans de començar sona (fluixet), sense banda
-  if (pos.preview && cur && st.prevHeard !== cur.id && pos.abs >= cur.abs) { st.prevHeard = cur.id; if (!cur.ghost) player.playNow(st.song, cur, 0.55); }
+  // (el primer segon no sona: si l'exemple arrenca sol just després, no s'escapa cap nota abans de l'entrada)
+  if (pos.preview && cur && st.prevHeard !== cur.id && pos.abs >= cur.abs) { st.prevHeard = cur.id; if (!cur.ghost && performance.now() - st.preview > 1200) player.playNow(st.song, cur, 0.55); }
   // la púa
   if (cur) {
     const spb = pos.spq;
