@@ -66,6 +66,7 @@ export function createNeck(host, inst, { thickTop = false } = {}) {
   const layerNext = el('g', { class: 'next' }, svg);
   const layerCtx = el('g', { class: 'ctx' }, svg);
   const layerNow = el('g', { class: 'now' }, svg);
+  const layerMute = el('g', { class: 'mute' }, svg); // les × de les cordes que no es toquen (no llisquen amb la forma)
   const layerTech = el('g', { class: 'tech' }, svg);
   const nextLabel = el('text', { x: LAST - 4, y: 18, 'text-anchor': 'end', class: 'next-label' }, svg);
   const chordLabel = el('text', { x: NUT + 6, y: 18, class: 'chord-label' }, svg);
@@ -92,7 +93,7 @@ export function createNeck(host, inst, { thickTop = false } = {}) {
     return g;
   }
   function muted(s) {
-    const t = el('text', { x: NUT - 26, y: y(s) + 6, 'text-anchor': 'middle', class: 'muted' }, layerNow);
+    const t = el('text', { x: NUT - 26, y: y(s) + 6, 'text-anchor': 'middle', class: 'muted' }, layerMute);
     t.textContent = '×';
   }
   function clear(...layers) { for (const l of layers) l.replaceChildren(); }
@@ -160,7 +161,7 @@ export function createNeck(host, inst, { thickTop = false } = {}) {
       const key = JSON.stringify([view.mode, view.cur?.id, view.next?.id, view.showNext, view.ctxKey, view.label, view.lit]);
       if (key === shownKey) return;
       shownKey = key;
-      clear(layerBarre, layerNext, layerCtx, layerNow, layerTech);
+      clear(layerBarre, layerNext, layerCtx, layerNow, layerTech, layerMute);
       chordLabel.textContent = view.label ?? '';
       strings.forEach((x, i) => x.g.classList.toggle('lit', !!view.lit?.includes(i)));
       nextLabel.textContent = '';
@@ -232,17 +233,17 @@ export function createNeck(host, inst, { thickTop = false } = {}) {
     },
     /** Ressalta una corda (afinar, corda a corda). */
     highlightString(s, text) {
-      clear(layerNow, layerNext, layerCtx, layerBarre, layerTech);
+      clear(layerNow, layerNext, layerCtx, layerBarre, layerTech, layerMute);
       shownKey = '';
       strings.forEach((x, i) => x.g.classList.toggle('lit', i === s));
       if (s != null && text) dot(layerNow, s, 0, '', 'active');
       chordLabel.textContent = text ?? '';
     },
     shake,
-    clear() { shownKey = ''; clear(layerBarre, layerNext, layerCtx, layerNow, layerTech); chordLabel.textContent = ''; nextLabel.textContent = ''; strings.forEach((x) => x.g.classList.remove('lit')); },
+    clear() { shownKey = ''; clear(layerBarre, layerNext, layerCtx, layerNow, layerTech, layerMute); chordLabel.textContent = ''; nextLabel.textContent = ''; strings.forEach((x) => x.g.classList.remove('lit')); },
     dotsFor(list) { // per a «corda a corda» i afinar: punts lliures
       shownKey = '';
-      clear(layerNow, layerNext, layerTech);
+      clear(layerNow, layerNext, layerTech, layerMute);
       for (const p of list) dot(layerNow, p.s, p.f, p.label ?? '', p.cls ?? 'active');
     },
   };

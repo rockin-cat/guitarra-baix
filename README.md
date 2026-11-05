@@ -205,3 +205,10 @@ Amb un cable jack → USB (o l'ampli connectat per USB), el joc escolta la guita
 - Versió 42: el baix de la banda una mica més enrere a la mescla (×0,62).
 - Versió 43: els números dels subnivells (a dalt) tornen a portar al pas (un gestor antic els interceptava).
 - La nota que s'escapava abans de l'entrada era l'animació muda que sona: ara el primer segon no sona.
+
+## Versió 44 · la mini explicació de cada nivell
+- **En entrar per primera vegada en un nivell**, surt una explicació curta amb animació i so de com es llegeixen les cartes o la pantalla d'aquell nivell (`js/intro.js`): la roda (trast o diagrama), les cartes rítmiques (● cop, ○ silenci, pilota), les de rascat (fletxa negra/grisa), cantar i tocar, les melòdiques (cordes triades o 1·5·8), la celleta, afinar, els recursos tècnics, composició i improvisació; i el mateix per al baix. Botó ⓘ a la capçalera per tornar-la a veure.
+- «Aprèn a llegir la pantalla» ja no explica les cartes (ho fan els nivells).
+- **🎧 Retard del so** a Configuració: amb auriculars Bluetooth (AirPods…) l'animació va per davant del so; el control (0–400 ms) ho compensa.
+- La pilota i la carta ara són un mòdul compartit (`js/cardball.js`).
+- Les × de les cordes que no es toquen ja no llisquen amb la forma.

@@ -54,7 +54,6 @@ export function renderGuide(host, instId, { onDone } = {}) {
     { t: g ? 'Els dits i els acords' : 'Els números del baix', build: pageFingers },
     { t: g ? 'La mà dreta: la púa' : 'La mà dreta', build: pagePick },
     { t: 'La roda i el compàs', build: pageLane },
-    { t: 'Les cartes i el diagrama', build: pageCards },
     { t: 'El marcador: quan toques', build: pageBadge },
   ];
 

@@ -566,7 +566,7 @@ document.addEventListener('click', (ev) => {
   if (!b) return;
   if (b.id === 'home-link') { ev.preventDefault(); renderHome(); show('home'); return; }
   if (b.id === 'player-chip') { store.setCurrent(null); renderHome(); show('home'); return; }
-  if (b.id === 'settings-btn') { $('#set-thick').checked = store.settings().thickTop === true; $('#set-lead').value = String(store.settings().nextLead ?? 2); $('#settings').showModal(); return; }
+  if (b.id === 'settings-btn') { $('#set-thick').checked = store.settings().thickTop === true; $('#set-lead').value = String(store.settings().nextLead ?? 2); $('#set-outlat').value = String(Math.round((store.settings().outLat ?? 0) * 1000)); $('#set-outlat-v').textContent = `${$('#set-outlat').value} ms`; $('#settings').showModal(); return; }
   if (b.dataset.fs !== undefined) { toggleFullscreen(); return; }
   if (b.id === 'listen-chip') { openListen(); return; }
   if (b.id === 'tuner-chip') { openListen('tuner'); return; }
@@ -620,8 +620,10 @@ document.addEventListener('click', (ev) => {
 $('#settings').addEventListener('close', () => {
   store.settings().thickTop = $('#set-thick').checked;
   store.settings().nextLead = Number($('#set-lead').value) || 2;
+  store.settings().outLat = (Number($('#set-outlat').value) || 0) / 1000;
   store.save();
 });
+$('#set-outlat').addEventListener('input', (e) => { $('#set-outlat-v').textContent = `${e.target.value} ms`; store.settings().outLat = (Number(e.target.value) || 0) / 1000; });
 
 // ---- Connecta la guitarra (també des de la barra de dalt) ---------------------------------------------------------
 

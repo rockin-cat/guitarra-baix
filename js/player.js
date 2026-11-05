@@ -6,6 +6,7 @@ import { bandBar, stylesFor, clicksBar, BAND_SETS, finalHit, FILLS, bassRoot } f
 import { partBar, voiceBar } from './parts.js';
 import { INSTRUMENTS } from './fretboard.js';
 import { metre, guessKey, parseChord, pcName, mod } from './theory.js';
+import { settings } from './store.js';
 
 /**
  * Una cançó per tocar.
@@ -255,7 +256,8 @@ export function playPart(song, e, at, spq, gain = 1, pan = 0) {
 export function position() {
   if (!run) return null;
   const ctx = audioContext();
-  const heard = ctx.currentTime - (ctx.outputLatency || ctx.baseLatency || 0);
+  // el que se sent ara: el rellotge menys el retard de sortida (i el dels auriculars sense fil, a Configuració)
+  const heard = ctx.currentTime - (ctx.outputLatency || ctx.baseLatency || 0) - (settings().outLat ?? 0);
   const x = (heard - run.t0) / run.barDur;
   const i = Math.floor(x);
   return { i, beat: (x - i) * run.song.M.beats, abs: x * run.song.M.beats, bar: run.bars[i] ?? null, bars: run.bars, time: heard, spq: run.spq, song: run.song, barDur: run.barDur, t0: run.t0 };

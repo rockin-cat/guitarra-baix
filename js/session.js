@@ -4,7 +4,7 @@
 import * as player from './player.js';
 import { createNeck, chordBox, voicingAnchor } from './neck.js';
 import { createLane, wheelWindow } from './lane.js';
-import { CARD_LAYOUT, MELODIC_LAYOUT } from './data/layouts.js';
+import { cardGeometry, drawnCard, ballAt, paintBall, canvasCtx } from './cardball.js';
 import { DEFAULT_ARP_STRINGS, arpStrings } from './parts.js';
 import { INSTRUMENTS, guitarVoicing, scaleBox, bassRole } from './fretboard.js';
 import { parseProgression, guessKey, pentatonic, mod, pcName, metre as metreOf, midiName, practicePart } from './theory.js';
@@ -17,6 +17,7 @@ import { pill, gapsFor, tipsFor, gapText, GAPS } from './assoliment.js';
 import * as auto from './autoregulacio.js';
 import * as listen from './listen.js';
 import { createJudge, verdictText, verdictClass } from './gjudge.js';
+import { showIntro, hasIntro } from './intro.js';
 
 const $ = (sel, root = document) => root.querySelector(sel);
 const h = (html) => { const t = document.createElement('template'); t.innerHTML = html.trim(); return t.content.firstElementChild; };
@@ -25,6 +26,7 @@ const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<
 let current = null; // la sessió oberta
 
 export function closeSession() {
+  current?.closeIntro?.();
   if (!current) return;
   current.judge?.destroy();
   current.judge = null;
@@ -117,7 +119,7 @@ export function openSession(host, baseStep, ctx) {
           <h2>${esc(step.titol)}</h2>
           ${ctx.levelSteps ? `<div class="step-strip">${ctx.levelSteps.map((x, j) => `<button type="button" class="ss-dot${x.id === baseStep.id ? ' cur' : ''}${x.best ? ` b-${x.best}` : ''}" data-act="goto" data-to="${esc(x.id)}" title="${esc(x.titol)}">${x.kind === 'cards' ? '🃏' : j + 1}</button>`).join('')}</div>` : ''}
         </div>
-        <div class="vh-actions"><button type="button" class="btn btn-ghost btn-small help-btn" data-go="guide" title="Què vol dir cada cosa de la pantalla">Com es llegeix?</button><button type="button" class="btn btn-ghost btn-small fs-btn" data-fs title="Pantalla completa" aria-label="Pantalla completa">⛶</button></div>
+        <div class="vh-actions">${ctx.levelN && hasIntro(inst.id, ctx.levelN) ? '<button type="button" class="btn btn-ghost btn-small intro-btn" data-act="intro" title="Com es llegeixen les cartes d\'aquest nivell">ⓘ</button>' : ''}<button type="button" class="btn btn-ghost btn-small help-btn" data-go="guide" title="Què vol dir cada cosa de la pantalla">Com es llegeix?</button><button type="button" class="btn btn-ghost btn-small fs-btn" data-fs title="Pantalla completa" aria-label="Pantalla completa">⛶</button></div>
       </div>
       <div class="sess-grid">
         <div class="sess-main">
@@ -201,7 +203,7 @@ export function openSession(host, baseStep, ctx) {
   st.fade = !!S.fadeHelp;
   st.el('fade').checked = st.fade;
 
-  if (kind === 'tune') return setupTuner(st);
+  if (kind === 'tune') { root.addEventListener('click', (ev) => onClick(st, ev)); return setupTuner(st); }
 
   buildSong(st);
   if (kind === 'compose') setupComposer(st);
@@ -275,8 +277,14 @@ export function openSession(host, baseStep, ctx) {
   showIdle(st);
   player.prepare(inst.id).catch(() => {});
   st.raf = requestAnimationFrame(() => frame(st));
-  // la primera vegada que entres en un pas, l'exemple sona sol: veus com es fa i el sents
-  if (!['improv', 'compose', 'tune'].includes(kind) && !store.stepState(baseStep.id) && store.settings().autoDemo !== false) {
+  // la primera vegada que entres en un nivell, la mini explicació de les seves cartes; després, l'exemple
+  const autoDemo = !['improv', 'compose', 'tune'].includes(kind) && !store.stepState(baseStep.id) && store.settings().autoDemo !== false;
+  const pl = store.player();
+  const introKey = `${inst.id}:${ctx.levelN}`;
+  if (ctx.levelN && hasIntro(inst.id, ctx.levelN) && pl && !pl.intros?.[introKey]) {
+    (pl.intros ??= {})[introKey] = true; store.save();
+    openIntro(st, () => { if (autoDemo && current === st && !player.isPlaying()) go(st, 'full'); });
+  } else if (autoDemo) {
     setTimeout(() => { if (current === st && !player.isPlaying()) go(st, 'full'); }, 700);
   }
   return st;
@@ -619,6 +627,7 @@ function onClick(st, ev) {
   if (act === 'stop') return stopRun(st);
   if (act === 'opts') { const d = st.el('drawer'); d.hidden = !d.hidden; b.setAttribute('aria-expanded', String(!d.hidden)); b.classList.toggle('on', !d.hidden); return; }
   if (act === 'close-assess') { hideAssess(st); return; }
+  if (act === 'intro') { if (player.isPlaying()) stopRun(st); openIntro(st); return; }
   if (act === 'goto') { const to = b.dataset.to ?? b.dataset.id; if (to && to !== st.baseStep.id) { closeSession(); st.ctx.nav?.goStep(to); } return; }
   if (act === 'listen-dlg') return listen.openDialog({ onChange: () => updateListenUi(st) });
   if (act === 'slower' || act === 'faster') return setTempo(st, st.tempo + (act === 'faster' ? 5 : -5));
@@ -832,6 +841,12 @@ function pickOption(st, id, to) {
   if (id === 'done') { closeSession(); if (st.ctx.nav?.goMap) st.ctx.nav.goMap(); else st.ctx.onBack?.(); }
 }
 
+function openIntro(st, onDone) {
+  st.closeIntro?.();
+  st.introOpen = true;
+  st.closeIntro = showIntro(st.root.querySelector('.sess-main'), st.inst.id, st.ctx.levelN, { onDone: () => { st.introOpen = false; st.closeIntro = null; onDone?.(); } });
+}
+
 function showAssess(st) {
   const a = st.el('assess');
   a.hidden = false;
@@ -899,37 +914,8 @@ function wheelCard(st) {
 }
 
 /** Si no hi ha carta, se'n dibuixa una: rodona blava = toques, línia = deixa sonar, rodona blanca = silenci. */
-function drawnCard(moves) {
-  const n = moves.length;
-  const W = 170; const H = 240; const x0 = W * 0.04; const step = (W * 0.92) / n;
-  let g = '';
-  [...moves].forEach((m, i) => {
-    const cx = x0 + step * (i + 0.5);
-    if (m === 'D' || m === 'U') g += `<circle cx="${cx}" cy="${H / 2}" r="${Math.min(13, step * 0.42)}" fill="#3db8f5"/>`;
-    else if (m === '=') g += `<rect x="${cx - step / 2}" y="${H / 2 - 3}" width="${step}" height="6" fill="#3db8f5" opacity=".45"/>`;
-    else if (m === '_') g += `<circle cx="${cx}" cy="${H / 2}" r="${Math.min(13, step * 0.42)}" fill="#fff" stroke="#cfc8bf"/>`;
-  });
-  return { html: `<svg class="wv-svgcard" viewBox="0 0 ${W} ${H}"><rect x="1" y="1" width="${W - 2}" height="${H - 2}" rx="12" fill="#f4f1ec"/>${g}</svg>`, r: Math.min(13, step * 0.42) / W };
-}
 
 /** On cau la pilota a cada pols de la carta (fraccions de l'amplada i l'alçada). */
-function cardGeometry(card, M, drawnR) {
-  const P = M.pulses;
-  // cartes de rascat: 8 o 16 fletxes entre el 11 % i el 89 % de l'amplada (mesurat a les imatges); la pilota cau a cada fletxa que toca
-  if (card?.strum) {
-    const n = card.strum.length;
-    const xs = [...card.strum].map((_, i) => 0.111 + (0.783 * i) / (n - 1));
-    return { strumCard: true, top: 0.43, landings: [...card.strum].map((m, i) => ({ m, i })).filter(({ m }) => m !== m.toLowerCase()).map(({ i }) => ({ f: i / n, x: xs[i] })) };
-  }
-  if (card?.contour && MELODIC_LAYOUT[card.id]) {
-    const pts = MELODIC_LAYOUT[card.id];
-    return { melodic: true, landings: pts.map(([x, y], i) => ({ f: i / pts.length, x, y })) };
-  }
-  const L = card ? CARD_LAYOUT[card.id] : null;
-  const g = L && L.c.length === P ? { y: L.y, r: L.r, cells: L.c } : { y: 0.5, r: drawnR ?? 0.07, cells: Array.from({ length: P }, (_, p) => [0.04 + (p * 0.92) / P, 0.04 + ((p + 1) * 0.92) / P]) };
-  g.landings = g.cells.map(([x0, x1], p) => ({ f: p / P, x: (x0 + x1) / 2 }));
-  return g;
-}
 
 function buildWheel(st) {
   const host = st.el('wheel');
@@ -1011,26 +997,13 @@ function drawTiles(st, pos, mode) {
 
 /** La pilota (com al joc de teclat): cau al centre de cada rodona, un cop per pols; els cops més llargs, més amunt. */
 function drawBall(st, pos, content, countIn) {
-  const cv = st.wv.ph;
-  const c = st.wv.ctx;
-  const dpr = Math.min(window.devicePixelRatio || 1, 2);
-  const W = cv.clientWidth; const H = cv.clientHeight;
-  if (!W) return;
-  if (cv.width !== Math.round(W * dpr) || cv.height !== Math.round(H * dpr)) { cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr); }
-  c.setTransform(dpr, 0, 0, dpr, 0, 0);
-  c.clearRect(0, 0, W, H);
+  const cc = canvasCtx(st.wv.ph);
+  if (!cc) return;
+  const { c, W, H } = cc;
   if (st.helpLevel >= 3) return;
   const g = st.wvGeo;
   const M = st.M;
-  const R = Math.max(7, W * 0.055);
-  const cy = g.strumCard ? g.top * H : g.melodic ? 0 : g.y * H; const r = g.strumCard || g.melodic ? 0 : g.r * W;
-  const ring = g.melodic ? W * 0.022 : 0;
-  const ground0 = g.melodic ? 0 : cy - r - R - 4;
-  const land = g.landings.map((l) => ({ f: l.f, x: l.x * W, y: g.melodic ? l.y * H - ring - R - 2 : ground0 }));
-  let ground = ground0;
-  const P = M.pulses;
-  const maxHop = Math.max(4, Math.min(W * 0.1, (g.melodic ? Math.min(...land.map((l) => l.y)) : ground0) - R - 1));
-  const hop = (df) => maxHop * Math.min(1, 0.35 + df * P * 0.45);
+  const b = ballAt(g, W, H, M, pos.beat, { countIn, end: pos.bars[pos.i]?.seg?.mode === 'end' });
   // les marques del que ha sentit el joc, sota cada rodona (verd bé, taronja a prop, vermell)
   if (st.judge && content && !countIn && g.cells) {
     const a0 = pos.i * M.beats;
@@ -1041,7 +1014,7 @@ function drawBall(st, pos, content, countIn) {
       const [x0, x1] = g.cells[p];
       const x = (x0 + ((e.beat / M.pulseLen - p) + 0.5 / (M.sub)) * (x1 - x0)) * W;
       const m = st.marks?.find((mm) => mm.ring && Math.abs(mm.abs - (a0 + e.beat)) < 0.02);
-      c.beginPath(); c.arc(x, cy + r + 14, 6, 0, Math.PI * 2);
+      c.beginPath(); c.arc(x, b.cy + b.r + 14, 6, 0, Math.PI * 2);
       if (m) { c.fillStyle = COL[m.cls] ?? '#888'; c.fill(); } else { c.lineWidth = 2; c.strokeStyle = 'rgba(29,29,31,.3)'; c.stroke(); }
     }
   }
@@ -1059,37 +1032,7 @@ function drawBall(st, pos, content, countIn) {
       if (m) { c.fillStyle = COL[m.cls] ?? '#888'; c.fill(); } else { c.lineWidth = 2; c.strokeStyle = 'rgba(29,29,31,.3)'; c.stroke(); }
     }
   }
-  let x; let y;
-  if (pos.bars[pos.i]?.seg?.mode === 'end') {
-    ground = land[0].y; x = land[0].x; y = ground;
-  } else if (countIn) {
-    const ph = (pos.beat % M.pulseLen) / M.pulseLen;
-    ground = land[0].y; x = land[0].x; y = ground - maxHop * 0.6 * Math.sin(Math.PI * ph);
-  } else {
-    const f = Math.max(0, Math.min(1, pos.beat / M.beats));
-    const first = land[0]; const last = land.at(-1);
-    if (land.length === 1 || f >= last.f || f < first.f) {
-      // de l'últim cop torna volant al primer (la carta es repeteix), com al joc de teclat
-      const span = (1 - last.f) + first.f || 1;
-      const sP = Math.min(1, (((f - last.f) % 1) + 1) % 1 / span);
-      const dist = Math.abs(first.x - last.x);
-      const lift = Math.min(H * 0.35, Math.max(maxHop * 1.3, dist * 0.3));
-      ground = last.y + (first.y - last.y) * sP;
-      x = last.x + (first.x - last.x) * sP; y = ground - (land.length === 1 ? hop(1) : lift) * Math.sin(Math.PI * sP);
-    } else {
-      let i = 0;
-      while (i < land.length - 2 && land[i + 1].f <= f) i++;
-      const A = land[i]; const Bq = land[i + 1];
-      const sP = Math.min(1, Math.max(0, (f - A.f) / (Bq.f - A.f)));
-      ground = A.y + (Bq.y - A.y) * sP;
-      x = A.x + (Bq.x - A.x) * sP; y = ground - hop(Bq.f - A.f) * Math.sin(Math.PI * sP);
-    }
-  }
-  c.fillStyle = 'rgba(0,0,0,.14)';
-  c.beginPath(); c.ellipse(x, ground + R, R, R * 0.35, 0, 0, Math.PI * 2); c.fill();
-  c.beginPath(); c.arc(x, y, R, 0, Math.PI * 2);
-  c.fillStyle = st.ballFlash && performance.now() - st.ballFlash.t < 250 ? st.ballFlash.col : '#ffb400';
-  c.fill(); c.lineWidth = 2; c.strokeStyle = '#1d1d1f'; c.stroke();
+  paintBall(c, b, st.ballFlash && performance.now() - st.ballFlash.t < 250 ? st.ballFlash.col : '#ffb400');
 }
 
 function setHandOnly(st, on) {
