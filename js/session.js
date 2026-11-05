@@ -446,6 +446,7 @@ function makePlan(st, what) {
 }
 
 async function go(st, what) {
+  if (st.introOpen) return; // mentre es veu la mini explicació, no sona res més
   // si torna a tocar sense triar cap opció, es desa què ha canviat (o «repetir igual»)
   if (st.rec && !st.rec.choice && st.recAt) auto.choose(st.rec, st.tempo < st.recAt.tempo ? 'slower' : st.tempo > st.recAt.tempo ? 'faster' : !!st.guide !== st.recAt.guide ? (st.guide ? 'guide-on' : 'guide-off') : 'repeat');
   hideAssess(st);
@@ -843,8 +844,9 @@ function pickOption(st, id, to) {
 
 function openIntro(st, onDone) {
   st.closeIntro?.();
+  if (player.isPlaying()) { player.stop(); setButtons(st, false); }
   st.introOpen = true;
-  st.closeIntro = showIntro(st.root.querySelector('.sess-main'), st.inst.id, st.ctx.levelN, { onDone: () => { st.introOpen = false; st.closeIntro = null; onDone?.(); } });
+  st.closeIntro = showIntro(st.root.querySelector('.sess-main'), st.inst.id, st.ctx.levelN, { onDone: () => { st.introOpen = false; st.closeIntro = null; st.preview = performance.now(); onDone?.(); } });
 }
 
 function showAssess(st) {
@@ -1198,7 +1200,7 @@ function frame(st) {
   }
   // l'animació d'abans de començar sona (fluixet), sense banda
   // (el primer segon no sona: si l'exemple arrenca sol just després, no s'escapa cap nota abans de l'entrada)
-  if (pos.preview && cur && st.prevHeard !== cur.id && pos.abs >= cur.abs) { st.prevHeard = cur.id; if (!cur.ghost && performance.now() - st.preview > 1200) player.playNow(st.song, cur, 0.55); }
+  if (pos.preview && cur && st.prevHeard !== cur.id && pos.abs >= cur.abs) { st.prevHeard = cur.id; if (!cur.ghost && !st.introOpen && performance.now() - st.preview > 1200) player.playNow(st.song, cur, 0.55); }
   // la púa
   if (cur) {
     const spb = pos.spq;

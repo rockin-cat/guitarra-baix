@@ -212,3 +212,4 @@ Amb un cable jack → USB (o l'ampli connectat per USB), el joc escolta la guita
 - **🎧 Retard del so** a Configuració: amb auriculars Bluetooth (AirPods…) l'animació va per davant del so; el control (0–400 ms) ho compensa.
 - La pilota i la carta ara són un mòdul compartit (`js/cardball.js`).
 - Les × de les cordes que no es toquen ja no llisquen amb la forma.
+- Versió 45: mentre es veu la mini explicació no sona res més (ni l'animació muda ni l'exemple).
