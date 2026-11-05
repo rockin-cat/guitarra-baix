@@ -205,12 +205,14 @@ function scheduleBar(r, i, seg) {
   r.opts.onBar?.(r.bars[i]);
 }
 
+// mescla de la banda per famílies (el baix nou té molt de cos: una mica enrere)
+const BAND_MIX = { bass: 0.62, keys: 1, gtr: 1 };
 // una mica d'imprecisió humana: la banda no sona com una màquina
 const jitter = (ms) => (Math.random() * 2 - 1) * ms / 1000;
 function playBand(e, at, spq) {
   if (e.inst === 'drum') { drum(e.piece, at(e.beat) + (e.beat === 0 ? 0 : jitter(4)), { vel: (e.vel ?? 1) * (0.93 + Math.random() * 0.07) }); return; }
   const t = at(e.beat) + jitter(6);
-  const g = e.gain * (0.92 + Math.random() * 0.1);
+  const g = e.gain * (BAND_MIX[e.fam] ?? 1) * (0.92 + Math.random() * 0.1);
   e.notes.forEach((m, j) => tone(e.inst, m, t + (e.strum ? j * e.strum : 0), e.dur * spq, { gain: g }));
 }
 

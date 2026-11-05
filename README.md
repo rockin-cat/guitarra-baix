@@ -202,3 +202,4 @@ Amb un cable jack → USB (o l'ampli connectat per USB), el joc escolta la guita
 ## Versió 40
 - Baix: els noms de les mostres de Swagbass van una octava per sobre de la notació habitual (el seu «a2» sona a 55 Hz, La1); reanomenades una octava avall perquè l'afinació sigui la correcta.
 - L'entrada (compte) la fan les baquetes de la bateria a més del clic, tant abans de l'exemple com abans de l'exercici.
+- Versió 42: el baix de la banda una mica més enrere a la mescla (×0,62).
