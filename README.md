@@ -193,3 +193,8 @@ Amb un cable jack → USB (o l'ampli connectat per USB), el joc escolta la guita
 ## Versió 38
 - **La demostració fa tota la roda** (abans, amb la cançó sencera, només la primera part o 8 compassos) i en tocar es comença des del principi de la roda.
 - **A la demostració també es veu la carta** amb la pilota, sota el mànec.
+
+## Versió 39 · mostres noves de bateria i baix
+- **Bateria: SM Drums** (domini públic): bombo, caixa, aro, sidestick, charles tancat/obert/peu, ride, crash i tres toms, amb **3 capes de força i 2 variants** per peça (72 mp3, 1,5 MB).
+- **Baix: Swagbass** de Karoryfer (CC0): capes p, f (2 variants) i fff de La1 a Do5 (56 mp3, 1,6 MB).
+- El motor tria la capa segons la força del cop o el volum de la nota i va alternant les variants (`pickLayer` a `audio.js`); els noms de fitxer «peça_vN_rM» i «nota_capa_rM» ho indiquen. Crèdits a `assets/sons/LLICENCIA.txt`.

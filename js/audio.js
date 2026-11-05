@@ -95,7 +95,15 @@ export function loadSet(set) {
         const res = await fetch(`assets/sons/${set}/${encodeURIComponent(name)}.mp3`);
         const buf = await c.decodeAudioData(await res.arrayBuffer());
         buf.onset = onsetOf(buf);
-        map.set(set === 'bateria' ? name : nameToMidi(name), buf);
+        // mostres amb capes de força i variants: «kk_v2_r1» (bateria) o «A2_f_r1» (notes: p, f, fff)
+        const lay = /^(.+)_(v\d|p|f|fff)_r(\d)$/.exec(name);
+        if (lay) {
+          const key = set === 'bateria' ? lay[1] : nameToMidi(lay[1]);
+          const cur = map.get(key);
+          const entry = cur && cur.layers ? cur : { layers: {}, rr: 0 };
+          (entry.layers[lay[2]] ??= []).push(buf);
+          map.set(key, entry);
+        } else map.set(set === 'bateria' ? name : nameToMidi(name), buf);
       } catch (e) {
         console.warn(`[So] no s'ha pogut carregar ${set}/${name}`, e);
       }
@@ -159,16 +167,30 @@ function start(buffer, time, { gain = 1, rate = 1, dest = 'band', dur = null, re
 
 // ---- Bateria ----------------------------------------------------------------------------------------------
 
-const DRUM_SAMPLE = { kk: 'kk', ghostkk: 'kk', sn: 'sn', ghost: 'sn', rim: 'stick', hh: 'hh', oh: 'oh', ride: 'ride', crash: 'crash', t1: 't1', t2: 't2', t3: 't3', stick: 'stick', pedal: 'hh' };
-const DRUM_GAIN = { kk: 1, ghostkk: 0.45, sn: 0.8, ghost: 0.25, rim: 0.55, hh: 0.45, oh: 0.45, ride: 0.5, crash: 0.5, t1: 0.8, t2: 0.8, t3: 0.85, stick: 0.6, pedal: 0.15 };
+const DRUM_SAMPLE = { kk: 'kk', ghostkk: 'kk', sn: 'sn', ghost: 'sn', rim: 'rim', hh: 'hh', oh: 'oh', ride: 'ride', crash: 'crash', t1: 't1', t2: 't2', t3: 't3', stick: 'stick', pedal: 'pedal' };
+const DRUM_GAIN = { kk: 1, ghostkk: 0.5, sn: 0.85, ghost: 0.35, rim: 0.7, hh: 0.5, oh: 0.5, ride: 0.55, crash: 0.55, t1: 0.85, t2: 0.85, t3: 0.9, stick: 0.7, pedal: 0.35 };
 const DRUM_PAN = { hh: -0.25, oh: -0.25, pedal: -0.25, crash: -0.35, ride: 0.35, t1: -0.1, t2: 0.1, t3: 0.3 };
+
+/** La mostra d'una entrada: la capa segons la força (0–1) i, dins la capa, la variant següent (round robin). */
+function pickLayer(entry, x, order) {
+  if (!entry || !entry.layers) return entry ?? null;
+  const names = order.filter((n) => entry.layers[n]?.length);
+  if (!names.length) return null;
+  const i = Math.min(names.length - 1, Math.floor(x * names.length));
+  const list = entry.layers[names[i]];
+  entry.rr = (entry.rr + 1) % list.length;
+  return list[entry.rr];
+}
 
 /** Un cop de bateria. `vel` 0–1. Sense mostres encara, un so sintètic de recanvi. */
 export function drum(piece, time, { vel = 1, dest = 'drums' } = {}) {
-  const buf = buffers.bateria?.get(DRUM_SAMPLE[piece]);
-  const gain = (DRUM_GAIN[piece] ?? 0.7) * (0.35 + 0.65 * vel);
+  const entry = buffers.bateria?.get(DRUM_SAMPLE[piece]);
+  const soft = piece === 'ghost' || piece === 'ghostkk' || piece === 'pedal';
+  const buf = pickLayer(entry, soft ? 0 : Math.min(0.999, vel), ['v1', 'v2', 'v3']);
+  // amb capes de força, la mostra ja canvia de timbre: el volum varia menys
+  const gain = (DRUM_GAIN[piece] ?? 0.7) * (entry?.layers ? 0.55 + 0.45 * vel : 0.35 + 0.65 * vel);
   if (buf) {
-    const dur = piece === 'oh' ? 0.5 : piece === 'pedal' ? 0.08 : null;
+    const dur = piece === 'oh' ? 0.8 : null;
     return start(buf, time, { gain, dest, dur, release: 0.12, pan: DRUM_PAN[piece] ?? 0 });
   }
   return synthDrum(piece, time, gain, dest);
@@ -227,13 +249,16 @@ export function tone(set, midi, time, dur, { gain = 0.6, dest = 'band', release 
   }
   if (best == null) return null;
   const rate = Math.pow(2, (midi - best) / 12);
+  // capes de força (p, f, fff) segons el volum demanat
+  const buf = pickLayer(map.get(best), gain < 0.42 ? 0.1 : gain < 0.62 ? 0.5 : 0.9, ['p', 'f', 'fff']);
+  if (!buf) return null;
   // glideTo: [{ at, midi, dur }] → canvis d'afinació dins la mateixa nota
   let glide = null;
   if (glideTo) {
     let prev = rate;
     glide = glideTo.map((g) => { const to = Math.pow(2, (g.midi - best) / 12); const step = { at: g.at, dur: g.dur, from: prev, to }; prev = to; return step; });
   }
-  return start(map.get(best), time, { gain, rate, dest, dur, release, pan, attack, glide, skip });
+  return start(buf, time, { gain, rate, dest, dur, release, pan, attack, glide, skip });
 }
 
 /** Atura tot el que s'havia programat (amb una baixada ràpida perquè no peti). */
