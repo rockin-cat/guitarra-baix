@@ -7,7 +7,7 @@ Sons de la carpeta "sons/"
   (https://github.com/sfzinstruments/karoryfer.swagbass). Capes p, f (2 variants) i fff, mp3 mono normalitzats.
 - rhodes: jRhodes3c (Rhodes Mark I Stage 73 de 1977), de Jeff Learman, CC BY-NC-SA 4.0 — ús NO comercial, cal citar l'autor
   (https://github.com/sfzinstruments/jlearman.jRhodes3c). Capes p, f i fff, bucle allargat a 5 s, mp3 mono normalitzats.
-  Les guitarres també porten un filtre passa-baixos a 6 kHz per treure el brunzit agut de les gravacions.
+  Les guitarres també porten filtres per treure el brunzit de les gravacions (passa-baixos a 6 kHz, passa-alts sota cada nota i 50 Hz).
 - guitarra: Black And Green Guitars (Gretsch Anniversary verda, so «twang»), de Karoryfer Lecolds (Brian Wood), CC0 1.0
   (https://github.com/sfzinstruments/karoryfer.black-and-green-guitars). Una nota cada 3 semitons de Mi2 a Do#6,
   capes p, f (2 variants) i fff, mp3 mono normalitzats.
