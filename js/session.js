@@ -454,6 +454,7 @@ async function go(st, what) {
   if (st.rec && !st.rec.choice && st.recAt) auto.choose(st.rec, st.tempo < st.recAt.tempo ? 'slower' : st.tempo > st.recAt.tempo ? 'faster' : !!st.guide !== st.recAt.guide ? (st.guide ? 'guide-on' : 'guide-off') : 'repeat');
   hideAssess(st);
   setButtons(st, true);
+  st.preview = 0; // mentre carrega, l'animació d'espera s'atura
   st.el('badge').textContent = '⏳';
   try {
     await player.prepare(st.inst.id);
@@ -1367,6 +1368,8 @@ function updateSide(st, content, pos, ev) {
 }
 
 function previewPos(st) {
+  // si l'exemple està a punt d'arrencar, la imatge espera quieta (no es mou res abans del compte d'entrada)
+  if (st.demoPending || st.introOpen) return null;
   if (!st.preview || st.kind === 'improv' || st.kind === 'compose' || !st.song || !st.el('assess').hidden) return null;
   const M = st.M;
   const spq = 60 / st.tempo / M.pulseLen;

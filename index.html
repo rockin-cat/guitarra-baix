@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Lora:wght@600;700&family=Ubuntu:wght@400;500;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/style.css?v=51">
+  <link rel="stylesheet" href="css/style.css?v=52">
   <script>
     window.addEventListener('error', (e) => showPageError(e.message, e.filename, e.lineno));
     window.addEventListener('unhandledrejection', (e) => showPageError(String(e.reason?.message ?? e.reason)));
@@ -27,8 +27,8 @@
       setTimeout(() => { if (!window.__rockinReady) showPageError(why); }, location.protocol === 'file:' ? 300 : 6000);
     });
   </script>
-                                                                            <script type="importmap" id="versions">{"imports": {"./js/app.js": "./js/app.js?v=51", "./js/assoliment.js": "./js/assoliment.js?v=51", "./js/audio.js": "./js/audio.js?v=51", "./js/autoregulacio.js": "./js/autoregulacio.js?v=51", "./js/band.js": "./js/band.js?v=51", "./js/cardball.js": "./js/cardball.js?v=51", "./js/dsp.js": "./js/dsp.js?v=51", "./js/fretboard.js": "./js/fretboard.js?v=51", "./js/gjudge.js": "./js/gjudge.js?v=51", "./js/guide.js": "./js/guide.js?v=51", "./js/intro.js": "./js/intro.js?v=51", "./js/lane.js": "./js/lane.js?v=51", "./js/levels.js": "./js/levels.js?v=51", "./js/library.js": "./js/library.js?v=51", "./js/listen.js": "./js/listen.js?v=51", "./js/neck.js": "./js/neck.js?v=51", "./js/parts.js": "./js/parts.js?v=51", "./js/player.js": "./js/player.js?v=51", "./js/session.js": "./js/session.js?v=51", "./js/skills.js": "./js/skills.js?v=51", "./js/songs.js": "./js/songs.js?v=51", "./js/songview.js": "./js/songview.js?v=51", "./js/store.js": "./js/store.js?v=51", "./js/theory.js": "./js/theory.js?v=51", "./js/data/cartes.js": "./js/data/cartes.js?v=51", "./js/data/layouts.js": "./js/data/layouts.js?v=51", "./js/data/llibre-obert.js": "./js/data/llibre-obert.js?v=51", "./js/data/llibre.js": "./js/data/llibre.js?v=51", "./js/data/sons.js": "./js/data/sons.js?v=51"}}</script>
-  <script type="module" src="js/app.js?v=51"></script>
+                                                                              <script type="importmap" id="versions">{"imports": {"./js/app.js": "./js/app.js?v=52", "./js/assoliment.js": "./js/assoliment.js?v=52", "./js/audio.js": "./js/audio.js?v=52", "./js/autoregulacio.js": "./js/autoregulacio.js?v=52", "./js/band.js": "./js/band.js?v=52", "./js/cardball.js": "./js/cardball.js?v=52", "./js/dsp.js": "./js/dsp.js?v=52", "./js/fretboard.js": "./js/fretboard.js?v=52", "./js/gjudge.js": "./js/gjudge.js?v=52", "./js/guide.js": "./js/guide.js?v=52", "./js/intro.js": "./js/intro.js?v=52", "./js/lane.js": "./js/lane.js?v=52", "./js/levels.js": "./js/levels.js?v=52", "./js/library.js": "./js/library.js?v=52", "./js/listen.js": "./js/listen.js?v=52", "./js/neck.js": "./js/neck.js?v=52", "./js/parts.js": "./js/parts.js?v=52", "./js/player.js": "./js/player.js?v=52", "./js/session.js": "./js/session.js?v=52", "./js/skills.js": "./js/skills.js?v=52", "./js/songs.js": "./js/songs.js?v=52", "./js/songview.js": "./js/songview.js?v=52", "./js/store.js": "./js/store.js?v=52", "./js/theory.js": "./js/theory.js?v=52", "./js/data/cartes.js": "./js/data/cartes.js?v=52", "./js/data/layouts.js": "./js/data/layouts.js?v=52", "./js/data/llibre-obert.js": "./js/data/llibre-obert.js?v=52", "./js/data/llibre.js": "./js/data/llibre.js?v=52", "./js/data/sons.js": "./js/data/sons.js?v=52"}}</script>
+  <script type="module" src="js/app.js?v=52"></script>
 </head>
 <body>
   <header class="topbar">
@@ -56,7 +56,7 @@
     <button type="button" data-go="map" data-nav="map"><svg viewBox="0 0 24 24"><path d="M9 4L3 6v14l6-2 6 2 6-2V4l-6 2-6-2z"/><path d="M9 4v14M15 6v14"/></svg><span>Full de ruta</span></button>
     <button type="button" data-go="skills" data-nav="skills"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M8 12.5l2.8 2.8L16.5 9"/></svg><span>Què sé fer</span></button>
     <button type="button" data-go="guide" data-nav="guide"><svg viewBox="0 0 24 24"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z"/><circle cx="12" cy="12" r="3"/></svg><span>Llegir la pantalla</span></button>
-    <small class="rail-ver" id="version">v51 · 05-11-2026</small>
+    <small class="rail-ver" id="version">v52 · 05-11-2026</small>
   </nav>
 
   <main>
@@ -85,7 +85,7 @@
       <p class="muted small">Com més aviat, més temps per preparar la mà; com més tard, menys coses a la pantalla.</p>
       <label class="set-row">🎧 Auriculars sense fil: retard del so <input type="range" id="set-outlat" min="0" max="400" step="10" value="0"> <b id="set-outlat-v">0 ms</b></label>
       <p class="muted small">Si l'animació va per davant del so (típic amb AirPods i altres auriculars Bluetooth: 150–250 ms), puja-ho fins que la pilota i el so coincideixin.</p>
-      <p class="muted small">ROCKIN SCCL · materials amb llicència Creative Commons · sons: mostres lliures (vegeu assets/sons/LLICENCIA.txt) · Versió 51 · 05-11-2026</p>
+      <p class="muted small">ROCKIN SCCL · materials amb llicència Creative Commons · sons: mostres lliures (vegeu assets/sons/LLICENCIA.txt) · Versió 52 · 05-11-2026</p>
       <div class="row"><button class="btn" value="ok">Fet</button></div>
     </form>
   </dialog>
