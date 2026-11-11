@@ -93,7 +93,7 @@ export const INTROS = {
     4: {
       t: 'Cantar i tocar',
       build(el, inst, loop) {
-        el.innerHTML = lead('Toques i, a sobre, <b>cantes la lletra blava</b>. A l\'exemple la sents.') + tags([['🎸', 'toques'], ['🎤', 'cantes']]);
+        el.innerHTML = lead('Toques i, a sobre, <b>cantes la lletra blava</b>. A l\'exemple la sents.') + tags([['Guitarra', 'toques'], ['Veu', 'cantes']]);
         const v = shape('C');
         const cb = cardBall(cardById('mb1'), null, { onHit: (i) => { strum(inst, v.midi, { dur: 0.6, gain: 0.35 }); if (i % 2 === 0) note({ sound: 'rhodes' }, 64 + (i ? 3 : 0), 0.9, 0.25); } });
         el.append(cb.el);
@@ -229,7 +229,7 @@ export const INTROS = {
     4: {
       t: 'Cantar i tocar',
       build(el, inst, loop) {
-        el.innerHTML = lead('Toques la fonamental i, a sobre, <b>la cantes</b> («uuu»). A l\'exemple la sents.') + tags([['🎸', 'toques'], ['🎤', 'cantes']]);
+        el.innerHTML = lead('Toques la fonamental i, a sobre, <b>la cantes</b> («uuu»). A l\'exemple la sents.') + tags([['Guitarra', 'toques'], ['Veu', 'cantes']]);
         const p = bassRole(parseChord('C'), '1');
         const cb = cardBall(cardById('mb5'), null, { onHit: () => { note(inst, inst.tuning[p.s] + p.f, 2); note({ sound: 'rhodes' }, 60, 1.6, 0.25); } });
         el.append(cb.el);
@@ -284,7 +284,7 @@ export function showIntro(host, instId, n, { onDone, mode = 'obert' } = {}) {
   const ov = h(`<div class="intro-ov"><div class="intro-box">
     <div class="intro-head"><span class="pick-badge" style="--c:${inst.color}">${n}</span><h3>${esc(def.t)}</h3><button type="button" class="btn btn-ghost btn-small" data-in="skip" title="Tanca">×</button></div>
     <div class="intro-body"></div>
-    <div class="row intro-foot"><button type="button" class="btn btn-primary btn-big" data-in="go">🤘 Som-hi</button></div>
+    <div class="row intro-foot"><button type="button" class="btn btn-primary btn-big" data-in="go">Som-hi</button></div>
   </div></div>`);
   host.append(ov);
   let raf = 0;

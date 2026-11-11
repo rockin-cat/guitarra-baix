@@ -1,6 +1,7 @@
 // La pantalla de pràctica: escolta → la banda continua sense el teu instrument i l'animació et guia → com ha anat.
 // També fa d'afinador (nivell 7), de compositor (nivell 9) i d'improvisació (nivell 10).
 
+import { ic, icona } from './icones.js';
 import * as player from './player.js';
 import { createNeck, chordBox, voicingAnchor } from './neck.js';
 import { createLane, wheelWindow } from './lane.js';
@@ -119,7 +120,7 @@ export function openSession(host, baseStep, ctx) {
           <h2>${esc(step.titol)}</h2>
           ${ctx.levelSteps ? `<div class="step-strip">${ctx.levelSteps.map((x, j) => `<button type="button" class="ss-dot${x.id === baseStep.id ? ' cur' : ''}${x.best ? ` b-${x.best}` : ''}" data-act="goto" data-to="${esc(x.id)}" title="${esc(x.titol)}">${x.kind === 'cards' ? '🃏' : j + 1}</button>`).join('')}</div>` : ''}
         </div>
-        <div class="vh-actions">${ctx.levelN && hasIntro(inst.id, ctx.levelN) ? '<button type="button" class="btn btn-ghost btn-small intro-btn" data-act="intro" title="Com es llegeixen les cartes d\'aquest nivell">ⓘ</button>' : ''}<button type="button" class="btn btn-ghost btn-small help-btn" data-go="guide" title="Què vol dir cada cosa de la pantalla">Com es llegeix?</button><button type="button" class="btn btn-ghost btn-small fs-btn" data-fs title="Pantalla completa" aria-label="Pantalla completa">⛶</button></div>
+        <div class="vh-actions">${ctx.levelN && hasIntro(inst.id, ctx.levelN) ? '<button type="button" class="btn btn-ghost btn-small intro-btn" data-act="intro" title="Com es llegeixen les cartes d\'aquest nivell">ⓘ</button>' : ''}<button type="button" class="btn btn-ghost btn-small help-btn" data-go="guide" title="Què vol dir cada cosa de la pantalla">Com es llegeix?</button><button type="button" class="btn btn-ghost btn-small fs-btn" data-fs title="Pantalla completa" aria-label="Pantalla completa">${ic('pantalla')}</button></div>
       </div>
       <div class="sess-grid">
         <div class="sess-main">
@@ -144,9 +145,9 @@ export function openSession(host, baseStep, ctx) {
               <button type="button" class="assess-x" data-act="close-assess" aria-label="Tanca">×</button>
               <h3>Com t'ha anat?</h3>
               <div class="rate-row">
-                <button type="button" class="btn btn-ghost rate-sym" data-rate="no" title="En procés"><span>🌱</span>En procés</button>
-                <button type="button" class="btn btn-ghost rate-sym" data-rate="gairebe" title="A prop"><span>🙂</span>A prop</button>
-                <button type="button" class="btn btn-primary rate-sym" data-rate="ok" title="Ja ho tens!"><span>🤘</span>Ja ho tens!</button>
+                <button type="button" class="btn btn-ghost rate-sym" data-rate="no" title="En procés">En procés</button>
+                <button type="button" class="btn btn-ghost rate-sym" data-rate="gairebe" title="A prop">A prop</button>
+                <button type="button" class="btn btn-primary rate-sym" data-rate="ok" title="Ja ho tens!">Ja ho tens!</button>
               </div>
               <p class="feedback" data-el="feedback"></p>
               <div class="result" data-el="result"></div>
@@ -157,13 +158,13 @@ export function openSession(host, baseStep, ctx) {
           <div class="tuner" data-el="tuner" hidden></div>
           <div class="controls" data-el="controls">
             <div class="ctrl-main">
-              <button type="button" class="btn btn-ghost btn-big btn-sym" data-act="listen" title="Escolta: t'ho ensenyo" aria-label="Escolta">👂</button>
+              <button type="button" class="btn btn-ghost btn-big btn-sym" data-act="listen" title="Escolta: t'ho ensenyo" aria-label="Escolta">${ic('escolta')}</button>
               <button type="button" class="btn btn-primary btn-big btn-sym" data-act="play" title="Toca (barra d'espai)" aria-label="Toca">▶</button>
               <button type="button" class="btn btn-ghost btn-big btn-sym" data-act="pause" title="Pausa" aria-label="Pausa" hidden>⏸</button>
-              <button type="button" class="btn btn-ghost btn-sym slowmo" data-act="slowmo" title="A càmera lenta (l'animació, l'exemple i l'exercici)" aria-pressed="false">🐌</button>
+              <button type="button" class="btn btn-ghost btn-sym slowmo" data-act="slowmo" title="A càmera lenta (l'animació, l'exemple i l'exercici)" aria-pressed="false" aria-label="A càmera lenta">${ic('lent')}</button>
               <button type="button" class="btn btn-big btn-stop btn-sym" data-act="stop" title="Atura" aria-label="Atura" hidden>■</button>
               <span class="help-ind" data-el="helpind" title="El joc va retirant l'ajuda a mesura que et surt"></span>
-              <button type="button" class="btn btn-ghost btn-small opts-btn" data-act="opts" aria-expanded="false">⚙ Opcions</button>
+              <button type="button" class="btn btn-ghost btn-small opts-btn" data-act="opts" aria-expanded="false">Opcions</button>
             </div>
             <div class="ctrl-drawer" data-el="drawer" hidden>
             <div class="ctrl-opts">
@@ -173,11 +174,11 @@ export function openSession(host, baseStep, ctx) {
               <label class="toggle" title="A cada volta la banda canvia: primer bateria i baix, després s'hi afegeixen el teclat i la guitarra, amb redobles i, més endavant, altres estils"><input type="checkbox" data-el="dyn"> Base que canvia</label>
               <label class="toggle" title="Mentre toques tu, sona fluixa la part que has de fer"><input type="checkbox" data-el="guide"> Guia sonora</label>
               <label class="toggle" title="Mentre toques tu, l'ajuda visual es va esvaint fins que ho fas sol"><input type="checkbox" data-el="fade"> Retira l'ajuda a poc a poc</label>
-              <label class="toggle" data-el="neckwrap" hidden title="En lloc de les fitxes dels acords, el mànec sencer i el compàs"><input type="checkbox" data-el="neckview"> 🎸 Mànec</label>
-              <div class="strpick" data-el="strpick" hidden title="Les cordes amb què fas el dibuix de la carta (tantes com alçades té)"><span>🎼 Cordes</span>${[5, 4, 3, 2, 1, 0].map((s) => `<button type="button" class="str-btn" data-str="${s}">${6 - s}</button>`).join('')}</div>
+              <label class="toggle" data-el="neckwrap" hidden title="En lloc de les fitxes dels acords, el mànec sencer i el compàs"><input type="checkbox" data-el="neckview"> Mànec</label>
+              <div class="strpick" data-el="strpick" hidden title="Les cordes amb què fas el dibuix de la carta (tantes com alçades té)"><span>Cordes</span>${[5, 4, 3, 2, 1, 0].map((s) => `<button type="button" class="str-btn" data-str="${s}">${6 - s}</button>`).join('')}</div>
               <label class="toggle" data-el="handwrap" hidden title="Amaga el mànec i la pista: només la carta i les fletxes del rascat"><input type="checkbox" data-el="handonly"> Només mà dreta</label>
               <button type="button" class="btn btn-ghost btn-small" data-act="strings" hidden>Corda a corda</button>
-              <button type="button" class="btn btn-ghost btn-small listen-btn" data-act="listen-dlg" title="Amb un cable jack → USB, el joc t'escolta i et corregeix">🎸 Connecta la guitarra</button>
+              <button type="button" class="btn btn-ghost btn-small listen-btn" data-act="listen-dlg" title="Amb un cable jack → USB, el joc t'escolta i et corregeix">Connecta la guitarra</button>
             </div>
             <div class="ctrl-opts ctrl-song" data-el="songbar"></div>
             </div>
@@ -187,7 +188,7 @@ export function openSession(host, baseStep, ctx) {
           <div class="card-host" data-el="card"></div>
           <div class="explain">
             <p>${esc(step.text ?? '')}</p>
-            ${step.com?.length ? `<details class="tips"><summary title="Consells">💡</summary><ul>${step.com.map((c) => `<li>${esc(c)}</li>`).join('')}</ul></details>` : ''}
+            ${step.com?.length ? `<details class="tips"><summary title="Consells" aria-label="Consells">${ic('consell')}</summary><ul>${step.com.map((c) => `<li>${esc(c)}</li>`).join('')}</ul></details>` : ''}
           </div>
         </aside>
       </div>
@@ -312,10 +313,10 @@ function renderSongBar(st) {
     parts.push(`<label>Línia de baix <select data-el="gline"><option value="-1"${on ? '' : ' selected'}>la del nivell</option>${lines.map((l, i) => `<option value="${i}"${on && (st.lineIdx ?? 0) === i ? ' selected' : ''}>del Generador: ${esc(l.nom)}</option>`).join('')}</select></label>`);
   }
   if (st.step.usesSong) {
-    parts.push(`<span class="song-chip">🎵 ${esc(st.step.usesSong)}</span><label class="toggle"><input type="checkbox" data-el="whole"${st.whole ? ' checked' : ''}> Cançó sencera</label>`);
+    parts.push(`<span class="song-chip">${esc(st.step.usesSong)}</span><label class="toggle"><input type="checkbox" data-el="whole"${st.whole ? ' checked' : ''}> Cançó sencera</label>`);
   } else if (st.step.songNote) parts.push(`<span class="muted small">${esc(st.step.songNote)}</span>`);
   else if (!store.workSong() && b.canco !== false && !b.custom && st.kind !== 'tune' && st.ctx.onChooseSong) {
-    parts.push('<button type="button" class="btn btn-ghost btn-small" data-act="choose-song">🎵 Tria la cançó amb què treballes</button>');
+    parts.push('<button type="button" class="btn btn-ghost btn-small" data-act="choose-song">Tria la cançó amb què treballes</button>');
   }
   bar.innerHTML = parts.join('');
   bar.hidden = !parts.length;
@@ -520,10 +521,10 @@ function finished(st, natural) {
 function updateListenUi(st) {
   const on = listen.isOn();
   const b = $('[data-act="listen-dlg"]', st.root);
-  if (b) { b.textContent = on ? '🎸 T\'escolto' : '🎸 Connecta la guitarra'; b.classList.toggle('on', on); }
+  if (b) { b.textContent = on ? 'T\'escolto' : 'Connecta la guitarra'; b.classList.toggle('on', on); }
   st.el('lhud').hidden = !on;
   const chip = document.getElementById('listen-chip');
-  if (chip) { chip.classList.toggle('on', on); chip.textContent = on ? '🎸 T\'escolto' : '🎸 Connecta la guitarra'; }
+  if (chip) { chip.classList.toggle('on', on); chip.textContent = on ? 'T\'escolto' : 'Connecta la guitarra'; }
 }
 
 function resetDots(st) {
@@ -681,7 +682,7 @@ function rate(st, r) { // eslint-disable-line no-param-reassign
   res.autoMsg = stepAutoHelp(st, asked);
   if (!earned) {
     if (id && st.auto) { helpMap()[id] = 2; store.save(); applyAutoHelp(st, 2); }
-    res.autoMsg = '🙂 De moment, «A prop». Per tenir-ho, toca\'l una vegada sense ajuda: la propera vegada la pantalla s\'anirà esvaint fins que toquis sol, sense guia sonora.';
+    res.autoMsg = 'De moment, «A prop». Per tenir-ho, toca\'l una vegada sense ajuda: la propera vegada la pantalla s\'anirà esvaint fins que toquis sol, sense guia sonora.';
   }
   // el registre de decisions: l'efecte de la tria anterior i un registre nou (si ja n'hi ha un d'aquest resultat, es corregeix)
   if (id && !st.rec) { auto.fillEffect(id, r); st.rec = auto.record({ step: id, r, gaps: [], wasOk: res.wasOk }); st.recAt = { tempo: st.tempo, guide: !!st.guide }; }
@@ -727,7 +728,7 @@ function renderResult(st) {
   }
   // els consells del que ha faltat són informació (no decisió)
   const tips = tipsFor(res.gaps);
-  if (tips.length) html += `<details class="res-block tips"><summary title="Consells">💡 Consells</summary><ul class="res-tips">${tips.map((t) => `<li>${esc(t)}</li>`).join('')}</ul></details>`;
+  if (tips.length) html += `<details class="res-block tips"><summary title="Consells">Consells</summary><ul class="res-tips">${tips.map((t) => `<li>${esc(t)}</li>`).join('')}</ul></details>`;
   // 3 · què creus que necessites ara? (l'eina no recomana: tu tries)
   const opts = optionsFor(st);
   html += `<div class="res-block"><h4>I ara?</h4><div class="opt-list">${opts.map((o) => `<button type="button" class="opt-btn" data-opt="${o.id}"${o.to ? ` data-id="${esc(o.to)}"` : ''}>${esc(o.text)}</button>`).join('')}</div></div>`;
@@ -808,19 +809,19 @@ function optionsFor(st) {
   const { r } = res;
   const o = [];
   // el tempo sempre es pot triar (més a poc a poc o, si ha anat bé, més ràpid)
-  if (st.tempo > 40) o.push({ id: 'slower', text: `🐢 Més lent (${Math.max(40, st.tempo - 10)})` });
+  if (st.tempo > 40) o.push({ id: 'slower', text: `Més lent (${Math.max(40, st.tempo - 10)})` });
   if (r === 'ok' && st.tempo < 200) o.push({ id: 'faster', text: `⏩ Més ràpid (${Math.min(200, st.tempo + 10)})` });
-  if (!st.auto && st.kind !== 'improv') o.push(st.guide ? { id: 'guide-off', text: '🔇 Sense guia' } : { id: 'guide-on', text: '🔈 Amb guia' });
+  if (!st.auto && st.kind !== 'improv') o.push(st.guide ? { id: 'guide-off', text: 'Sense guia' } : { id: 'guide-on', text: 'Amb guia' });
   // practicar només el que falla: només quan l'eina ho pot aïllar
-  if (res.gaps.includes('forma') && !$('[data-act="strings"]', st.root).hidden) o.push({ id: 'strings', text: '🔍 Corda a corda' });
-  if (res.gaps.includes('dreta') && !st.el('handwrap').hidden && !st.handOnly) o.push({ id: 'hand', text: '✋ Només mà dreta' });
+  if (res.gaps.includes('forma') && !$('[data-act="strings"]', st.root).hidden) o.push({ id: 'strings', text: 'Corda a corda' });
+  if (res.gaps.includes('dreta') && !st.el('handwrap').hidden && !st.handOnly) o.push({ id: 'hand', text: 'Només mà dreta' });
   for (const t of backTargets(st)) {
     const info = st.ctx.nav.info(t.id);
     o.push({ id: 'back', to: t.id, g: t.g, text: `↩ ${info.titol}` });
   }
   o.push({ id: 'repeat', text: st.auto ? '▶ Torna-hi' : 'Repetir igual' });
   if (st.ctx.onNext) o.push({ id: 'next', to: st.ctx.nav?.next?.id, text: '⏭ Pas següent' });
-  if (r === 'ok' && res.wasOk) o.push({ id: 'done', text: '🎤 Ho porto al grup' });
+  if (r === 'ok' && res.wasOk) o.push({ id: 'done', text: 'Ho porto al grup' });
   return o;
 }
 
@@ -1192,10 +1193,10 @@ function frame(st) {
   const badge = st.el('badge');
   const big = st.el('big');
   const nextSeg = st.plan?.(pos.i + 1);
-  let label = { count: '⏱', demo: '👂', play: '🎸 TU', question: '👂 ?', answer: '🎸 TU', preview: '👀', end: '🏁' }[mode] ?? '';
+  let label = { count: 'Compte', demo: 'Escolta', play: 'Ara tu', question: 'Escolta', answer: 'Ara tu', preview: 'Mira', end: 'Fi' }[mode] ?? '';
   let bigText = '';
   if (mode === 'count') bigText = String(pulse + 1);
-  if (mode === 'demo' && nextSeg?.mode === 'play') { label = '👂 → 🎸'; bigText = String(M.pulses - pulse); }
+  if (mode === 'demo' && nextSeg?.mode === 'play') { label = 'Escolta → toca'; bigText = String(M.pulses - pulse); }
   if (st.kind === 'improv' && st.step.mode === 'free' && seg?.k != null) {
     big.classList.add('repte');
     bigText = st.reptes[Math.floor(seg.k / 4) % st.reptes.length];
@@ -1338,14 +1339,14 @@ function updateSide(st, content, pos, ev) {
   if (host.dataset.key !== key) {
     host.dataset.key = key;
     host.innerHTML = '';
-    if (step.genLine) host.append(h(`<div class="genline">🎸 Línia de baix del Generador<b>${esc(step.genLine)}</b><small>La que ha escrit el professorat per a aquesta cançó. Els números del mànec són els trasts.</small></div>`));
+    if (step.genLine) host.append(h(`<div class="genline">Línia de baix del Generador<b>${esc(step.genLine)}</b><small>La que ha escrit el professorat per a aquesta cançó. Els números del mànec són els trasts.</small></div>`));
     for (const id of cards) {
       const c = cardById(id);
       if (!c) continue;
       host.append(h(`<div class="rcard"><img src="${c.img}" alt="Carta ${esc(id)}"><i class="sweep"></i></div>`));
     }
     if (positions.length) {
-      const wrap = h(`<div class="positions${boxes ? '' : ' names'}" style="--n:${positions.length}"><div class="pos-head" title="Posicions diferents en aquesta cançó">🖐 <b>${positions.length}</b></div><div class="pos-grid"></div></div>`);
+      const wrap = h(`<div class="positions${boxes ? '' : ' names'}" style="--n:${positions.length}"><div class="pos-head" title="Posicions diferents en aquesta cançó">Posicions <b>${positions.length}</b></div><div class="pos-grid"></div></div>`);
       const grid = wrap.querySelector('.pos-grid');
       for (const p of positions) {
         const cell = h(`<div class="pos-cell" data-chord="${esc(p.chord)}"></div>`);
@@ -1385,7 +1386,7 @@ function previewPos(st) {
 
 function showIdle(st) {
   st.preview = performance.now();
-  st.el('badge').textContent = '👀';
+  st.el('badge').textContent = 'Mira';
   st.el('badge').dataset.mode = 'idle';
   st.el('big').textContent = '';
   st.el('big').classList.remove('repte');
@@ -1452,8 +1453,8 @@ function setupComposer(st) {
   const deck = rhythmDeck(M);
   const render = () => {
     box.innerHTML = `<div class="composer-head"><h3>La teva composició</h3>
-      <button type="button" class="btn btn-ghost btn-small" data-c="random">🎲 Sorprèn-me</button>
-      <button type="button" class="btn btn-ghost btn-small" data-c="save">💾 Desa-la a les meves cançons</button></div>
+      <button type="button" class="btn btn-ghost btn-small" data-c="random">Sorprèn-me</button>
+      <button type="button" class="btn btn-ghost btn-small" data-c="save">Desa-la a les meves cançons</button></div>
       <div class="composer-bars">${st.compose.map((b, i) => `
         <div class="cbar">
           <div class="cbar-chord">${esc(st.bars[i % st.bars.length].map((s) => s.chord.symbol).join(' '))}</div>
@@ -1516,7 +1517,7 @@ function setupTuner(st) {
     html = `<p class="muted">El Mi major, corda a corda i després sencer. Toca\'l alhora i compara.</p><div class="tune-row"><button type="button" class="tune-btn wide" data-t="chk"><b>▶ Mi major</b><small>corda a corda</small></button></div>`;
   }
   box.innerHTML = `${html}<div class="row"><button type="button" class="btn" data-t="stop">■ Atura</button></div>
-    <div class="tuner-live"><div class="tl-head"><b>Afinador</b><button type="button" class="btn btn-ghost btn-small" data-t="listen">🎸 Connecta la guitarra</button></div>
+    <div class="tuner-live"><div class="tl-head"><b>Afinador</b><button type="button" class="btn btn-ghost btn-small" data-t="listen">Connecta la guitarra</button></div>
       <div class="tl-body" hidden><span class="tl-note">—</span><div class="tl-scale"><i class="tl-zero"></i><i class="tl-needle"></i></div><span class="tl-cents"></span></div>
       <p class="muted small tl-help">Amb el cable connectat, toca una corda a l'aire: l'agulla diu si està baixa (esquerra) o alta (dreta).</p></div>`;
   // l'afinador de veritat, si el joc t'escolta
@@ -1525,7 +1526,7 @@ function setupTuner(st) {
     if (current !== st) return;
     requestAnimationFrame(tunerLoop);
     live.hidden = !listen.isOn();
-    box.querySelector('[data-t="listen"]').textContent = listen.isOn() ? '🎸 T\'escolto' : '🎸 Connecta la guitarra';
+    box.querySelector('[data-t="listen"]').textContent = listen.isOn() ? 'T\'escolto' : 'Connecta la guitarra';
     if (!listen.isOn()) return;
     const m = listen.currentNote();
     if (m == null) return;

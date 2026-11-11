@@ -320,8 +320,8 @@ export function openDialog({ onChange, focus = null } = {}) {
   dlg.innerHTML = `
     <form method="dialog">
       <h2>La teva guitarra</h2>
-      <p class="muted small">🔌 Cable jack → USB (o l'ampli per USB).</p>
-      <div class="ld-out row"><b>🔊</b><select id="ld-out" title="Per on surt el so del joc"><option value="">Sortida per defecte</option></select><button type="button" class="btn btn-ghost btn-small" id="ld-test">🔊 Prova</button></div>
+      <p class="muted small">Cable jack → USB (o l'ampli per USB).</p>
+      <div class="ld-out row"><b>Sortida</b><select id="ld-out" title="Per on surt el so del joc"><option value="">Sortida per defecte</option></select><button type="button" class="btn btn-ghost btn-small" id="ld-test">Prova el so</button></div>
       <p class="muted small" id="ld-out-tip">No sents la banda? Amb el cable USB connectat, l'ordinador pot enviar el so al cable: tria aquí els auriculars o els altaveus.</p>
       <ol class="ld-steps">
         <li>Connecta el cable a l'ordinador i tria'l aquí:

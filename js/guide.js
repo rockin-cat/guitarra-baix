@@ -1,6 +1,7 @@
 // «Aprèn a llegir la pantalla»: per a qui comença de zero. Cada pantalla ensenya una part del que es veu
 // al joc (el mànec, els trasts, els dits, la púa, la pista, les cartes, el marcador) i com trobar-ho a l'instrument.
 
+import { ic, icona } from './icones.js';
 import { createNeck, chordBox } from './neck.js';
 import { createLane } from './lane.js';
 import { INSTRUMENTS, guitarVoicing, powerRoot6, coverStrings, bassRole, stringNumber } from './fretboard.js';
@@ -64,17 +65,17 @@ export function renderGuide(host, instId, { onDone } = {}) {
     const root = h(`<div class="guide">
       <div class="view-head">
         <div class="vh-text"><small class="muted">Aprèn a llegir la pantalla · ${page + 1} de ${PAGES.length}</small><h2>${esc(p.t)}</h2></div>
-        <button type="button" class="btn btn-ghost btn-small gsound" data-gmute title="So de les animacions">${muted ? '🔇' : '🔊'}</button>
+        <button type="button" class="btn btn-ghost btn-small gsound" data-gmute title="So de les animacions">${muted ? ic('silenci') : ic('so')}</button>
         <div class="guide-tabs">${PAGES.map((x, i) => `<button type="button" class="gtab${i === page ? ' on' : ''}${i < page ? ' seen' : ''}" data-gp="${i}" title="${esc(x.t)}">${i + 1}</button>`).join('')}</div></div>
       <div class="guide-body"></div>
       <div class="row guide-nav">
         ${page > 0 ? '<button type="button" class="btn btn-ghost" data-gnav="-1" aria-label="Enrere">←</button>' : ''}
-        ${page < PAGES.length - 1 ? '<button type="button" class="btn btn-primary" data-gnav="1" aria-label="Següent">→</button>' : '<button type="button" class="btn btn-primary btn-big" data-gdone="1">🤘 Som-hi</button>'}
+        ${page < PAGES.length - 1 ? '<button type="button" class="btn btn-primary" data-gnav="1" aria-label="Següent">→</button>' : '<button type="button" class="btn btn-primary btn-big" data-gdone="1">Som-hi</button>'}
       </div></div>`);
     host.append(root);
     p.build(root.querySelector('.guide-body'));
     root.addEventListener('click', (e) => {
-      if (e.target.closest('[data-gmute]')) { muted = !muted; e.target.closest('[data-gmute]').textContent = muted ? '🔇' : '🔊'; return; }
+      if (e.target.closest('[data-gmute]')) { muted = !muted; e.target.closest('[data-gmute]').innerHTML = muted ? ic('silenci') : ic('so'); return; }
       const b = e.target.closest('[data-gp],[data-gnav],[data-gdone]');
       if (!b) return;
       if (b.dataset.gp) page = Number(b.dataset.gp);
@@ -120,7 +121,7 @@ export function renderGuide(host, instId, { onDone } = {}) {
     const q = h('<p class="gq" data-q></p>');
     el.append(q);
     let target = null;
-    const ask = () => { target = Math.floor(Math.random() * n); q.innerHTML = `🎯 Corda <b>${stringNumber(inst, target)}</b>?`; };
+    const ask = () => { target = Math.floor(Math.random() * n); q.innerHTML = `Corda <b>${stringNumber(inst, target)}</b>?`; };
     ask();
     row.addEventListener('click', (e) => {
       const b = e.target.closest('[data-s]');
@@ -129,7 +130,7 @@ export function renderGuide(host, instId, { onDone } = {}) {
       neck.highlightString(s, `Corda ${stringNumber(inst, s)} · ${inst.stringNames[s]}`);
       neck.shake(s);
       play(inst, inst.tuning[s]);
-      if (s === target) { q.innerHTML = '✓ 🎸 <button type="button" class="btn btn-ghost btn-small" data-again>🎯 Una altra</button>'; }
+      if (s === target) { q.innerHTML = '✓ <button type="button" class="btn btn-ghost btn-small" data-again>Una altra</button>'; }
     });
     el.addEventListener('click', (e) => { if (e.target.closest('[data-again]')) ask(); });
     loopFn(() => neck.animate({}));
@@ -139,7 +140,7 @@ export function renderGuide(host, instId, { onDone } = {}) {
   function pageFrets(el) {
     el.innerHTML = lead('0 = a l\'aire · 1, 2, 3… = el trast on poses el dit.');
     const neck = createNeck(stage(el), inst, { thickTop: settings().thickTop === true });
-    const info = h('<p class="gq">👆 Clica el mànec.</p>');
+    const info = h('<p class="gq">Clica el mànec.</p>');
     el.append(info);
     const NOMS = ['Do', 'Do#', 'Re', 'Re#', 'Mi', 'Fa', 'Fa#', 'Sol', 'Sol#', 'La', 'La#', 'Si'];
     let auto = true;
@@ -291,13 +292,13 @@ export function renderGuide(host, instId, { onDone } = {}) {
   // 8 · el marcador: va passant sol (compte → escolta → tu)
   function pageBadge(el) {
     el.innerHTML = lead('A dalt, el marcador diu què toca ara.') + `<div class="stage-top gbadge-demo"><div class="mode-badge" data-mode="count">⏱</div><div class="pulses"><span>1</span><span>2</span><span>3</span><span>4</span></div><b class="gbadge-txt"></b></div>`
-      + tags([['⏱', 'compte'], ['👂', 'escolta'], ['🎸 TU', 'toques tu'], ['👀', 'mira']]);
+      + tags([['Compte', 'el compte d\'entrada'], ['Escolta', 'l\'exemple'], ['Ara tu', 'toques tu'], ['Mira', 'sense so']]);
     const bar = el.querySelector('.gbadge-demo');
-    bar.style.cssText = 'background:#111827;border-radius:10px;padding:10px 14px;color:#fff;margin-top:10px';
+    bar.style.cssText = 'background:#f3efe8;border-radius:10px;padding:10px 14px;color:#221f20;margin-top:10px';
     const badge = bar.querySelector('.mode-badge');
     const txt = bar.querySelector('.gbadge-txt');
     const pul = [...bar.querySelectorAll('.pulses span')];
-    const SEQ = [['count', '⏱', 'compte'], ['demo', '👂', 'escolta'], ['play', '🎸 TU', 'ara tu']];
+    const SEQ = [['count', 'Compte', 'compte'], ['demo', 'Escolta', 'escolta'], ['play', 'Ara tu', 'ara tu']];
     loopFn((t) => {
       const beat = Math.floor(t / 0.55);
       const [mode, sym, w] = SEQ[Math.floor(beat / 4) % SEQ.length];

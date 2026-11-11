@@ -4,7 +4,7 @@
 //  · A sota, el compàs d'ara, quiet: el patró sencer (fletxes o notes) i un cursor que el recorre
 //    (el concret). Com que el patró es repeteix, el dibuix no canvia: només avança el cursor.
 
-const MODE_TEXT = { count: '⏱', demo: '👂', play: '🎸 TU', question: '👂 ?', answer: '🎸 TU', preview: '👀' };
+const MODE_TEXT = { count: 'Compte', demo: 'Escolta', play: 'Ara tu', question: 'Escolta', answer: 'Ara tu', preview: 'Mira' };
 
 /** El tros de la roda que es veu: la part de la cançó (A, B…) o blocs de 8 compassos. */
 export function wheelWindow(prog, k) {
@@ -40,7 +40,7 @@ export function createLane(canvas, { color = '#f97316' } = {}) {
     const c = ctx2;
     c.setTransform(dpr, 0, 0, dpr, 0, 0);
     c.clearRect(0, 0, w, h);
-    c.fillStyle = '#141b2b';
+    c.fillStyle = '#fbfaf7';
     c.fillRect(0, 0, w, h);
     if (!pos) return;
     const { M } = pos.song;
@@ -74,7 +74,7 @@ export function createLane(canvas, { color = '#f97316' } = {}) {
         const x = left + t * (cw + gap);
         const cur = idx === j;
         const past = idx < j;
-        c.fillStyle = cur ? 'rgba(255,255,255,0.14)' : 'rgba(255,255,255,0.05)';
+        c.fillStyle = cur ? 'rgba(31,30,28,0.14)' : 'rgba(31,30,28,0.05)';
         rr(c, x, 6, cw, 28, 7); c.fill();
         if (cur && !countIn) {
           c.fillStyle = color;
@@ -82,15 +82,15 @@ export function createLane(canvas, { color = '#f97316' } = {}) {
           rr(c, x, 6, Math.max(8, cw * frac), 28, 7); c.fill();
           c.globalAlpha = 1;
         }
-        if (cur) { c.strokeStyle = countIn ? '#fdbe10' : color; c.lineWidth = 2; rr(c, x, 6, cw, 28, 7); c.stroke(); }
+        if (cur) { c.strokeStyle = countIn ? '#e0a800' : color; c.lineWidth = 2; rr(c, x, 6, cw, 28, 7); c.stroke(); }
         const names = prog[idx].map((sg) => sg.chord.symbol).join(' ');
-        c.fillStyle = cur ? '#fff' : past ? 'rgba(255,255,255,0.4)' : 'rgba(255,255,255,0.75)';
+        c.fillStyle = cur ? '#1f1e1c' : past ? 'rgba(31,30,28,0.4)' : 'rgba(31,30,28,0.75)';
         c.font = `700 ${cw < 60 ? 12 : 15}px Ubuntu, sans-serif`;
         c.textAlign = 'center';
         c.fillText(names, x + cw / 2, 25.5, cw - 8);
         c.textAlign = 'left';
         if (prog[idx].part && t === 0 && cw > 70) {
-          c.fillStyle = '#fdbe10';
+          c.fillStyle = '#e0a800';
           c.font = '700 10px Ubuntu, sans-serif';
           c.fillText(prog[idx].part.toUpperCase().slice(0, 10), x + 7, 24);
         }
@@ -105,24 +105,24 @@ export function createLane(canvas, { color = '#f97316' } = {}) {
     const X = (beat) => left + beat * ppb;
     const rowEv = voice ? top + (h - top) * 0.4 : top + (h - top) * 0.52;
     const rowVoice = h - 12;
-    c.fillStyle = mode === 'play' || mode === 'answer' ? 'rgba(255,255,255,0.035)' : 'rgba(0,0,0,0)';
+    c.fillStyle = mode === 'play' || mode === 'answer' ? 'rgba(31,30,28,0.035)' : 'rgba(0,0,0,0)';
     c.fillRect(left, top, right - left, h - top);
     for (let b = 0; b <= B + 1e-6; b += M.pulseLen / M.sub) {
       const x = X(b);
       const strong = Math.abs(b % M.pulseLen) < 1e-6;
-      c.strokeStyle = b === 0 || b >= B - 1e-6 ? 'rgba(255,255,255,0.45)' : strong ? 'rgba(255,255,255,0.16)' : 'rgba(255,255,255,0.06)';
+      c.strokeStyle = b === 0 || b >= B - 1e-6 ? 'rgba(31,30,28,0.45)' : strong ? 'rgba(31,30,28,0.16)' : 'rgba(31,30,28,0.06)';
       c.lineWidth = b === 0 || b >= B - 1e-6 ? 2 : 1;
       c.beginPath(); c.moveTo(x, top); c.lineTo(x, h); c.stroke();
       if (strong && b < B - 1e-6) {
         const p = Math.round(b / M.pulseLen);
         const on = !countIn ? Math.floor(pos.beat / M.pulseLen) === p : false;
-        c.fillStyle = on ? '#fdbe10' : 'rgba(255,255,255,0.3)';
+        c.fillStyle = on ? '#e0a800' : 'rgba(31,30,28,0.3)';
         c.font = '700 12px Ubuntu, sans-serif';
         c.fillText(String(p + 1), x + 4, top + 13);
       }
     }
     if (mode && MODE_TEXT[mode]) {
-      c.fillStyle = mode === 'play' || mode === 'answer' ? color : 'rgba(255,255,255,0.45)';
+      c.fillStyle = mode === 'play' || mode === 'answer' ? color : 'rgba(31,30,28,0.45)';
       c.font = '700 11px Ubuntu, sans-serif';
       c.textAlign = 'right';
       c.fillText(MODE_TEXT[mode], right - 4, top + 13);
@@ -132,7 +132,7 @@ export function createLane(canvas, { color = '#f97316' } = {}) {
       // compte enrere: els números grossos i, transparent, el patró que ve
       const pulse = Math.floor(pos.beat / M.pulseLen);
       for (let p = 0; p < M.pulses; p++) {
-        c.fillStyle = p === pulse ? '#fdbe10' : 'rgba(253,190,16,0.35)';
+        c.fillStyle = p === pulse ? '#e0a800' : 'rgba(253,190,16,0.35)';
         c.font = `700 ${p === pulse ? 30 : 22}px Ubuntu, sans-serif`;
         c.fillText(String(p + 1), X(p * M.pulseLen) + ppb * M.pulseLen * 0.4, rowEv + 10);
       }
@@ -142,7 +142,7 @@ export function createLane(canvas, { color = '#f97316' } = {}) {
       // acords dins del compàs (si n'hi ha més d'un)
       if (shown.bar.length > 1) {
         for (const sg of shown.bar) {
-          c.fillStyle = '#fff';
+          c.fillStyle = '#1f1e1c';
           c.font = '700 13px Ubuntu, sans-serif';
           c.fillText(sg.chord.symbol, X(sg.start * B) + 22, top + 13);
         }
@@ -161,7 +161,7 @@ export function createLane(canvas, { color = '#f97316' } = {}) {
       if (voice) {
         for (const v of shown.voice) {
           const x = X(v.beat);
-          c.fillStyle = v.speak ? '#fdbe10' : '#9ad1ff';
+          c.fillStyle = v.speak ? '#e0a800' : '#2f86c9';
           c.font = `${v.speak ? 700 : 600} 15px Ubuntu, sans-serif`;
           c.fillText(v.text, x + 2, rowVoice);
           if (v.sing) { c.fillStyle = 'rgba(154,209,255,0.25)'; c.fillRect(x, rowVoice + 4, Math.max(4, v.dur * ppb - 4), 3); }
@@ -171,12 +171,12 @@ export function createLane(canvas, { color = '#f97316' } = {}) {
     }
     // el que ha sentit el joc en aquest compàs
     if (marks?.length && !countIn) {
-      const COL = { ok: '#44d17a', mid: '#ffb347', bad: '#ff5a5a' };
+      const COL = { ok: '#1f9d55', mid: '#f08c00', bad: '#d64545' };
       const a0 = pos.i * B;
       for (const m of marks) {
         if (m.abs < a0 - 0.05 || m.abs > a0 + B) continue;
         const x = X(m.abs - a0);
-        c.strokeStyle = c.fillStyle = COL[m.cls] ?? '#fff';
+        c.strokeStyle = c.fillStyle = COL[m.cls] ?? '#1f1e1c';
         if (m.ring) {
           c.lineWidth = 3;
           c.beginPath(); c.arc(x + 8, rowEv, 21, 0, Math.PI * 2); c.stroke();
@@ -188,10 +188,10 @@ export function createLane(canvas, { color = '#f97316' } = {}) {
     // el cursor
     if (!countIn) {
       const x = X(pos.beat);
-      c.strokeStyle = '#fdbe10';
+      c.strokeStyle = '#e0a800';
       c.lineWidth = 3;
       c.beginPath(); c.moveTo(x, top + 18); c.lineTo(x, h); c.stroke();
-      c.fillStyle = '#fdbe10';
+      c.fillStyle = '#e0a800';
       c.beginPath(); c.moveTo(x - 7, top + 16); c.lineTo(x + 7, top + 16); c.lineTo(x, top + 24); c.fill();
     }
   }
@@ -207,7 +207,7 @@ function rr(c, x, y, w, h, r) {
 
 function arrow(c, x, y, dir, ghost, color, len) {
   const hgt = 34;
-  c.strokeStyle = ghost ? 'rgba(255,255,255,0.28)' : color;
+  c.strokeStyle = ghost ? 'rgba(31,30,28,0.28)' : color;
   c.fillStyle = c.strokeStyle;
   c.lineWidth = ghost ? 2 : 4;
   const a = dir === 'D' ? y - hgt / 2 : y + hgt / 2;
@@ -216,14 +216,14 @@ function arrow(c, x, y, dir, ghost, color, len) {
   const s = dir === 'D' ? 1 : -1;
   c.beginPath(); c.moveTo(x + 1, b - 9 * s); c.lineTo(x + 15, b - 9 * s); c.lineTo(x + 8, b + 2 * s); c.fill();
   if (!ghost && len > 24) {
-    c.fillStyle = 'rgba(255,255,255,0.08)';
+    c.fillStyle = 'rgba(31,30,28,0.08)';
     c.fillRect(x + 16, y - 3, len - 16, 6);
   }
 }
 
 function bubble(c, x, y, label, color, len) {
   const r = 14;
-  c.fillStyle = 'rgba(255,255,255,0.1)';
+  c.fillStyle = 'rgba(31,30,28,0.1)';
   c.fillRect(x + r, y - 4, Math.max(0, len - r), 8);
   c.fillStyle = color;
   c.beginPath(); c.arc(x + r, y, r, 0, Math.PI * 2); c.fill();
