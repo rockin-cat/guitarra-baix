@@ -457,13 +457,24 @@ async function go(st, what) {
   setButtons(st, true);
   st.preview = 0; // mentre carrega, l'animació d'espera s'atura
   st.el('badge').textContent = '⏳';
-  try {
-    await player.prepare(st.inst.id);
-    await listen.applyOutput();
-  } catch { /* sense so, l'animació funciona igual */ }
-  if (current !== st) return;
+  // cada «toca» té el seu número: si mentre carrega se'n demana un altre (l'exemple automàtic i un clic), només arrenca l'últim
+  const seq = (st.goSeq = (st.goSeq ?? 0) + 1);
+  const viu = () => current === st && st.goSeq === seq;
+  // res no pot deixar el joc penjat: carregar els sons, triar la sortida o obrir l'entrada de la guitarra tenen un temps màxim
+  try { await ambTemps(player.prepare(st.inst.id), 12000); } catch { /* sense alguns sons, l'animació funciona igual */ }
+  try { await ambTemps(listen.applyOutput(), 1500); } catch { /* la sortida triada no respon: va per la de defecte */ }
+  if (!viu()) return;
+  if (audioContext().state !== 'running') {
+    // el navegador encara no deixa sonar (cal un clic): no s'arrenca a mitges, s'espera el ▶
+    st.demoPending = false;
+    setButtons(st, false);
+    showIdle(st);
+    st.el('badge').textContent = 'Prem ▶';
+    return;
+  }
   // escolta la guitarra (si s'havia connectat abans, es torna a obrir l'entrada)
-  if (listen.settings().on && !listen.isOn()) { try { await listen.start(); } catch { listen.settings().on = false; } }
+  if (listen.settings().on && !listen.isOn()) { try { await ambTemps(listen.start(), 6000); } catch { listen.stop(); listen.settings().on = false; } }
+  if (!viu()) return;
   st.judge?.destroy();
   st.judge = listen.isOn() && st.kind !== 'improv' && st.kind !== 'compose' ? createJudge(st.inst.id, { onVerdict: (v) => showVerdict(st, v) }) : null;
   st.listenSum = null;
@@ -472,7 +483,7 @@ async function go(st, what) {
   st.marks = [];
   resetDots(st);
   updateListenUi(st);
-  if (current !== st) return;
+  if (!viu()) return;
   st.song.tempo = st.tempo;
   st.plan = makePlan(st, what);
   st.what = what;
@@ -488,7 +499,12 @@ async function go(st, what) {
   });
 }
 
+function ambTemps(promesa, ms) {
+  return Promise.race([promesa, new Promise((_, no) => setTimeout(() => no(new Error('temps')), ms))]);
+}
+
 function stopRun(st) {
+  st.goSeq = (st.goSeq ?? 0) + 1; // si encara carregava, ja no arrenca
   player.stop();
   finished(st, false);
 }

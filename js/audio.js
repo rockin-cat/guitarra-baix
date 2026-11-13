@@ -78,7 +78,8 @@ export function outputLevel() {
 export async function resumeAudio() {
   const c = audioContext();
   if (c.state !== 'running') {
-    try { await c.resume(); } catch { /* cal un clic */ }
+    // alguns navegadors (Safari) no responen mai si no hi ha hagut un clic: no s'espera més de 2 s
+    try { await Promise.race([c.resume(), new Promise((r) => setTimeout(r, 2000))]); } catch { /* cal un clic */ }
   }
   return c.state === 'running';
 }
