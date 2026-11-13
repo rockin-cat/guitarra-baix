@@ -554,7 +554,7 @@ function pathHtml(instId) {
   if (n < MIN_DECISIONS) {
     return '';
   }
-  return `<div class="panel cami-panel"><h3>Com t’estudies</h3>
+  return `<div class="panel cami-panel"><h3>Com practiques</h3>
     <ul class="qsf-ins"><li>${esc(observations()[0])}</li></ul>
     <p class="muted small">Com et van les estratègies que tries per practicar: a la pestanya <button type="button" class="link" data-qtab="com">Com vas</button>.</p></div>`;
 }
