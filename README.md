@@ -224,7 +224,7 @@ Amb un cable jack → USB (o l'ampli connectat per USB), el joc escolta la guita
 - Després de valorar, sempre surt «🐢 Més lent» (i «⏩ Més ràpid» si ha anat bé).
 - Quan l'exemple ha d'arrencar sol, l'animació d'abans ja no sona (no s'escapa cap nota abans de l'entrada).
 
-- **v55**: «Què sé fer» amb tres pestanyes (A la banda · Com vas · Historial). «Com vas» comença per com t'estudies: per a cada estratègia que tries després de tocar, com t'ha anat l'intent següent.
+- **v55**: «Què sé fer» amb tres pestanyes (A la banda · Com vas · Historial). «Com vas» comença per com practiques: per a cada estratègia que tries després de tocar, com t'ha anat l'intent següent.
 - **v54**: capçalera comuna de les eines Rockin, fons clar a tot arreu (també l'escenari i el pòster) i icones de línia en lloc d'emojis; fora les brillantors i els degradats.
 - **v53**: guitarra sense el brunzit de corrent (50 Hz) ni el retruny greu que se sumaven als acords oberts.
 - **v52**: en entrar a un nivell, la imatge espera quieta fins al compte d'entrada (l'animació d'espera no es mou mentre l'exemple és a punt d'arrencar o carrega).
