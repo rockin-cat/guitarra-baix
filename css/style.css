@@ -1053,3 +1053,10 @@ button.res-tile:hover, button.res-tile:focus-visible { border-color: var(--accen
   .res-big { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .res-tile { min-height: 96px; }
 }
+
+/* v59 · menys coses alhora: a l'escolta, el mànec i la carta (com es fa); quan toques, la roda i la carta (què toques).
+   Mentre sona, el text del pas es plega. */
+.stage.wheel-view.wv-demo .wv-row { display: none; }
+.stage.wheel-view.wv-demo .wv .wv-cardbox { height: clamp(110px, 20vh, 200px); }
+.stage.wheel-view.wv-demo .neck-host svg.neck { max-height: 30vh; }
+.session.playing .side .explain { display: none; }
