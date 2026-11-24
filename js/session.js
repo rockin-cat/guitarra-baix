@@ -14,7 +14,7 @@ import { BINARI, TERNARI, MELODIC, cardById, cardMetre } from './data/cartes.js'
 import { tone, audioContext } from './audio.js';
 import { REPTES, allSteps } from './levels.js';
 import * as store from './store.js';
-import { pill, gapsFor, tipsFor, gapText, GAPS } from './assoliment.js';
+import { pill, gapsFor, gapShort, GAPS } from './assoliment.js';
 import * as auto from './autoregulacio.js';
 import * as listen from './listen.js';
 import { createJudge, verdictText, verdictClass } from './gjudge.js';
@@ -143,11 +143,11 @@ export function openSession(host, baseStep, ctx) {
             </div>
             <div class="assess" data-el="assess" hidden>
               <button type="button" class="assess-x" data-act="close-assess" aria-label="Tanca">×</button>
-              <h3>Com t'ha anat?</h3>
+              <h3>Com t'ha sortit?</h3>
               <div class="rate-row">
-                <button type="button" class="btn btn-ghost rate-sym" data-rate="no" title="En procés">En procés</button>
-                <button type="button" class="btn btn-ghost rate-sym" data-rate="gairebe" title="A prop">A prop</button>
-                <button type="button" class="btn btn-primary rate-sym" data-rate="ok" title="Ja ho tens!">Ja ho tens!</button>
+                <button type="button" class="btn btn-ghost rate-sym" data-rate="no" title="En procés"><span class="ic" aria-hidden="true">🌱</span>En procés</button>
+                <button type="button" class="btn btn-ghost rate-sym" data-rate="gairebe" title="A prop"><span class="ic" aria-hidden="true">🤏</span>A prop</button>
+                <button type="button" class="btn btn-ghost rate-sym" data-rate="ok" title="Ja ho tens!"><span class="ic" aria-hidden="true">✅</span>Ja ho tens!</button>
               </div>
               <p class="feedback" data-el="feedback"></p>
               <div class="result" data-el="result"></div>
@@ -595,17 +595,10 @@ const tcPos = (ms) => 50 + Math.max(-1, Math.min(1, ms / 100)) * 48;
 
 /** El resultat que ha escoltat el joc: marca el nivell i el que ha faltat (l'alumne ho pot canviar). */
 function applyListen(st, sum) {
+  // l'escolta per la targeta de so no és prou fiable per posar nota: la valoració la fa l'alumne.
+  // Només es desa (per al professorat) i serveix perquè «Ja ho tens!» compti si l'escolta també ho ha sentit bé.
   st.listenSum = sum;
-  rate(st, sum.level);
-  const options = gapsFor(st.step, st.inst.id);
-  const gaps = sum.gaps.filter((g) => options.includes(g));
-  if (st.result && gaps.length && sum.level !== 'ok') {
-    st.result.gaps = gaps;
-    if (st.step.id) store.setGaps(st.step.id, gaps);
-    if (st.rec) auto.updateRecord(st.rec, { gaps: [...gaps], heard: Math.round(sum.score * 100) });
-  } else if (st.rec) auto.updateRecord(st.rec, { heard: Math.round(sum.score * 100) });
-  st.el('feedback').textContent = '';
-  renderResult(st);
+  st.heard = Math.round(sum.score * 100);
 }
 
 /** Registra els cops dels compassos que toques tu (el que està sonant i el següent). */
@@ -698,10 +691,10 @@ function rate(st, r) { // eslint-disable-line no-param-reassign
   res.autoMsg = stepAutoHelp(st, asked);
   if (!earned) {
     if (id && st.auto) { helpMap()[id] = 2; store.save(); applyAutoHelp(st, 2); }
-    res.autoMsg = 'De moment, «A prop». Per tenir-ho, toca\'l una vegada sense ajuda: la propera vegada la pantalla s\'anirà esvaint fins que toquis sol, sense guia sonora.';
+    res.autoMsg = '🔓 Per a «Ja ho tens!», toca\'l sense ajuda: la propera vegada l\'ajuda s\'anirà esvaint.';
   }
   // el registre de decisions: l'efecte de la tria anterior i un registre nou (si ja n'hi ha un d'aquest resultat, es corregeix)
-  if (id && !st.rec) { auto.fillEffect(id, r); st.rec = auto.record({ step: id, r, gaps: [], wasOk: res.wasOk }); st.recAt = { tempo: st.tempo, guide: !!st.guide }; }
+  if (id && !st.rec) { auto.fillEffect(id, r); st.rec = auto.record({ step: id, r, gaps: [], wasOk: res.wasOk, ...(st.heard != null ? { heard: st.heard } : {}) }); st.recAt = { tempo: st.tempo, guide: !!st.guide }; }
   else if (st.rec) auto.updateRecord(st.rec, { level: auto.levelOf(r), wasOk: res.wasOk || undefined });
   st.el('feedback').textContent = '';
   renderResult(st);
@@ -717,7 +710,7 @@ function toggleGap(st, g) {
   renderResult(st);
 }
 
-/** El resultat en tres blocs: nivell, què t'ha faltat i què pots fer. */
+/** El resultat: què t'ha faltat (ho marca l'alumne, amb símbols) i «I ara?» (quatre botons grans i uns de petits). */
 function renderResult(st) {
   const res = st.result;
   const { r } = res;
@@ -725,36 +718,30 @@ function renderResult(st) {
   const box = st.el('result');
   const after = st.el('after');
   after.innerHTML = '';
-  // 1 · nivell
-  const data = st.kind === 'improv' ? '' : `A ${res.played} bpm${res.played < res.orig ? ` · el pas va a ${res.orig}` : ''}`;
-  let html = `<div class="res-block res-level">${pill(r, 'big')}${data ? `<span class="res-data">${esc(data)}</span>` : ''}</div>`;
+  let html = '';
+  const data = '';
+  if (data) html += `<p class="res-data">${esc(data)}</p>`;
   if (res.autoMsg) html += `<p class="auto-msg">${esc(res.autoMsg)}</p>`;
-  const L = st.listenSum;
-  if (L) {
-    html += `<div class="res-block res-heard"><h4>El joc t'ha escoltat: ${Math.round(L.score * 100)} %</h4>
-      <div class="heard-stats"><span><b>${L.onTime}/${L.timed}</b> a temps</span>${L.pitched ? `<span><b>${L.right}/${L.pitched}</b> ${L.strums ? (L.strums === L.pitched ? 'acords bons' : 'acords i notes bons') : 'notes bones'}</span>` : ''}${L.missed ? `<span><b>${L.missed}</b> sense sonar</span>` : ''}${L.extras + L.air ? `<span><b>${L.extras + L.air}</b> de més</span>` : ''}</div>
-      ${L.tips.length ? `<ul class="res-tips">${L.tips.map((t) => `<li>${esc(t)}</li>`).join('')}</ul>` : ''}</div>`;
-  }
-  // 2 · què t'ha faltat
+  // què t'ha faltat: ho marca l'alumne (es poden marcar diverses coses)
   const options = gapsFor(st.step, st.inst.id);
   if (r !== 'ok') {
     html += `<div class="res-block"><h4>Què t'ha faltat?</h4>
-      <div class="gap-chips">${options.map((g) => `<button type="button" class="gap-chip${res.gaps.includes(g) ? ' on' : ''}" data-gap="${g}" aria-pressed="${res.gaps.includes(g)}">${esc(gapText(g))}</button>`).join('')}</div>
-</div>`;
+      <div class="gap-tiles">${options.map((g) => { const x = gapShort(g); return `<button type="button" class="gap-tile${res.gaps.includes(g) ? ' on' : ''}" data-gap="${g}" aria-pressed="${res.gaps.includes(g)}"><span class="ic" aria-hidden="true">${x.ic}</span>${esc(x.s)}</button>`; }).join('')}</div></div>`;
   }
-  // els consells del que ha faltat són informació (no decisió)
-  const tips = tipsFor(res.gaps);
-  if (tips.length) html += `<details class="res-block tips"><summary title="Consells">Consells</summary><ul class="res-tips">${tips.map((t) => `<li>${esc(t)}</li>`).join('')}</ul></details>`;
-  // 3 · què creus que necessites ara? (l'eina no recomana: tu tries)
+  // I ara? (l'eina no recomana: tu tries)
   const opts = optionsFor(st);
-  html += `<div class="res-block"><h4>I ara?</h4><div class="opt-list">${opts.map((o) => `<button type="button" class="opt-btn" data-opt="${o.id}"${o.to ? ` data-id="${esc(o.to)}"` : ''}>${esc(o.text)}</button>`).join('')}</div></div>`;
-  // informació del camí
-  if (r !== 'no' && nav?.pathDone()) html += '<p class="path-end-inline"><b>Has acabat el camí.</b> Ja pots portar-ho al teu grup: a partir d\'ara, aquesta eina només la necessites per repassar alguna cosa concreta.</p>';
-  else if (r === 'ok' && !res.levelWasDone && nav?.levelDone() && nav.nextLevel) html += `<p class="muted small">Has acabat el nivell ${st.step.nivell}. El següent és el <b>nivell ${nav.nextLevel.n} · ${esc(nav.nextLevel.titol)}</b>.</p>`;
+  const bigs = opts.filter((o) => o.big);
+  const smalls = opts.filter((o) => !o.big);
+  html += `<div class="res-block"><h4>I ara?</h4><div class="res-big">${bigs.map((o) => (o.off
+    ? `<div class="res-tile off" aria-hidden="true"><span class="ic">${o.ic}</span><b>${esc(o.text)}</b><small>${esc(o.sub ?? '')}</small></div>`
+    : `<button type="button" class="res-tile" data-opt="${o.id}"${o.to ? ` data-id="${esc(o.to)}"` : ''}><span class="ic" aria-hidden="true">${o.ic}</span><b>${esc(o.text)}</b>${o.sub ? `<small>${esc(o.sub)}</small>` : ''}</button>`)).join('')}</div>
+    ${smalls.length ? `<div class="res-smalls">${smalls.map((o) => `<button type="button" class="res-small${o.id === 'next' && r !== 'no' ? ' main' : ''}" data-opt="${o.id}"${o.to ? ` data-id="${esc(o.to)}"` : ''}><span aria-hidden="true">${o.ic}</span> ${esc(o.text)}</button>`).join('')}</div>` : ''}</div>`;
+  if (r !== 'no' && nav?.pathDone()) html += '<p class="path-end-inline"><b>🎸 Has acabat el camí.</b> Ja ho pots portar al teu grup.</p>';
+  else if (r === 'ok' && !res.levelWasDone && nav?.levelDone() && nav.nextLevel) html += `<p class="muted small">✅ Nivell ${st.step.nivell} acabat. El següent: <b>${esc(nav.nextLevel.titol)}</b>.</p>`;
   box.innerHTML = html;
   if (r !== 'no' && nav?.pathDone()) after.append(h('<button type="button" class="btn btn-ghost" data-go="skills">Què sé fer</button>'));
   // la proposta que hauria fet l'eina: es desa però no es mostra
-  const sug = suggestion(st, opts);
+  const sug = suggestion(st, opts.filter((o) => !o.off));
   if (st.rec) auto.updateRecord(st.rec, { suggested: sug?.id ?? null, suggestedTo: sug?.to });
 }
 
@@ -809,11 +796,11 @@ function stepAutoHelp(st, r) {
   const orig = st.step.tempo ?? st.tempo;
   let msg = '';
   if (r === 'ok') {
-    if (l < 2) { l++; msg = l === 1 ? 'La propera vegada, sense guia sonora.' : 'La propera vegada, l\'ajuda de la pantalla s\'anirà esvaint.'; }
-    else if (st.tempo < orig) { setTempo(st, Math.min(orig, st.tempo + 10)); msg = `La propera vegada, una mica més ràpid (${st.tempo}).`; }
+    if (l < 2) { l++; msg = l === 1 ? '➡️ La propera vegada, sense guia sonora.' : '➡️ La propera vegada, l\'ajuda s\'anirà esvaint.'; }
+    else if (st.tempo < orig) msg = `🐇 Quan vulguis, puja el tempo: la cançó va a ${orig}.`;
   } else if (r === 'no') {
-    if (l > 0) { l--; msg = l === 0 ? 'La propera vegada, amb la guia sonora.' : 'La propera vegada, amb tota l\'ajuda a la pantalla.'; }
-    else { setTempo(st, Math.max(40, st.tempo - 10)); msg = `La propera vegada, més a poc a poc (${st.tempo}).`; }
+    if (l > 0) { l--; msg = l === 0 ? '➡️ La propera vegada, amb la guia sonora.' : '➡️ La propera vegada, amb tota l\'ajuda.'; }
+    // el tempo no el baixa el joc: és el botó «Més lent» (l'alumne tria)
   }
   if (id) { helpMap()[id] = l; store.save(); }
   applyAutoHelp(st, l);
@@ -824,20 +811,31 @@ function optionsFor(st) {
   const res = st.result;
   const { r } = res;
   const o = [];
-  // el tempo sempre es pot triar (més a poc a poc o, si ha anat bé, més ràpid)
-  if (st.tempo > 40) o.push({ id: 'slower', text: `Més lent (${Math.max(40, st.tempo - 10)})` });
-  if (r === 'ok' && st.tempo < 200) o.push({ id: 'faster', text: `⏩ Més ràpid (${Math.min(200, st.tempo + 10)})` });
-  if (!st.auto && st.kind !== 'improv') o.push(st.guide ? { id: 'guide-off', text: 'Sense guia' } : { id: 'guide-on', text: 'Amb guia' });
-  // practicar només el que falla: només quan l'eina ho pot aïllar
-  if (res.gaps.includes('forma') && !$('[data-act="strings"]', st.root).hidden) o.push({ id: 'strings', text: 'Corda a corda' });
-  if (res.gaps.includes('dreta') && !st.el('handwrap').hidden && !st.handOnly) o.push({ id: 'hand', text: 'Només mà dreta' });
-  for (const t of backTargets(st)) {
-    const info = st.ctx.nav.info(t.id);
-    o.push({ id: 'back', to: t.id, g: t.g, text: `↩ ${info.titol}` });
-  }
-  o.push({ id: 'repeat', text: st.auto ? '▶ Torna-hi' : 'Repetir igual' });
-  if (st.ctx.onNext) o.push({ id: 'next', to: st.ctx.nav?.next?.id, text: '⏭ Pas següent' });
-  if (r === 'ok' && res.wasOk) o.push({ id: 'done', text: 'Ho porto al grup' });
+  const big = (x) => o.push({ big: true, ...x });
+  const off = (ic, text, sub) => o.push({ big: true, off: true, ic, text, sub });
+  // 1 · més lent
+  if (st.tempo > 40) big({ id: 'slower', ic: '🐢', text: 'Més lent', sub: `Tempo ${Math.max(40, st.tempo - 10)}` });
+  else off('🐢', 'Més lent', 'Ja vas molt lent');
+  // 2 · torna-ho a intentar: primer ho escoltes i després toques
+  if (st.kind !== 'improv') big({ id: 'again', ic: '🎧', text: 'Torna-ho a intentar', sub: 'Primer ho escoltes' });
+  else big({ id: 'repeat', ic: '🔁', text: 'Torna-ho a intentar', sub: 'Un altre cop' });
+  // 3 · ajuda: la guia sonora (i, amb l'ajuda automàtica, tota l'ajuda de la pantalla)
+  const helped = st.auto ? (st.autoLevel ?? 0) === 0 : st.guide > 0;
+  if (st.kind !== 'improv' && !helped) big({ id: 'help', ic: '💡', text: 'Ajuda', sub: 'La guia sona amb tu' });
+  else off('💡', 'Ajuda', 'Ja la tens tota');
+  // 4 · pas anterior (el que treballa el que has marcat, si n'hi ha)
+  const backs = backTargets(st);
+  const prevId = backs[0]?.id ?? (st.ctx.nav?.prev?.id ?? null);
+  if (prevId) big({ id: 'back', to: prevId, g: backs[0]?.g, ic: '⏮️', text: 'Pas anterior', sub: st.ctx.nav.info(prevId)?.titol ?? '' });
+  else off('⏮️', 'Pas anterior', 'És el primer');
+  // a sota, els petits
+  o.push({ id: 'repeat', ic: '↻', text: 'Repetir igual' });
+  if (st.ctx.onNext) o.push({ id: 'next', to: st.ctx.nav?.next?.id, ic: '⏭️', text: 'Pas següent' });
+  if (r === 'ok' && st.tempo < 200) o.push({ id: 'faster', ic: '🐇', text: `Més ràpid · ${Math.min(200, st.tempo + 10)}` });
+  if (!st.auto && st.guide > 0) o.push({ id: 'guide-off', ic: '🙌', text: 'Sense guia' });
+  if (res.gaps.includes('forma') && !$('[data-act="strings"]', st.root).hidden) o.push({ id: 'strings', ic: '🎼', text: 'Corda a corda' });
+  if (res.gaps.includes('dreta') && !st.el('handwrap').hidden && !st.handOnly) o.push({ id: 'hand', ic: '🤚', text: 'Només mà dreta' });
+  if (r === 'ok' && res.wasOk) o.push({ id: 'done', ic: '🎸', text: 'Ho porto al grup' });
   return o;
 }
 
@@ -878,6 +876,12 @@ function pickOption(st, id, to) {
   if (id === 'strings') { hideAssess(st); return stringByString(st); }
   if (id === 'hand') { st.el('handonly').checked = true; store.settings().handOnly = true; store.save(); setHandOnly(st, true); hideAssess(st); return go(st, again); }
   if (id === 'repeat') { hideAssess(st); return go(st, again); }
+  if (id === 'again') { hideAssess(st); return go(st, 'full'); }
+  if (id === 'help') {
+    if (st.auto) { if (st.step.id) { helpMap()[st.step.id] = 0; store.save(); } applyAutoHelp(st, 0); }
+    else { st.guide = 0.5; st.el('guide').checked = true; store.settings().guide = st.guide; store.save(); }
+    hideAssess(st); return go(st, again);
+  }
   if (id === 'back' && to) { closeSession(); st.ctx.nav?.goStep(to); return; }
   if (id === 'next') { closeSession(); st.ctx.onNext?.(); return; }
   if (id === 'done') { closeSession(); if (st.ctx.nav?.goMap) st.ctx.nav.goMap(); else st.ctx.onBack?.(); }
@@ -1209,10 +1213,15 @@ function frame(st) {
   const badge = st.el('badge');
   const big = st.el('big');
   const nextSeg = st.plan?.(pos.i + 1);
-  let label = { count: 'Compte', demo: 'Escolta', play: 'Ara tu', question: 'Escolta', answer: 'Ara tu', preview: 'Mira', end: 'Fi' }[mode] ?? '';
+  // tres fases que s'han de distingir d'un cop d'ull: escoltes (no toques), prepara't (compte) i ara tu
+  const toPlay = nextSeg?.mode === 'play' || nextSeg?.mode === 'answer';
+  let phase = { demo: 'listen', question: 'listen', play: 'play', answer: 'play', count: toPlay ? 'ready' : 'listen' }[mode] ?? '';
+  let label = { listen: '🎧 Escolta', ready: '✋ Prepara\'t', play: '🎸 Ara tu' }[phase] ?? ({ preview: 'Mira', end: 'Fi' }[mode] ?? '');
   let bigText = '';
   if (mode === 'count') bigText = String(pulse + 1);
-  if (mode === 'demo' && nextSeg?.mode === 'play') { label = 'Escolta → toca'; bigText = String(M.pulses - pulse); }
+  if (mode === 'demo' && toPlay) { phase = 'ready'; label = '✋ Prepara\'t'; bigText = String(M.pulses - pulse); }
+  const stg = st.root.querySelector('.stage');
+  if (stg.dataset.phase !== phase) stg.dataset.phase = phase;
   if (st.kind === 'improv' && st.step.mode === 'free' && seg?.k != null) {
     big.classList.add('repte');
     bigText = st.reptes[Math.floor(seg.k / 4) % st.reptes.length];
@@ -1404,6 +1413,7 @@ function showIdle(st) {
   st.preview = performance.now();
   st.el('badge').textContent = 'Mira';
   st.el('badge').dataset.mode = 'idle';
+  delete st.root.querySelector('.stage').dataset.phase;
   st.el('big').textContent = '';
   st.el('big').classList.remove('repte');
   for (const p of st.el('pulses').children) p.classList.remove('on');

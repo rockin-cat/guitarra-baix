@@ -1015,3 +1015,41 @@ body.is-fs[data-view="session"] .hand-host .hcell svg { height: clamp(70px, 16vh
 @media (hover: none) and (pointer: coarse) {
   kbd { display: none !important; }
 }
+
+/* ---- Escoltes o toques: s'ha de veure d'un cop d'ull ---- */
+.mode-badge { font-size: 20px; letter-spacing: .06em; padding: 8px 16px; border-radius: 10px; }
+.stage[data-phase="listen"] { border-color: #5b8def; border-style: dashed; }
+.stage[data-phase="listen"] .mode-badge { background: #5b8def; color: #fff; }
+.stage[data-phase="ready"] { border-color: var(--groc); }
+.stage[data-phase="ready"] .mode-badge { background: var(--groc); color: #111; }
+.stage[data-phase="ready"] .bigcount { font-size: 44px; }
+.stage[data-phase="play"] { border-color: var(--accent); box-shadow: 0 0 0 4px var(--accent-soft), 0 0 28px var(--accent); }
+.stage[data-phase="play"] .mode-badge { background: var(--accent); color: #111; }
+
+/* ---- Resultat: «Com t'ha sortit?», què t'ha faltat i «I ara?», amb símbols ---- */
+.stage .assess { width: min(860px, calc(100% - 16px)); max-height: calc(100% - 12px); padding: 10px 12px; }
+.assess .res-block { margin-top: 6px; }
+.assess .res-block h4 { margin-bottom: 2px; }
+.rate-sym { font-size: 16px; font-weight: 700; padding: 10px 6px; gap: 4px; }
+.rate-sym { padding: 6px 4px; }
+.rate-sym .ic { font-size: 26px; line-height: 1.1; }
+.res-data { margin: 6px 0 0; color: var(--gris); font-size: 14px; }
+.auto-msg { font-size: 14px; }
+.gap-tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(112px, 1fr)); gap: 6px; margin: 4px 0; }
+.gap-tile { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 6px 4px; font: inherit; font-size: 13px; font-weight: 700; line-height: 1.2; text-align: center; color: var(--tinta); background: #fff; border: 2px solid var(--linia); border-radius: 12px; cursor: pointer; }
+.gap-tile .ic { font-size: 24px; line-height: 1.1; }
+.gap-tile.on { background: var(--tinta); color: #fff; border-color: var(--tinta); }
+.res-big { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin: 6px 0 10px; }
+.res-tile { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; min-height: 100px; padding: 8px 6px; font: inherit; text-align: center; color: var(--tinta); background: #fff; border: 2px solid var(--linia); border-radius: 14px; cursor: pointer; }
+.res-tile .ic { font-size: 36px; line-height: 1.1; }
+.res-tile b { font-size: 17px; line-height: 1.2; }
+.res-tile small { font-size: 12.5px; color: var(--gris); }
+button.res-tile:hover, button.res-tile:focus-visible { border-color: var(--accent); background: var(--accent-soft); }
+.res-tile.off { opacity: .35; cursor: default; }
+.res-smalls { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
+.res-small { padding: 7px 14px; font: inherit; font-size: 15px; font-weight: 700; color: var(--tinta); background: #fff; border: 1px solid var(--linia); border-radius: 10px; cursor: pointer; }
+.res-small.main { background: var(--accent); border-color: var(--accent); color: #111; }
+@media (max-width: 640px) {
+  .res-big { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .res-tile { min-height: 96px; }
+}

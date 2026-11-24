@@ -20,11 +20,13 @@ export const CHOICE = {
   hand: 'Practicar només la mà dreta',
   back: 'Tornar a un pas anterior',
   repeat: 'Repetir igual',
+  again: 'Escoltar-ho i tornar-hi',
+  help: 'Posar ajuda',
   next: 'Passar al pas següent',
   done: 'Ja no cal: ho porto al grup',
 };
 const AUTONOMY = new Set(['guide-off', 'faster']);
-const STAYS = new Set(['slower', 'faster', 'guide-on', 'guide-off', 'strings', 'hand', 'repeat']);
+const STAYS = new Set(['slower', 'faster', 'guide-on', 'guide-off', 'strings', 'hand', 'repeat', 'again', 'help']);
 
 export function choices() {
   const p = store.player();
