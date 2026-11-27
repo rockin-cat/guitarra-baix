@@ -733,9 +733,9 @@ function renderResult(st) {
   const opts = optionsFor(st);
   const bigs = opts.filter((o) => o.big);
   const smalls = opts.filter((o) => !o.big);
-  html += `<div class="res-block"><h4>I ara?</h4><div class="res-big">${bigs.map((o) => (o.off
+  html += `<div class="res-block"><h4>I ara?</h4><div class="res-big">${bigs.map((o, i) => (o.off
     ? `<div class="res-tile off" aria-hidden="true"><span class="ic">${o.ic}</span><b>${esc(o.text)}</b><small>${esc(o.sub ?? '')}</small></div>`
-    : `<button type="button" class="res-tile" data-opt="${o.id}"${o.to ? ` data-id="${esc(o.to)}"` : ''}><span class="ic" aria-hidden="true">${o.ic}</span><b>${esc(o.text)}</b>${o.sub ? `<small>${esc(o.sub)}</small>` : ''}</button>`)).join('')}</div>
+    : `<button type="button" class="res-tile" data-n="${i + 1}" title="Tecla ${i + 1}" data-opt="${o.id}"${o.to ? ` data-id="${esc(o.to)}"` : ''}><kbd class="tile-key">${i + 1}</kbd><span class="ic" aria-hidden="true">${o.ic}</span><b>${esc(o.text)}</b>${o.sub ? `<small>${esc(o.sub)}</small>` : ''}</button>`)).join('')}</div>
     ${smalls.length ? `<div class="res-smalls">${smalls.map((o) => `<button type="button" class="res-small${o.id === 'next' && r !== 'no' ? ' main' : ''}" data-opt="${o.id}"${o.to ? ` data-id="${esc(o.to)}"` : ''}><span aria-hidden="true">${o.ic}</span> ${esc(o.text)}</button>`).join('')}</div>` : ''}</div>`;
   if (r !== 'no' && nav?.pathDone()) html += '<p class="path-end-inline"><b>🎸 Has acabat el camí.</b> Ja ho pots portar al teu grup.</p>';
   else if (r === 'ok' && !res.levelWasDone && nav?.levelDone() && nav.nextLevel) html += `<p class="muted small">✅ Nivell ${st.step.nivell} acabat. El següent: <b>${esc(nav.nextLevel.titol)}</b>.</p>`;

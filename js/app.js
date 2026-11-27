@@ -674,6 +674,11 @@ document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape' && document.body.dataset.view === 'session' && !document.querySelector('dialog[open]')) {
     document.querySelector('#v-session [data-act="back"]')?.click();
   }
+  // 1 2 3 4: els quatre botons grans del resultat
+  if (/^[1-4]$/.test(e.key) && document.body.dataset.view === 'session' && !/INPUT|TEXTAREA|SELECT/.test(document.activeElement?.tagName)) {
+    const t = document.querySelector(`#v-session .assess:not([hidden]) .res-big [data-n="${e.key}"]`);
+    if (t) { e.preventDefault(); t.click(); return; }
+  }
   if (e.key === ' ' && document.body.dataset.view === 'session' && !/INPUT|TEXTAREA|SELECT/.test(document.activeElement?.tagName)) {
     e.preventDefault();
     const stop = document.querySelector('#v-session [data-act="stop"]');
