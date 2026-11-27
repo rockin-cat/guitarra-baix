@@ -18,6 +18,7 @@ import { renderGuide, closeGuide } from './guide.js';
 import { reached, pill, gapText } from './assoliment.js';
 import { decided, observations, lastDecisions, MIN_DECISIONS } from './autoregulacio.js';
 import { tabsHtml, comVasHtml, historialHtml } from './quesefer.js';
+import { installHelp } from './ajuda.js';
 
 const $ = (sel, root = document) => root.querySelector(sel);
 const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
@@ -649,7 +650,7 @@ function listenChip(L) {
   const c = $('#listen-chip');
   const on = L.isOn();
   c.classList.toggle('on', on);
-  c.textContent = on ? 'T\'escolto' : 'Connecta la guitarra';
+  c.textContent = on ? '🔊 Guitarra connectada' : '🔌 Connecta la guitarra';
   const sb = document.querySelector('#v-session [data-act="listen-dlg"]');
   if (sb) { sb.classList.toggle('on', on); sb.textContent = c.textContent; }
 }
@@ -714,3 +715,13 @@ goPoster();
 refreshWorkSong();
 window.__rockinReady = true;
 window.rockinGB = { store, openStep, LEVELS };
+
+// «? Ajuda»: el mateix a totes les eines Rockin
+installHelp({
+  app: 'guitarra',
+  diagnose: async () => {
+    const L = await import('./listen.js');
+    return [L.isOn() ? [true, 'La guitarra està connectada: la sents per l\'ordinador.'] : [null, 'La guitarra no està connectada. No cal per jugar: connecta-la només si la vols sentir per l\'ordinador.']];
+  },
+  more: [['📖 Com es llegeix la pantalla', () => document.querySelector('[data-nav="guide"]')?.click()]],
+});

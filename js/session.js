@@ -178,7 +178,7 @@ export function openSession(host, baseStep, ctx) {
               <div class="strpick" data-el="strpick" hidden title="Les cordes amb què fas el dibuix de la carta (tantes com alçades té)"><span>Cordes</span>${[5, 4, 3, 2, 1, 0].map((s) => `<button type="button" class="str-btn" data-str="${s}">${6 - s}</button>`).join('')}</div>
               <label class="toggle" data-el="handwrap" hidden title="Amaga el mànec i la pista: només la carta i les fletxes del rascat"><input type="checkbox" data-el="handonly"> Només mà dreta</label>
               <button type="button" class="btn btn-ghost btn-small" data-act="strings" hidden>Corda a corda</button>
-              <button type="button" class="btn btn-ghost btn-small listen-btn" data-act="listen-dlg" title="Amb un cable jack → USB, el joc t'escolta i et corregeix">Connecta la guitarra</button>
+              <button type="button" class="btn btn-ghost btn-small listen-btn" data-act="listen-dlg" title="Amb un cable jack → USB, sents la guitarra pels altaveus o els auriculars, com un ampli">🔌 Connecta la guitarra</button>
             </div>
             <div class="ctrl-opts ctrl-song" data-el="songbar"></div>
             </div>
@@ -476,7 +476,8 @@ async function go(st, what) {
   if (listen.settings().on && !listen.isOn()) { try { await ambTemps(listen.start(), 6000); } catch { listen.stop(); listen.settings().on = false; } }
   if (!viu()) return;
   st.judge?.destroy();
-  st.judge = listen.isOn() && st.kind !== 'improv' && st.kind !== 'compose' ? createJudge(st.inst.id, { onVerdict: (v) => showVerdict(st, v) }) : null;
+  // el joc no corregeix la guitarra: connectar-la només serveix per sentir-la pels altaveus (com un ampli)
+  st.judge = null;
   st.listenSum = null;
   st.demoPending = false;
   st.soloBars = 0; st.lastSoloBar = null; st.naturalEnd = false;
@@ -537,10 +538,10 @@ function finished(st, natural) {
 function updateListenUi(st) {
   const on = listen.isOn();
   const b = $('[data-act="listen-dlg"]', st.root);
-  if (b) { b.textContent = on ? 'T\'escolto' : 'Connecta la guitarra'; b.classList.toggle('on', on); }
+  if (b) { b.textContent = on ? '🔊 Guitarra connectada' : '🔌 Connecta la guitarra'; b.classList.toggle('on', on); }
   st.el('lhud').hidden = !on;
   const chip = document.getElementById('listen-chip');
-  if (chip) { chip.classList.toggle('on', on); chip.textContent = on ? 'T\'escolto' : 'Connecta la guitarra'; }
+  if (chip) { chip.classList.toggle('on', on); chip.textContent = on ? '🔊 Guitarra connectada' : '🔌 Connecta la guitarra'; }
 }
 
 function resetDots(st) {
@@ -1552,7 +1553,7 @@ function setupTuner(st) {
     if (current !== st) return;
     requestAnimationFrame(tunerLoop);
     live.hidden = !listen.isOn();
-    box.querySelector('[data-t="listen"]').textContent = listen.isOn() ? 'T\'escolto' : 'Connecta la guitarra';
+    box.querySelector('[data-t="listen"]').textContent = listen.isOn() ? '🔊 Guitarra connectada' : '🔌 Connecta la guitarra';
     if (!listen.isOn()) return;
     const m = listen.currentNote();
     if (m == null) return;

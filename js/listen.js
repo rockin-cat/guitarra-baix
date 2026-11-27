@@ -319,27 +319,25 @@ export function openDialog({ onChange, focus = null } = {}) {
   const s = settings();
   dlg.innerHTML = `
     <form method="dialog">
-      <h2>La teva guitarra</h2>
-      <p class="muted small">Cable jack → USB (o l'ampli per USB).</p>
+      <h2>Sentir la guitarra per l'ordinador</h2>
+      <p class="muted small">Amb un cable jack → USB (o l'ampli per USB), l'ordinador fa d'ampli. El joc no et corregeix: tu escoltes i tu valores.</p>
       <div class="ld-out row"><b>Sortida</b><select id="ld-out" title="Per on surt el so del joc"><option value="">Sortida per defecte</option></select><button type="button" class="btn btn-ghost btn-small" id="ld-test">Prova el so</button></div>
       <p class="muted small" id="ld-out-tip">No sents la banda? Amb el cable USB connectat, l'ordinador pot enviar el so al cable: tria aquí els auriculars o els altaveus.</p>
       <ol class="ld-steps">
         <li>Connecta el cable a l'ordinador i tria'l aquí:
-          <div class="row"><select id="ld-dev"><option value="">Entrada per defecte</option></select><button type="button" class="btn btn-ghost btn-small" id="ld-on">Escolta</button></div></li>
+          <div class="row"><select id="ld-dev"><option value="">Entrada per defecte</option></select><button type="button" class="btn btn-primary btn-small" id="ld-on">Connecta</button></div></li>
         <li>Toca una corda: la barra s'ha de moure. <div class="ld-meter"><i id="ld-bar"></i></div><span class="ld-note" id="ld-note">—</span></li>
         <li id="ld-s-tuner"><b>Afinador</b>: toca cada corda a l'aire i porta l'agulla al mig.
           <div class="tl-body ld-tuner"><span class="tl-note" id="ld-tstr">—</span><div class="tl-scale"><i class="tl-zero"></i><i class="tl-needle" id="ld-needle"></i></div><span class="tl-cents" id="ld-cents"></span></div>
           <div class="ld-strings" id="ld-strings"></div></li>
-        <li id="ld-s-amp"><b>So d'ampli</b>: vols sentir la guitarra per l'ordinador?
+        <li id="ld-s-amp"><b>So d'ampli</b>: la guitarra sona per l'ordinador.
           <div class="row"><label class="toggle"><input type="checkbox" id="ld-mon"> Sí, fes-la sonar</label>
             <select id="ld-preset">${Object.entries(PRESETS).map(([k, p]) => `<option value="${k}">${p.nom}</option>`).join('')}</select>
             <label class="ld-vol">Volum <input type="range" id="ld-vol" min="0" max="1.5" step="0.05"></label></div>
           <p class="muted small">Fes servir auriculars a l'ordinador (amb altaveus i micròfon pot xiular). Si ja la sents per l'ampli, deixa-ho apagat.</p></li>
-        <li><b>Retard</b>: perquè el joc et corregeixi bé, sonaran clics i toca una corda a cada clic. <div class="row"><button type="button" class="btn btn-ghost btn-small" id="ld-cal">Ajusta el retard</button><span class="muted small" id="ld-cal-out">${s.inLat != null ? `Ara: ${Math.round(s.inLat * 1000)} ms` : ''}</span></div></li>
       </ol>
-      <label class="set-row">Com d'exigent
-        <select id="ld-tol"><option value="facil">Fàcil (per començar)</option><option value="normal">Normal</option><option value="exigent">Exigent</option></select></label>
-      <div class="row"><button type="button" class="btn btn-ghost" id="ld-off">Deixa d'escoltar</button><button class="btn btn-primary" value="ok">Fet</button></div>
+      <span hidden><button type="button" id="ld-cal"></button><span id="ld-cal-out"></span><select id="ld-tol"><option value="normal">Normal</option></select></span>
+      <div class="row"><button type="button" class="btn btn-ghost" id="ld-off">Desconnecta</button><button class="btn btn-primary" value="ok">Fet</button></div>
     </form>`;
   const $ = (id) => dlg.querySelector(`#${id}`);
   $('ld-tol').value = s.tol ?? 'normal';
@@ -375,10 +373,13 @@ export function openDialog({ onChange, focus = null } = {}) {
   const turnOn = async () => {
     try {
       await start($('ld-dev').value);
-      s.on = true; store.save();
+      s.on = true;
+      // connectar-la és per sentir-la: el so d'ampli s'encén sol
+      if (!m.on) { m.on = true; $('ld-mon').checked = true; applyMonitor(); }
+      store.save();
       await fill();
       await fillOut();
-      $('ld-on').textContent = 'Escoltant ✓';
+      $('ld-on').textContent = 'Connectada ✓';
       onChange?.(true);
     } catch (err) {
       $('ld-note').textContent = err?.name === 'NotAllowedError' ? 'Cal donar permís al navegador per fer servir l\'entrada d\'àudio.' : 'No s\'ha pogut obrir l\'entrada. Comprova el cable.';
@@ -386,7 +387,7 @@ export function openDialog({ onChange, focus = null } = {}) {
   };
   $('ld-on').addEventListener('click', turnOn);
   $('ld-dev').addEventListener('change', turnOn);
-  $('ld-off').addEventListener('click', () => { stop(); s.on = false; store.save(); $('ld-on').textContent = 'Escolta'; onChange?.(false); });
+  $('ld-off').addEventListener('click', () => { stop(); s.on = false; store.save(); $('ld-on').textContent = 'Connecta'; onChange?.(false); });
   $('ld-cal').addEventListener('click', async () => {
     if (!isOn()) await turnOn();
     if (!isOn()) return;
